@@ -1,0 +1,29 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu]
+
+    steps:
+      - if: matrix.os == 'windows'
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - run: docker/start.sh
+
+      - uses: mlugg/setup-zig@v1
+        with:
+          version: master
+
+      - run: zig build test -freference-trace --summary all
+

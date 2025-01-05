@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="testall" type="ZIGBRAINS_BUILD" factoryName="ZIGBRAINS_BUILD">
+    <ZigBrainsOption name="workingDirectory" value="$PROJECT_DIR$" />
+    <ZigBrainsOption name="pty" value="false" />
+    <ZigBrainsOption name="direnv" value="false" />
+    <ZigBrainsArrayOption name="buildSteps">
+      <ZigBrainsArrayEntry value="install" />
+    </ZigBrainsArrayOption>
+    <ZigBrainsArrayOption name="compilerArgs" />
+    <ZigBrainsOption name="colored" value="true" />
+    <ZigBrainsOption name="exePath" value="$PROJECT_DIR$/zig-out/bin/test" />
+    <ZigBrainsArrayOption name="exeArgs" />
+    <method v="2" />
+  </configuration>
+</component>

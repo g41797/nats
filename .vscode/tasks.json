@@ -1,0 +1,47 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "zig build",
+            "type": "shell",
+            "command": "zig",
+            "args": ["build"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "build_test",
+            "type": "shell",
+            "command": "zig",
+            "args": [
+                 "build",
+                "install",
+                "--summary",
+                "all"
+            ],
+            "group": "test"
+        },
+        {
+            "label": "build_test_org",
+            "type": "shell",
+            "command": "zig",
+            "args": [
+                "test",
+                "${input:testFile}",
+                "--test-no-exec",
+                "-femit-bin=${workspaceFolder}/zig-out/test-binary"
+            ],
+            "group": "test"
+        }
+    ],
+    "inputs": [
+        {
+            "type": "promptString",
+            "id": "testFile",
+            "description": "Test file path",
+            "default": "src/root_tests.zig"
+        }
+    ]
+}

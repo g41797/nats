@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Main",
+      "program": "${workspaceFolder}/${workspaceFolderBasename}",
+      "preLaunchTask": "zig build",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Test",
+      "program": "${workspaceFolder}/zig-out/bin/test",
+      "preLaunchTask": "build_test",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    }
+  ],
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "testFile",
+      "description": "Test file path",
+      "default": "src/root_tests.zig"
+    }
+  ]
+}
