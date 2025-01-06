@@ -1,0 +1,32 @@
+NATS
+    https://github.com/nats-io
+    https://nats.io/
+
+JetStream    
+    https://docs.nats.io/nats-concepts/jetstream
+
+Developing With NATS
+    https://docs.nats.io/using-nats/developer
+    
+NATS Protocols
+    https://docs.nats.io/reference/reference-protocols
+
+Client libraries
+    https://github.com/nats-io/nats.zig
+    https://github.com/epicyclic-dev/nats-client
+    https://github.com/ianic/nats.zig
+    https://github.com/rutgerbrf/zig-nats
+    
+    https://github.com/basis-company/nats.php
+    
+    https://github.com/nats-io/nats.c
+    https://github.com/nats-io/nats.go
+    
+Real-time IoT monitoring with NATS JetStream...    
+    https://nats.io/blog/real-time-monitoring-solution-jetstream-risingwave-superset/
+    
+MQTT client for Zig    
+    https://github.com/karlseguin/mqttz
+    
+Submodules
+    git submodule add https://github.com/nats-io/nats.c src/submodules/nats.c
