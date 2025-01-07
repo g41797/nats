@@ -9,7 +9,7 @@ Developing With NATS
     https://docs.nats.io/using-nats/developer
     
 NATS Protocols
-    https://docs.nats.io/reference/reference-protocols
+    https://docs.nats.io/reference/reference-protocols/nats-protocol
 
 Client libraries
     https://github.com/nats-io/nats.zig
@@ -30,3 +30,22 @@ MQTT client for Zig
     
 Submodules
     git submodule add https://github.com/nats-io/nats.c src/submodules/nats.c
+    
+HTTP messages
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages
+    
+    Although the line terminator for the start-line and header fields
+    is the sequence CRLF, a recipient MAY recognize a single LF as a 
+    line terminator and ignore any preceding CR.
+
+Handling real-world JSON documents with Zig v0.11
+    https://log.pocka.io/en/Blog/2024/zig-v0.11-json-handling/
+    
+Custom String Formatting and JSON [De]Serializing in Zig
+    https://www.openmymind.net/Custom-String-Formatting-And-JSON-in-Zig/
+    
+StringifyOptions
+    https://ziglang.org/documentation/master/std/#std.json.stringify.StringifyOptions
+
+ParseOptions
+    https://ziglang.org/documentation/master/std/#std.json.static.ParseOptions                

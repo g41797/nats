@@ -1,0 +1,120 @@
+https://docs.nats.io/reference/reference-protocols/nats-protocol
+
+Only PUB, MSG, HPUB, and HMSG include payloads.
+
+Field Delimiters: 
+    The fields of NATS protocol messages are delimited by 
+    whitespace characters (space) or (tab). 
+    Multiple whitespace characters will be treated as a single
+    field delimiter.
+
+Newlines: 
+    NATS uses ␍ followed by ␊ (␍␊, 0x0D0A) to terminate protocol
+    messages. This newline sequence is also used to mark the end 
+    of the message payload in PUB, MSG, HPUB, and HMSG protocol messages.
+
+Subject names: 
+    Subject names, including reply subject names, are case-sensitive and 
+    must be non-empty alphanumeric strings with no embedded whitespace. 
+    All UTF-8 characters except spaces/tabs and separators which are . and > are allowed.
+    Subject names can be optionally token-delimited using the dot character (.), e.g.:
+
+    FOO, BAR, foo.bar, foo.BAR, FOO.BAR and FOO.BAR.BAZ are all valid subject names
+    FOO. BAR, foo. .bar andfoo..bar are not valid subject names    
+
+Without payloads    
+    INFO        Server  Sent to client after initial TCP/IP connection
+                        INFO {"option_name":option_value,...}␍␊
+                
+    CONNECT     Client  Sent to server to specify connection information
+                        CONNECT {"option_name":option_value,...}␍␊
+        
+                        CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.2.2","protocol":1}␍␊
+    
+    SUB         Client  Subscribe to a subject (or subject wildcard)
+                        SUB <subject> [queue group] <sid>␍␊
+                        
+                        SUB FOO 1␍␊
+                        
+                        SUB BAR G1 44␍␊
+                
+    UNSUB       Client  Unsubscribe (or auto-unsubscribe) from subject
+                        UNSUB <sid> [max_msgs]␍␊
+                        
+                        UNSUB 1␍␊
+                        
+                        UNSUB 1 5␍␊
+                
+    PING        Both    PING keep-alive message
+                        PING␍␊
+                        
+    PONG        Both    PONG keep-alive response
+                        PONG␍␊
+                        
+    +OK         Server  Acknowledges well-formed protocol message in verbose mode
+                        +OK␍␊
+    
+    -ERR        Server  Indicates a protocol error. May cause client disconnect.
+                        -ERR <error message>␍␊
+                
+With payloads    
+    PUB         Client  Publish a message to a subject, with optional reply subject
+                        PUB <subject> [reply-to] <#bytes>␍␊
+                        [payload]␍␊
+                        
+                        PUB FOO 11␍␊
+                        Hello NATS!␍␊
+                        
+                        PUB FRONT.DOOR JOKE.22 11␍␊
+                        Knock Knock␍␊
+                        
+                        PUB NOTIFY 0␍␊
+                        ␍␊
+                
+    HPUB        Client  Publish a message to a subject including NATS headers, with optional reply subject
+                        HPUB <subject> [reply-to] <#header bytes> <#total bytes>␍␊
+                        [headers]␍␊␍␊
+                        [payload]␍␊
+                        
+                        HPUB FOO 22 33␍␊
+                        NATS/1.0␍␊
+                        Bar: Baz␍␊␍␊
+                        Hello NATS!␍␊
+                        
+                        HPUB FRONT.DOOR JOKE.22 45 56␍␊
+                        NATS/1.0␍␊
+                        BREAKFAST: donut␍␊
+                        LUNCH: burger␍␊␍␊
+                        Knock Knock␍␊
+                        
+                        HPUB MORNING.MENU 47 51␍␊
+                        NATS/1.0␍␊
+                        BREAKFAST: donut␍␊
+                        BREAKFAST: eggs␍␊␍␊
+                        Yum!␍␊
+                    
+    MSG         Server  Delivers a message payload to a subscriber
+                        MSG <subject> <sid> [reply-to] <#bytes>␍␊
+                        [payload]␍␊
+                        
+                        MSG FOO.BAR 9 11␍␊
+                        Hello World␍␊
+                        
+                        MSG FOO.BAR 9 GREETING.34 11␍␊
+                        Hello World␍␊
+    
+    HMSG        Server  Delivers a message payload to a subscriber with NATS headers
+                        HMSG <subject> <sid> [reply-to] <#header bytes> <#total bytes>␍␊
+                        [headers]␍␊␍␊
+                        [payload]␍␊
+        
+                        HMSG FOO.BAR 34 45␍␊
+                        NATS/1.0␍␊
+                        FoodGroup: vegetable␍␊␍␊
+                        Hello World␍␊
+                        
+                        HMSG FOO.BAR 9 BAZ.69 34 45␍␊
+                        NATS/1.0␍␊
+                        FoodGroup: vegetable␍␊␍␊
+                        Hello World␍␊
+                                        

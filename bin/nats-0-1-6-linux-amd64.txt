@@ -1,0 +1,72 @@
+./nats cheat
+Available Cheats:
+
+    account
+    bench
+    consumer
+    contexts
+    errors
+    events
+    kv
+    latency
+    obj
+    pub
+    reply
+    schemas
+    server
+    stream
+    sub
+
+./nats server  --help
+usage: nats server <command> [<args> ...]
+
+Server information
+
+Subcommands:
+  server account   Interact with accounts
+  server check     Health check for NATS servers
+  server cluster   Manage JetStream Clustering
+  server config    Interact with server configuration
+  server info      Show information about a single server
+  server list      List known servers
+  server mappings  Test subject mapping patterns
+  server passwd    Creates encrypted passwords for use in NATS Server
+  server ping      Ping all servers
+  server report    Report on various server metrics
+  server request   Request monitoring data from a specific server
+
+Global Flags:
+  -h, --help                    Show context-sensitive help
+      --version                 Show application version.
+  -s, --server=URL              NATS server urls ($NATS_URL)
+      --user=USER               Username or Token ($NATS_USER)
+      --password=PASSWORD       Password ($NATS_PASSWORD)
+      --connection-name=NAME    Nickname to use for the underlying NATS Connection
+      --creds=FILE              User credentials ($NATS_CREDS)
+      --nkey=FILE               User NKEY ($NATS_NKEY)
+      --tlscert=FILE            TLS public certificate ($NATS_CERT)
+      --tlskey=FILE             TLS private key ($NATS_KEY)
+      --tlsca=FILE              TLS certificate authority chain ($NATS_CA)
+      --[no-]tlsfirst           Perform TLS handshake before expecting the server greeting
+      --timeout=DURATION        Time to wait on responses from NATS ($NATS_TIMEOUT)
+      --socks-proxy=PROXY       SOCKS5 proxy for connecting to NATS server ($NATS_SOCKS_PROXY)
+      --js-api-prefix=PREFIX    Subject prefix for access to JetStream API
+      --js-event-prefix=PREFIX  Subject prefix for access to JetStream Advisories
+      --js-domain=DOMAIN        JetStream domain to access
+      --inbox-prefix=PREFIX     Custom inbox prefix to use for inboxes
+      --colors=SCHEME           Sets a color scheme to use ($NATS_COLOR)
+      --context=NAME            Configuration context ($NATS_CONTEXT)
+      --trace                   Trace API interactions
+      --no-context              Disable the selected context
+
+
+
+
+telnet -4 localhost 4222
+
+INFO {"server_id":"NBKGIX5B7HTLWXJLNR7QHFPXFCY3S33WJF7QIZLGB75KW2HNQFBNKE2F","server_name":"NBKGIX5B7HTLWXJLNR7QHFPXFCY3S33WJF7QIZLGB75KW2HNQFBNKE2F","version":"2.10.24","proto":1,"git_commit":"1d6f7ea","go":"go1.23.4","host":"0.0.0.0","port":4222,"headers":true,"max_payload":1048576,"jetstream":true,"client_id":5,"client_ip":"172.18.0.1","xkey":"XBPECVCORYF4FBGNQYMCDY6MDAARYABTXXCULAWNOMPRUNYWXFWUZKLQ"}
+
+CONNECT {}
+OK
+PING
+PONG
