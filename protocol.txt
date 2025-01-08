@@ -24,14 +24,46 @@ Subject names:
 
 Without payloads    
     INFO        Server  Sent to client after initial TCP/IP connection
+
                         INFO {"option_name":option_value,...}␍␊
+                        
+                        INFO 
+                            {
+                                "server_id":"NBKGIX5B7HTLWXJLNR7QHFPXFCY3S33WJF7QIZLGB75KW2HNQFBNKE2F",
+                                "server_name":"NBKGIX5B7HTLWXJLNR7QHFPXFCY3S33WJF7QIZLGB75KW2HNQFBNKE2F",
+                                "version":"2.10.24",
+                                "proto":1,
+                                "git_commit":"1d6f7ea",
+                                "go":"go1.23.4",
+                                "host":"0.0.0.0",
+                                "port":4222,
+                                "headers":true,
+                                "max_payload":1048576,
+                                "jetstream":true,
+                                "client_id":5,
+                                "client_ip":"172.18.0.1",
+                                "xkey":"XBPECVCORYF4FBGNQYMCDY6MDAARYABTXXCULAWNOMPRUNYWXFWUZKLQ"
+                            }
+                            ␍␊
                 
     CONNECT     Client  Sent to server to specify connection information
+
                         CONNECT {"option_name":option_value,...}␍␊
         
-                        CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.2.2","protocol":1}␍␊
+                        CONNECT 
+                            {
+                                "verbose":false,
+                                "pedantic":false,
+                                "tls_required":false,
+                                "name":"",
+                                "lang":"go",
+                                "version":"1.2.2",
+                                "protocol":1
+                            }
+                            ␍␊
     
     SUB         Client  Subscribe to a subject (or subject wildcard)
+
                         SUB <subject> [queue group] <sid>␍␊
                         
                         SUB FOO 1␍␊
@@ -39,6 +71,7 @@ Without payloads
                         SUB BAR G1 44␍␊
                 
     UNSUB       Client  Unsubscribe (or auto-unsubscribe) from subject
+
                         UNSUB <sid> [max_msgs]␍␊
                         
                         UNSUB 1␍␊
@@ -46,19 +79,24 @@ Without payloads
                         UNSUB 1 5␍␊
                 
     PING        Both    PING keep-alive message
+
                         PING␍␊
                         
     PONG        Both    PONG keep-alive response
+
                         PONG␍␊
                         
     +OK         Server  Acknowledges well-formed protocol message in verbose mode
+
                         +OK␍␊
     
     -ERR        Server  Indicates a protocol error. May cause client disconnect.
+
                         -ERR <error message>␍␊
                 
 With payloads    
     PUB         Client  Publish a message to a subject, with optional reply subject
+
                         PUB <subject> [reply-to] <#bytes>␍␊
                         [payload]␍␊
                         
@@ -72,6 +110,7 @@ With payloads
                         ␍␊
                 
     HPUB        Client  Publish a message to a subject including NATS headers, with optional reply subject
+
                         HPUB <subject> [reply-to] <#header bytes> <#total bytes>␍␊
                         [headers]␍␊␍␊
                         [payload]␍␊
@@ -94,6 +133,7 @@ With payloads
                         Yum!␍␊
                     
     MSG         Server  Delivers a message payload to a subscriber
+
                         MSG <subject> <sid> [reply-to] <#bytes>␍␊
                         [payload]␍␊
                         
@@ -104,6 +144,7 @@ With payloads
                         Hello World␍␊
     
     HMSG        Server  Delivers a message payload to a subscriber with NATS headers
+
                         HMSG <subject> <sid> [reply-to] <#header bytes> <#total bytes>␍␊
                         [headers]␍␊␍␊
                         [payload]␍␊
@@ -117,4 +158,15 @@ With payloads
                         NATS/1.0␍␊
                         FoodGroup: vegetable␍␊␍␊
                         Hello World␍␊
-                                        
+
+Connecting
+    https://docs.nats.io/using-nats/developer/connecting
+
+    Ping/Pong Protocol
+        https://docs.nats.io/using-nats/developer/connecting/pingpong
+
+    Turning Off Echo'd Messages
+        https://docs.nats.io/using-nats/developer/connecting/noecho
+        
+    ..........................
+                                                        
