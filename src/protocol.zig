@@ -21,22 +21,7 @@ pub const Appendable = struct {
         return;
     }
 
-    pub fn fill(apndbl: *Appendable, from: []u8, len: usize) !void {
-        if (apndbl.buffer == null) {
-            error.WasNotAllocated;
-        }
-
-        _ = from;
-        _ = len;
-
-        return;
-    }
-
-    pub fn deinit(apndbl: *Appendable) void {
-        apndbl.free();
-    }
-
-    pub fn reinit(apndbl: *Appendable) !void {
+    pub fn reset(apndbl: *Appendable) !void {
         if (apndbl.buffer == null) {
             error.WasNotAllocated;
         }
@@ -44,13 +29,30 @@ pub const Appendable = struct {
         return;
     }
 
-    pub fn append(apndbl: *Appendable, buff: []u8) !void {
-        _ = apndbl;
+    pub fn deinit(apndbl: *Appendable) void {
+        apndbl.free();
+    }
+
+    pub inline fn append(apndbl: *Appendable, buff: []u8) !void {
+        if (apndbl.buffer == null) {
+            error.WasNotAllocated;
+        }
         _ = buff;
         return;
     }
 
-    fn alloc(apndbl: *Appendable, len: usize) !void {
+    pub fn fill(apndbl: *Appendable, from: []u8, len: usize) !void {
+        if (from.len < len) {
+            return error.OutOfBoundary;
+        }
+
+        try apndbl.reset();
+        try apndbl.append(from[0..len]);
+
+        return;
+    }
+
+    pub fn alloc(apndbl: *Appendable, len: usize) !void {
         if (apndbl.buffer == null) {
             apndbl.len = roundlen(len);
             apndbl.actual_len = 0;
@@ -64,7 +66,7 @@ pub const Appendable = struct {
             return;
         }
 
-        apndbl.buffer = try apndbl.allocator.realloc(apndbl.buffer, rlen);
+        apndbl.buffer = try apndbl.allocator.realloc(apndbl.buffer[0..apndbl.actual_len], rlen);
 
         return;
     }
@@ -88,9 +90,17 @@ pub const Appendable = struct {
         }
         return apndbl.buffer.?[0..apndbl.actual_len];
     }
+
+    inline fn roundlen(len: usize) usize {
+        if (len == 0) {
+            return 256;
+        }
+        return ((len / 256) + 1) * 256;
+    }
 };
 
 pub const MessageType = enum {
+    UNKNOWN,
     INFO,
     CONNECT,
     SUB,
@@ -130,6 +140,7 @@ pub const MessageType = enum {
 };
 
 const MessageTypeMap = EnumMap(MessageType, []u8).init(.{
+    .UNKNOWN = "!@#$%^&",
     .INFO = "INFO",
     .CONNECT = "CONNECT",
     .SUB = "SUB",
@@ -209,7 +220,7 @@ pub const Headers = struct {
     apndbl: Appendable = undefined,
 
     pub fn init(hdrs: *Headers, allocator: Allocator, len: usize) !void {
-        hdrs.apndbl.init(allocator, len);
+        try hdrs.apndbl.init(allocator, len);
         return;
     }
 
@@ -225,8 +236,8 @@ pub const Headers = struct {
         return;
     }
 
-    pub fn reinit(hdrs: *Headers) !void {
-        try hdrs.apndbl.reinit();
+    pub fn reset(hdrs: *Headers) !void {
+        try hdrs.apndbl.reset();
         return;
     }
 
@@ -239,9 +250,67 @@ pub const Headers = struct {
     }
 };
 
-inline fn roundlen(len: usize) usize {
-    if (len == 0) {
-        return 256;
+pub const MSG = struct {
+    mt: MessageType = MessageType.UNKNOWN,
+    subject: Appendable = undefined,
+    sid: Appendable = undefined,
+    reply_to: Appendable = undefined,
+    headers: Headers = undefined,
+    payload: Appendable = undefined,
+
+    pub fn init(msg: *MSG, allocator: Allocator, plen: usize) !void {
+        msg.mt = MessageType.UNKNOWN;
+        try msg.subject.init(allocator, 256);
+        try msg.sid.init(allocator, 256);
+        try msg.reply_to.init(allocator, 256);
+        try msg.headers.init(allocator, 256);
+        try msg.payload.init(allocator, plen);
+        return;
     }
-    return ((len / 256) + 1) * 256;
-}
+
+    pub fn set(msg: *MSG, mt: MessageType) !void {
+        try msg.subject.reset();
+        try msg.sid.reset();
+        try msg.reply_to.reset();
+        try msg.headers.reset();
+        try msg.payload.reset();
+        msg.mt = mt;
+        return;
+    }
+
+    pub fn deinit(msg: *MSG) void {
+        msg.mt = MessageType.UNKNOWN;
+        msg.subject.free();
+        msg.sid.free();
+        msg.reply_to.free();
+        msg.headers.free();
+        msg.payload.free();
+        return;
+    }
+
+    pub fn Subject(msg: *MSG) ?[]u8 {
+        return msg.subject.body();
+    }
+
+    pub fn Sid(msg: *MSG) ?[]u8 {
+        return msg.sid.body();
+    }
+
+    pub fn ReplyTo(msg: *MSG) ?[]u8 {
+        return msg.reply_to.body();
+    }
+
+    pub fn getHeaders(msg: *MSG) ?[]u8 {
+        if (msg.mt.has_header()) {
+            return msg.headers.body();
+        }
+        return null;
+    }
+
+    pub fn getPayload(msg: *MSG) ?[]u8 {
+        if (msg.mt.has_payload()) {
+            return msg.payload.body();
+        }
+        return null;
+    }
+};
