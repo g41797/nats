@@ -26,7 +26,6 @@ pub fn count_substrings(line: []const u8) !u16 {
     return ReturnedError.Unknown;
 }
 
-
 pub fn cut_head(line: []const u8) !struct { head: []const u8, tail: []const u8 } {
     _ = line;
     return ReturnedError.Unknown;

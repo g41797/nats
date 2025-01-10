@@ -3,3 +3,4 @@
 
 const parse = @import("parse.zig");
 const err = @import("err.zig");
+const protocol = @import("protocol.zig");

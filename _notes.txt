@@ -49,3 +49,6 @@ StringifyOptions
 
 ParseOptions
     https://ziglang.org/documentation/master/std/#std.json.static.ParseOptions                
+
+How to reallocate without loosing data
+    https://ziggit.dev/t/how-to-reallocate-without-loosing-data/7723

@@ -4,34 +4,41 @@
 const std = @import("std");
 
 pub const ReturnedError = error{
-    BadFormat,
-    Buried,
-    Deadline,
-    Draining,
-    Internal,
-    JobTooBig,
-    NoCRLF,
-    NotFound,
-    NotIgnored,
-    OOM,
-    Timeout,
+    UPO,
+    ACRP,
+    AV,
+    AT,
+    ICP,
+    MCLE,
+    PE,
+    TR,
+    SC,
+    MCE,
+    SCO,
+    MPV,
+    IS,
+    PV,
     Unknown,
     CommunicationFailure,
 };
 
 const ReturnedErrorMap = std.StaticStringMap(ReturnedError).initComptime(.{
-    .{ "BAD_FORMAT", ReturnedError.BadFormat },
-    .{ "BURIED", ReturnedError.Buried },
-    .{ "DEADLINE_SOON", ReturnedError.Deadline },
-    .{ "DRAINING", ReturnedError.Draining },
-    .{ "EXPECTED_CRLF", ReturnedError.NoCRLF },
-    .{ "INTERNAL_ERROR", ReturnedError.Internal },
-    .{ "JOB_TOO_BIG", ReturnedError.JobTooBig },
-    .{ "NOT_FOUND", ReturnedError.NotFound },
-    .{ "NOT_IGNORED", ReturnedError.NotIgnored },
-    .{ "OUT_OF_MEMORY", ReturnedError.OOM },
-    .{ "TIMED_OUT", ReturnedError.Timeout },
-    .{ "UNKNOWN_COMMAND", ReturnedError.Unknown },
+    .{ "Unknown Protocol Operation", ReturnedError.UPO },
+    .{ "Attempted To Connect To Route Port", ReturnedError.ACRP },
+    .{ "Authorization Violation", ReturnedError.AV },
+    .{ "Authorization Timeout", ReturnedError.AT },
+    .{ "Invalid Client Protocol", ReturnedError.ICP },
+    .{ "Maximum Control Line Exceeded", ReturnedError.MCLE },
+    .{ "Parser Error", ReturnedError.PE },
+    .{ "Secure Connection - TLS Required", ReturnedError.TR },
+    .{ "Stale Connection", ReturnedError.SC },
+    .{ "Maximum Connections Exceeded", ReturnedError.MCE },
+    .{ "Slow Consumer", ReturnedError.SCO },
+    .{ "Maximum Payload Violation", ReturnedError.MPV },
+
+    .{ "Invalid Subject", ReturnedError.IS },
+    .{ "Permissions Violation", ReturnedError.PV },
+
     .{ "CommunicationFailure", ReturnedError.CommunicationFailure },
 });
 
@@ -39,5 +46,5 @@ pub fn findError(text: []u8) ReturnedError {
     if (ReturnedErrorMap.get(text)) |reterr| {
         return reterr;
     }
-    return ReturnedError.Unknown;
+    return ReturnedError.PV;
 }
