@@ -11,7 +11,6 @@ const err = @import("err.zig");
 const ReturnedError = err.ReturnedError;
 const parse = @import("parse.zig");
 
-
 // ==========================================
 // Messages with payload and optional headers
 // ==========================================
@@ -73,7 +72,6 @@ const parse = @import("parse.zig");
 //
 // TOT_LEN the payload length plus the HDR_LEN
 
-
 pub const MessageType = enum {
     UNKNOWN,
     INFO,
@@ -89,17 +87,32 @@ pub const MessageType = enum {
     MSG,
     HMSG,
 
+    pub fn from_line(line: []const u8) MessageType {
+        const trl = std.mem.trim(u8, line, " \t\r\n");
+
+        if (trl.len == 0) {
+            return .UNKNOWN;
+        }
+
+        const subs_it = std.mem.splitScalar(u8, trl, ' ');
+
+        return from_string(subs_it.first());
+    }
+
     pub fn to_string(mt: MessageType) ?[]const u8 {
         return MessageTypeMap.get(mt);
     }
 
-    pub fn from_string(str: []const u8) ?MessageType {
+    pub fn from_string(str: []const u8) MessageType {
         if (str.len == 0) {
             return null;
         }
 
         const result = std.meta.stringToEnum(MessageType, str);
-        return result;
+        if (result == null) {
+            return .UNKNOWN;
+        }
+        return result.?;
     }
 
     pub fn has_header(mt: MessageType) bool {
@@ -115,7 +128,7 @@ pub const MessageType = enum {
 };
 
 const MessageTypeMap = EnumMap(MessageType, []u8).init(.{
-    .UNKNOWN = "!@#$%^&",
+    .UNKNOWN = "UNKNOWN",
     .INFO = "INFO",
     .CONNECT = "CONNECT",
     .SUB = "SUB",
@@ -129,11 +142,6 @@ const MessageTypeMap = EnumMap(MessageType, []u8).init(.{
     .MSG = "MSG",
     .HMSG = "HMSG",
 });
-
-pub fn cut_message_type(line: []const u8) !struct { mt: ?MessageType, tail: []const u8 } {
-    _ = line;
-    return error.BadFormat;
-}
 
 pub const Headers = struct {
     buffer: Appendable = undefined,
@@ -225,9 +233,9 @@ pub const MSG = struct {
         return msg.reply_to.body();
     }
 
-    pub fn getHeaders(msg: *MSG) ?[]u8 {
+    pub fn getHeaders(msg: *MSG) ?*Headers {
         if (msg.mt.has_header()) {
-            return msg.headers.body();
+            return msg.headers;
         }
         return null;
     }
@@ -244,10 +252,16 @@ pub const Appendable = struct {
     buffer: ?[]u8 = null,
     actual_len: usize = 0,
     allocator: Allocator = undefined,
+    round: usize = undefined,
 
-    pub fn init(apndbl: *Appendable, allocator: Allocator, len: usize) !void {
+    pub fn init(apndbl: *Appendable, allocator: Allocator, len: usize, round: ?usize) !void {
         apndbl.allocator = allocator;
         try apndbl.alloc(len);
+        if (round) |val| {
+            apndbl.round = val;
+        } else {
+            apndbl.round = 256;
+        }
         return;
     }
 
@@ -263,11 +277,23 @@ pub const Appendable = struct {
         apndbl.free();
     }
 
-    pub inline fn append(apndbl: *Appendable, buff: []u8) !void {
+    pub fn append(apndbl: *Appendable, buff: []u8) !void {
         if (apndbl.buffer == null) {
             return error.WasNotAllocated;
         }
-        _ = buff;
+        if (buff.len == 0) {
+            return;
+        }
+
+        const avail = apndbl.actual_len - apndbl.buffer.?.len;
+
+        if (avail < buff.len) {
+            try apndbl.alloc(@max(apndbl.roundlen(buff.len), apndbl.buffer.?.len * 2));
+        }
+
+        std.mem.copyForwards(u8, &apndbl.buffer[apndbl.actual_len], buff);
+
+        apndbl.actual_len += buff.len;
         return;
     }
 
@@ -291,13 +317,13 @@ pub const Appendable = struct {
 
     pub fn alloc(apndbl: *Appendable, len: usize) !void {
         if (apndbl.buffer == null) {
-            apndbl.len = roundlen(len);
+            apndbl.len = apndbl.roundlen(len);
             apndbl.actual_len = 0;
             apndbl.buffer = try apndbl.allocator.alloc(u8, apndbl.len);
             return;
         }
 
-        const rlen = roundlen(len);
+        const rlen = apndbl.roundlen(len);
 
         if (apndbl.len >= rlen) {
             return;
@@ -327,10 +353,7 @@ pub const Appendable = struct {
         return apndbl.buffer.?[0..apndbl.actual_len];
     }
 
-    inline fn roundlen(len: usize) usize {
-        if (len == 0) {
-            return 256;
-        }
-        return ((len / 256) + 1) * 256;
+    inline fn roundlen(apndbl: *Appendable, len: usize) usize {
+        return ((len / apndbl.round) + 1) * apndbl.round;
     }
 };
