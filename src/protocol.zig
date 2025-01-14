@@ -212,16 +212,6 @@ pub const MSG = struct {
         return;
     }
 
-    pub fn set(msg: *MSG, mt: MessageType) !void {
-        try msg.subject.reset();
-        try msg.sid.reset();
-        try msg.reply_to.reset();
-        try msg.headers.reset();
-        try msg.payload.reset();
-        msg.mt = mt;
-        return;
-    }
-
     pub fn deinit(msg: *MSG) void {
         msg.mt = MessageType.UNKNOWN;
         msg.subject.free();
@@ -229,6 +219,21 @@ pub const MSG = struct {
         msg.reply_to.free();
         msg.headers.free();
         msg.payload.free();
+        return;
+    }
+
+    pub fn reset(msg: *MSG) !void {
+        try msg.subject.reset();
+        try msg.sid.reset();
+        try msg.reply_to.reset();
+        try msg.headers.reset();
+        try msg.payload.reset();
+        return;
+    }
+
+    pub fn prepare(msg: *MSG, mt: MessageType) !void {
+        msg.mt = mt;
+        try msg.reset();
         return;
     }
 
@@ -256,6 +261,13 @@ pub const MSG = struct {
             return msg.payload.body();
         }
         return null;
+    }
+
+    pub fn detachPayload(msg: *MSG) Appendable {
+        const result = msg.payload;
+        msg.payload.buffer = null;
+        msg.payload.actual_len = 0;
+        return result;
     }
 };
 
