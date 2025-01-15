@@ -33,6 +33,8 @@ Without payloads
 
                         INFO {"option_name":option_value,...}␍␊
                         
+                        INFO {"server_id":"NAURQFRTEZMTT6LIZKVUP7RBHEPD36NAYYTM6DBTLN5UJ4HZOHLI5IUZ","server_name":"NAURQFRTEZMTT6LIZKVUP7RBHEPD36NAYYTM6DBTLN5UJ4HZOHLI5IUZ","version":"2.10.24","proto":1,"git_commit":"1d6f7ea","go":"go1.23.4","host":"0.0.0.0","port":4222,"headers":true,"max_payload":1048576,"jetstream":true,"client_id":6,"client_ip":"172.18.0.1","xkey":"XBQCKF4GTDYB2RKF5EO4XEAW2NLCDYOCHPLAEFGTLTOOPYXM4TWRKU5E"} 
+                        
                         INFO 
                             {
                                 "server_id":"NBKGIX5B7HTLWXJLNR7QHFPXFCY3S33WJF7QIZLGB75KW2HNQFBNKE2F",

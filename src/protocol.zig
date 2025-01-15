@@ -365,7 +365,7 @@ pub const Appendable = struct {
         return;
     }
 
-    pub fn body(apndbl: *Appendable) ?[]u8 {
+    pub fn body(apndbl: *Appendable) ?[]const u8 {
         if (apndbl.buffer == null) {
             return null;
         }
