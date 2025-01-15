@@ -6,6 +6,7 @@ const net = std.net;
 const http = std.http;
 const Connection = net.Stream;
 const Allocator = std.mem.Allocator;
+const Mutex = std.Thread.Mutex;
 
 const err = @import("err.zig");
 const ReturnedError = err.ReturnedError;
@@ -20,7 +21,7 @@ const HeaderIterator = protocol.HeaderIterator;
 pub const DefaultAddr = "127.0.0.1";
 pub const DafaultPort = 4222;
 
-const ConnectOpts = struct {
+const ClientOpts = struct {
     verbose: bool = false,
     pedantic: bool = false,
     tls_required: bool = false,
@@ -39,6 +40,7 @@ const ConnectOpts = struct {
 const ConnectString = "CONNECT {{{\"verbose\":false,\"pedantic\":false,\"tls_required\":false,\"lang\":\"Zig\",\"version\":\"T.B.D\",\"protocol\":0,\"echo\":false}}}\r\n";
 
 pub const Client = struct {
+    mutex: Mutex = .{},
     allocator: Allocator = undefined,
     connection: ?*Connection = null,
     line: Appendable = undefined,
@@ -53,6 +55,9 @@ pub const Client = struct {
     ///     - failed connection
     ///     - already existing connection
     pub fn connect(cl: *Client, allocator: Allocator, addr: ?[]const u8, port: ?u16) !void {
+        cl.mutex.lock();
+        defer cl.mutex.unlock();
+
         if (cl.connection != null) {
             return error.AlreadyConnected;
         }
@@ -83,12 +88,15 @@ pub const Client = struct {
             return error.ProtocolError;
         }
 
-        try cl.write(ConnectString);
+        try cl.connection.?.writer().writeAll(ConnectString);
 
         return;
     }
 
     pub fn disconnect(cl: *Client) void {
+        cl.mutex.lock();
+        defer cl.mutex.unlock();
+
         if (cl.connection == null) {
             return;
         }
@@ -113,6 +121,9 @@ pub const Client = struct {
 
     // Writes the formatted output to underlying stream.
     pub fn print(cl: *Client, comptime fmt: []const u8, args: anytype) !void {
+        cl.mutex.lock();
+        defer cl.mutex.unlock();
+
         if (cl.connection == null) {
             return ReturnedError.CommunicationFailure;
         }
@@ -122,20 +133,14 @@ pub const Client = struct {
 
     // Writes the buffer to underlying stream.
     pub fn write(cl: *Client, buffer: []const u8) !void {
+        cl.mutex.lock();
+        defer cl.mutex.unlock();
+
         if (cl.connection == null) {
             return ReturnedError.CommunicationFailure;
         }
 
         try cl.connection.?.writer().writeAll(buffer);
-    }
-
-    // Flushes underlying stream.
-    pub fn flush(cl: *Client) !void {
-        if (cl.connection == null) {
-            return ReturnedError.CommunicationFailure;
-        }
-
-        try cl.connection.?.flush();
     }
 
     pub fn read_mt(cl: *Client) !MT {
@@ -177,7 +182,7 @@ pub const Client = struct {
     }
 
     // Reads 'len' bytes from underlying stream to the buffer.
-    fn read_buffer(cl: *Client, buffer: Appendable, len: usize) !void {
+    pub fn read_buffer(cl: *Client, buffer: Appendable, len: usize) !void {
         if (cl.connection == null) {
             return ReturnedError.CommunicationFailure;
         }

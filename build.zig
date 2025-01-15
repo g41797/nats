@@ -15,6 +15,11 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
+    const mailbox = b.dependency("mailbox", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
     const lib = b.addStaticLibrary(.{
         .name = "nats",
         // In this case the main source file is merely a path, however, in more
@@ -22,8 +27,11 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
+        .single_threaded = false,
     });
-
+    
+    lib.root_module.addImport("mailbox", mailbox.module("mailbox"));
+    
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
@@ -70,8 +78,10 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/root_tests.zig"),
         .target = target,
         .optimize = optimize,
+        .single_threaded = false,
     });
-
+    
+    lib_unit_tests.root_module.addImport("mailbox", mailbox.module("mailbox"));
     b.installArtifact(lib_unit_tests);
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);

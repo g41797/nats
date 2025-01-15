@@ -13,6 +13,10 @@ NATS Protocols
 
 Client libraries
     https://github.com/nats-io/nats.zig
+    
+    https://github.com/nats-io/nats.c
+    https://github.com/nats-io/nats.c#faq
+    
     https://github.com/epicyclic-dev/nats-client
     https://github.com/ianic/nats.zig
     https://github.com/rutgerbrf/zig-nats

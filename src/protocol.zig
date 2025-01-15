@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 const std = @import("std");
+const mailbox = @import("mailbox");
 const ascii = std.ascii;
 const EnumMap = std.enums.EnumMap;
 const Allocator = std.mem.Allocator;
@@ -268,6 +269,35 @@ pub const MSG = struct {
         msg.payload.buffer = null;
         msg.payload.actual_len = 0;
         return result;
+    }
+};
+
+pub const Pool = mailbox.MailBox(MSG);
+
+pub const MSGPool = struct {
+    pool: Pool = .{},
+    allocator: Allocator = undefined,
+
+    pub fn init(mpl: *MSGPool, allocator: Allocator) void {
+        mpl.allocator = allocator;
+    }
+
+    pub fn deinit(mpl: *MSGPool) void {
+        _ = mpl;
+    }
+
+    pub fn get(mpl: *MSGPool) ?*Pool.Envelope {
+        if (mpl.pool.receive(0)) |env| {
+            env.*.letter.reset();
+            return env;
+        } else |_| {
+            return null;
+        }
+    }
+
+    pub fn put(mpl: *MSGPool, env: *Pool.Envelope) void {
+        _ = mpl;
+        _ = env;
     }
 };
 
