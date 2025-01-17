@@ -19,7 +19,12 @@ const Headers = protocol.Headers;
 const HeaderIterator = protocol.HeaderIterator;
 
 pub const DefaultAddr = "127.0.0.1";
-pub const DafaultPort = 4222;
+pub const DefaultPort = 4222;
+
+pub const ConnectOpts = struct {
+    addr: ?[]const u8 = DefaultAddr,
+    port: ?u16 = DefaultPort,
+};
 
 const ClientOpts = struct {
     verbose: bool = false,
@@ -45,16 +50,7 @@ pub const Client = struct {
     connection: ?*Connection = null,
     line: Appendable = undefined,
 
-    /// Returns connected to NATS client.
-    /// Arguments:
-    ///     allocator:
-    ///     addr: IPv4 address or host name, for null - DefaultAddr is used
-    ///     port: TCP/IP port,  for null - DafaultPort is used
-    ///
-    /// Returns errors for:
-    ///     - failed connection
-    ///     - already existing connection
-    pub fn connect(cl: *Client, allocator: Allocator, addr: ?[]const u8, port: ?u16) !void {
+    pub fn connect(cl: *Client, allocator: Allocator, co: ConnectOpts) !void {
         cl.mutex.lock();
         defer cl.mutex.unlock();
 
@@ -66,14 +62,14 @@ pub const Client = struct {
 
         var host: []const u8 = DefaultAddr;
 
-        if (addr != null) {
-            host = addr.?;
+        if (co.addr != null) {
+            host = co.addr.?;
         }
 
-        var prt: u16 = DafaultPort;
+        var prt: u16 = DefaultPort;
 
-        if (port != null) {
-            prt = port.?;
+        if (co.port != null) {
+            prt = co.port.?;
         }
 
         cl.connection = try cl.connectTcp(host, prt);

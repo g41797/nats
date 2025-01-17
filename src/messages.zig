@@ -8,7 +8,9 @@ pub const Appendable = @import("Appendable.zig");
 pub const protocol = @import("protocol.zig");
 pub const MSG = protocol.MSG;
 
-pub const AllocatedMSG = mailbox.MailBox(MSG).Envelope;
+pub const MSGMailBox = mailbox.MailBox(MSG);
+
+pub const AllocatedMSG = MSGMailBox.Envelope;
 
 pub fn alloc(allocator: Allocator) ?*AllocatedMSG {
     if (allocator.create(AllocatedMSG)) |am| {
@@ -28,7 +30,7 @@ pub fn free(amsg: *AllocatedMSG) void {
 }
 
 pub const Messages = struct {
-    pool: mailbox.MailBox(MSG) = .{},
+    pool: MSGMailBox = .{},
     allocator: Allocator = undefined,
 
     pub fn init(msgs: *Messages, allocator: Allocator) void {
@@ -37,11 +39,15 @@ pub const Messages = struct {
 
     pub fn deinit(msgs: *Messages) void {
         const allocated = msgs.pool.close();
-        if (allocated != null) {}
+        if (allocated != null) {
+            const next = allocated.?.next;
+            free(allocated);
+            allocated = next;
+        }
     }
 
-    pub fn get(msgs: *Messages) ?*AllocatedMSG {
-        if (msgs.pool.receive(0)) |amsg| {
+    pub fn get(msgs: *Messages, timeout_ns: u64) ?*AllocatedMSG {
+        if (msgs.pool.receive(timeout_ns)) |amsg| {
             amsg.*.letter.reset();
             return amsg;
         } else |er| {

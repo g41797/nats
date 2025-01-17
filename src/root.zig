@@ -6,4 +6,5 @@ const err = @import("err.zig");
 const protocol = @import("protocol.zig");
 const client = @import("client.zig");
 const Appendable = @import("Appendable.zig");
-const pool = @import("pool.zig");
+const pool = @import("messages.zig");
+const core = @import("core.zig");

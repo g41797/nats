@@ -12,23 +12,6 @@ const err = @import("err.zig");
 const ReturnedError = err.ReturnedError;
 const parse = @import("parse.zig");
 pub const Appendable = @import("Appendable.zig");
-// ==========================================
-// Messages with payload and optional headers
-// ==========================================
-
-// =======================================
-//                  PUB [Client]
-// =======================================
-// PUB <subject> [reply-to] <#bytes>␍␊[payload]␍␊
-//
-// #bytes> - length of payload without ␍␊
-//
-// PUB FOO 11␍␊Hello NATS!␍␊
-//
-// PUB FRONT.DOOR JOKE.22 11␍␊Knock Knock␍␊
-//
-// PUB NOTIFY 0␍␊␍␊     #bytes == 0 => empty payload
-//
 
 // =======================================
 //                  MSG [Server]
@@ -40,22 +23,6 @@ pub const Appendable = @import("Appendable.zig");
 // MSG FOO.BAR 9 11␍␊Hello World␍␊
 //
 // MSG FOO.BAR 9 GREETING.34 11␍␊Hello World␍␊
-
-// =======================================
-//                  HPUB [Client]
-// =======================================
-// HPUB SUBJECT REPLY 23 30␍␊NATS/1.0␍␊Header: X␍␊␍␊PAYLOAD␍␊
-// HPUB SUBJECT REPLY 23 23␍␊NATS/1.0␍␊Header: X␍␊␍␊␍␊
-// HPUB SUBJECT REPLY 48 55␍␊NATS/1.0␍␊Header1: X␍␊Header1: Y␍␊Header2: Z␍␊␍␊PAYLOAD␍␊
-// HPUB SUBJECT REPLY 48 48␍␊NATS/1.0␍␊Header1: X␍␊Header1: Y␍␊Header2: Z␍␊␍␊␍␊
-//
-// HPUB <SUBJ> [REPLY] <HDR_LEN> <TOT_LEN>
-// <HEADER><PAYLOAD>
-//
-// HDR_LEN includes the entire serialized header, from the start of the version string (NATS/1.0)
-// up to and including the ␍␊ before the payload
-//
-// TOT_LEN the payload length plus the HDR_LEN
 
 // =======================================
 //                  HMSG [Server]

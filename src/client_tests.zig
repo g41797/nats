@@ -22,13 +22,13 @@ const Client = @import("client.zig").Client;
 
 test "connect disconnect" {
     var cl: Client = .{};
-    try cl.connect(std.testing.allocator, null, null);
+    try cl.connect(std.testing.allocator, .{});
     defer cl.disconnect();
 }
 
 test "ping-pong" {
     var cl: Client = .{};
-    try cl.connect(std.testing.allocator, null, null);
+    try cl.connect(std.testing.allocator, .{});
     defer cl.disconnect();
 
     try cl.ping();
