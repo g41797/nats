@@ -7,4 +7,4 @@ const protocol = @import("protocol.zig");
 const client = @import("client.zig");
 const Appendable = @import("Appendable.zig");
 const pool = @import("messages.zig");
-const core = @import("core.zig");
+const Publisher = @import("Publisher.zig");

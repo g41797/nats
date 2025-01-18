@@ -1,7 +1,7 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
-const Appendable = @This();
+pub const Appendable = @This();
 
 const std = @import("std");
 const mailbox = @import("mailbox");
@@ -35,6 +35,19 @@ pub fn reset(apndbl: *Appendable) !void {
         return error.WasNotAllocated;
     }
     apndbl.actual_len = 0;
+    return;
+}
+
+pub fn change(apndbl: *Appendable, actual_len: usize) !void {
+    if (apndbl.buffer == null) {
+        return error.WasNotAllocated;
+    }
+
+    if (apndbl.buffer.?.len < actual_len) {
+        return error.NotEnoughSpace;
+    }
+
+    apndbl.actual_len = actual_len;
     return;
 }
 
@@ -107,7 +120,7 @@ fn free(apndbl: *Appendable) void {
     return;
 }
 
-pub fn body(apndbl: *Appendable) ?[]const u8 {
+pub fn body(apndbl: *Appendable) ?[]u8 {
     if (apndbl.buffer == null) {
         return null;
     }

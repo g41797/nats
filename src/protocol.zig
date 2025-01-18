@@ -129,8 +129,8 @@ pub const Headers = struct {
             return error.BadName;
         }
 
-        const val = std.mem.trim(u8, value, " \t\r\n");
-        if (val.len == 0) {
+        // const val = std.mem.trim(u8, value, " \t\r\n");
+        if (value.len == 0) {
             return error.BadValue;
         }
 
@@ -142,7 +142,7 @@ pub const Headers = struct {
 
         try hdrs.buffer.append(nam);
         try hdrs.buffer.append(":");
-        try hdrs.buffer.append(val);
+        try hdrs.buffer.append(value);
         try hdrs.buffer.append("\r\n");
         try hdrs.buffer.append("\r\n"); // Add tail
         return;

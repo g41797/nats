@@ -49,6 +49,8 @@ pub const Client = struct {
     allocator: Allocator = undefined,
     connection: ?*Connection = null,
     line: Appendable = undefined,
+    printbuf: Appendable = undefined,
+    fbs: std.io.FixedBufferStream([]u8) = undefined,
 
     pub fn connect(cl: *Client, allocator: Allocator, co: ConnectOpts) !void {
         cl.mutex.lock();
@@ -77,6 +79,7 @@ pub const Client = struct {
         errdefer cl.disconnect();
 
         try cl.line.init(allocator, 128, 32);
+        try cl.printbuf.init(allocator, 128, 32);
 
         const mt = try cl.read_mt();
 
@@ -85,6 +88,8 @@ pub const Client = struct {
         }
 
         try cl.connection.?.writer().writeAll(ConnectString);
+
+        cl.fbs = std.io.fixedBufferStream(cl.printbuf.buffer.?);
 
         return;
     }
@@ -103,6 +108,7 @@ pub const Client = struct {
 
         cl.connection = null;
         cl.line.deinit();
+        cl.printbuf.deinit();
 
         return;
     }
@@ -124,7 +130,22 @@ pub const Client = struct {
             return ReturnedError.CommunicationFailure;
         }
 
-        try cl.connection.?.writer().print(fmt, args);
+        while (true) {
+            if (cl._print(fmt, args)) |_| {
+                break;
+            } else |_| {
+                _ = try cl.printbuf.alloc(cl.printbuf.buffer.?.len + 256);
+                cl.fbs = std.io.fixedBufferStream(cl.printbuf.buffer.?);
+                continue;
+            }
+        }
+        try cl.connection.?.writer().writeAll(cl.printbuf.body().?);
+    }
+
+    pub fn _print(cl: *Client, comptime fmt: []const u8, args: anytype) !void {
+        cl.*.fbs.reset();
+        _ = try cl.*.fbs.writer().print(fmt, args);
+        try cl.printbuf.change(cl.*.fbs.getWritten().len);
     }
 
     // Writes the buffer to underlying stream.
@@ -135,7 +156,9 @@ pub const Client = struct {
         if (cl.connection == null) {
             return ReturnedError.CommunicationFailure;
         }
-
+        if (buffer.len == 0) {
+            return;
+        }
         try cl.connection.?.writer().writeAll(buffer);
     }
 
