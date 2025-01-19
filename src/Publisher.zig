@@ -16,9 +16,10 @@ const err = @import("err.zig");
 const parse = @import("parse.zig");
 const protocol = @import("protocol.zig");
 const nats = @import("client.zig");
+const messages = @import("messages.zig");
 
 const ReturnedError = err.ReturnedError;
-pub const Appendable = protocol.Appendable;
+pub const Appendable = @import("Appendable");
 pub const MT = protocol.MessageType;
 pub const Header = protocol.Header;
 pub const Headers = protocol.Headers;
@@ -112,11 +113,11 @@ fn _HPUB(pb: *Publisher, subject: []const u8, reply2: []const u8, headers: *Head
     const HDR_LEN = headers.buffer.body().?.len;
     const TOT_LEN = HDR_LEN + payload.len;
 
-    try pb.client.print("HPUB {0s} {1s} {2d} {3d}\r\n", .{ subject, reply2, HDR_LEN, TOT_LEN});
+    try pb.client.print("HPUB {0s} {1s} {2d} {3d}\r\n", .{ subject, reply2, HDR_LEN, TOT_LEN });
     try pb.client.write(headers.buffer.body().?);
     try pb.client.write(payload);
     try pb.client.write("\r\n");
-    
+
     return;
 }
 

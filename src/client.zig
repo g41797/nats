@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 const std = @import("std");
+const mailbox = @import("mailbox");
 const net = std.net;
 const http = std.http;
 const Connection = net.Stream;
@@ -12,11 +13,16 @@ const err = @import("err.zig");
 const ReturnedError = err.ReturnedError;
 const parse = @import("parse.zig");
 const protocol = @import("protocol.zig");
+const messages = @import("messages.zig");
+
 const Appendable = protocol.Appendable;
 const MT = protocol.MessageType;
 const Header = protocol.Header;
 const Headers = protocol.Headers;
 const HeaderIterator = protocol.HeaderIterator;
+pub const alloc = messages.alloc;
+pub const Messages = messages.Messages;
+pub const AllocatedMSG = messages.AllocatedMSG;
 
 pub const DefaultAddr = "127.0.0.1";
 pub const DefaultPort = 4222;
@@ -160,6 +166,12 @@ pub const Client = struct {
             return;
         }
         try cl.connection.?.writer().writeAll(buffer);
+    }
+
+    pub fn read_msg(cl: *Client, pool: Messages, timeout_ns: u64) !?*AllocatedMSG {
+        _ = cl;
+        _ = pool;
+        _ = timeout_ns;
     }
 
     pub fn read_mt(cl: *Client) !MT {

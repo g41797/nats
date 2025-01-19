@@ -59,9 +59,28 @@ pub const Messages = struct {
         }
     }
 
+    pub fn receive(msgs: *Messages, timeout_ns: u64) !?*AllocatedMSG {
+        if (msgs.pool.receive(timeout_ns)) |amsg| {
+            return amsg;
+        } else |rer| {
+            if (rer == error.Timeout) {
+                return null;
+            } else {
+                return rer;
+            }
+        }
+    }
+
     pub fn put(msgs: *Messages, amsg: *AllocatedMSG) void {
         msgs.pool.send(amsg) catch {
             free(amsg);
+        };
+    }
+
+    pub fn send(msgs: *Messages, amsg: *AllocatedMSG) !void {
+        msgs.pool.send(amsg) catch |serr| {
+            free(amsg);
+            return serr;
         };
     }
 };
