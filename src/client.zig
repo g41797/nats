@@ -168,10 +168,98 @@ pub const Client = struct {
         try cl.connection.?.writer().writeAll(buffer);
     }
 
-    pub fn read_msg(cl: *Client, pool: Messages, timeout_ns: u64) !?*AllocatedMSG {
+    pub fn read_msg(cl: *Client, pool: Messages) !?*AllocatedMSG {
+        const mt = try cl.read_mt();
+
+        switch (mt) {
+            .UNKNOWN => {
+                return ReturnedError.CommunicationFailure;
+            },
+            .PING => {
+                try cl.pong();
+                return null;
+            },
+            .MSG => {
+                return cl.read_MSG(pool);
+            },
+            .HMSG => {
+                return cl.read_HMSG(pool);
+            },
+            else => {
+                return null;
+            },
+        }
+    }
+
+    // =======================================
+    //                  MSG [Server]
+    // =======================================
+    // MSG <subject> <sid> [reply-to] <#bytes>␍␊[payload]␍␊
+    //
+    // #bytes> - length of payload without ␍␊
+    //
+    // MSG FOO.BAR 9 11␍␊Hello World␍␊
+    //
+    // MSG FOO.BAR 9 GREETING.34 11␍␊Hello World␍␊
+    fn read_MSG(cl: *Client, pool: Messages) !?*AllocatedMSG {
+        const recvd = cl.line.body().?;
+
+        var repl2exists: bool = true;
+        const args = try parse.count_substrings(recvd);
+
+        while (true) {
+            if (args == 5) {
+                break;
+            }
+            if (args == 4) {
+                repl2exists = false;
+                break;
+            }
+            return error.BadFormat;
+        }
+
+        const parsed = try parse.cut_tail_size(cl.recvd);
+
+        const alm = pool.get(0).?;
+
+        try alm.letter.prepare(.MSG);
+        try cl.read_buffer(&alm.letter.payload, parsed.size + 2); // ␍␊
+        try alm.letter.payload.shrink(2);
+
+        const procstrs = try parse.cut_tail(parsed.shrinked);
+
+        if (repl2exists) {
+            try alm.letter.reply_to.copy(procstrs.tail);
+            procstrs = try parse.cut_tail(parsed.shrinked);
+        }
+
+        try alm.letter.sid.copy(procstrs.tail);
+
+        procstrs = try parse.cut_tail(parsed.shrinked);
+        try alm.letter.subject.copy(procstrs.tail);
+
+        return alm;
+    }
+
+    // =======================================
+    //                  HMSG [Server]
+    // =======================================
+    // HMSG SUBJECT 1 REPLY 23 30␍␊NATS/1.0␍␊Header: X␍␊␍␊PAYLOAD␍␊
+    // HMSG SUBJECT 1 REPLY 23 23␍␊NATS/1.0␍␊Header: X␍␊␍␊␍␊
+    // HMSG SUBJECT 1 REPLY 48 55␍␊NATS/1.0␍␊Header1: X␍␊Header1: Y␍␊Header2: Z␍␊␍␊PAYLOAD␍␊
+    // HMSG SUBJECT 1 REPLY 48 48␍␊NATS/1.0␍␊Header1: X␍␊Header1: Y␍␊Header2: Z␍␊␍␊␍␊
+    //
+    // HMSG <SUBJECT> <SID> [REPLY] <HDR_LEN> <TOT_LEN>
+    // <PAYLOAD>
+    //
+    // HDR_LEN includes the entire serialized header, from the start of the version string (NATS/1.0)
+    // up to and including the ␍␊ before the payload
+    //
+    // TOT_LEN the payload length plus the HDR_LEN
+    fn read_HMSG(cl: *Client, pool: Messages) !?*AllocatedMSG {
         _ = cl;
         _ = pool;
-        _ = timeout_ns;
+        return null;
     }
 
     pub fn read_mt(cl: *Client) !MT {
@@ -213,7 +301,7 @@ pub const Client = struct {
     }
 
     // Reads 'len' bytes from underlying stream to the buffer.
-    pub fn read_buffer(cl: *Client, buffer: Appendable, len: usize) !void {
+    pub fn read_buffer(cl: *Client, buffer: *Appendable, len: usize) !void {
         if (cl.connection == null) {
             return ReturnedError.CommunicationFailure;
         }

@@ -13,33 +13,6 @@ const ReturnedError = err.ReturnedError;
 const parse = @import("parse.zig");
 pub const Appendable = @import("Appendable.zig");
 
-// =======================================
-//                  MSG [Server]
-// =======================================
-// MSG <subject> <sid> [reply-to] <#bytes>␍␊[payload]␍␊
-//
-// #bytes> - length of payload without ␍␊
-//
-// MSG FOO.BAR 9 11␍␊Hello World␍␊
-//
-// MSG FOO.BAR 9 GREETING.34 11␍␊Hello World␍␊
-
-// =======================================
-//                  HMSG [Server]
-// =======================================
-// HMSG SUBJECT 1 REPLY 23 30␍␊NATS/1.0␍␊Header: X␍␊␍␊PAYLOAD␍␊
-// HMSG SUBJECT 1 REPLY 23 23␍␊NATS/1.0␍␊Header: X␍␊␍␊␍␊
-// HMSG SUBJECT 1 REPLY 48 55␍␊NATS/1.0␍␊Header1: X␍␊Header1: Y␍␊Header2: Z␍␊␍␊PAYLOAD␍␊
-// HMSG SUBJECT 1 REPLY 48 48␍␊NATS/1.0␍␊Header1: X␍␊Header1: Y␍␊Header2: Z␍␊␍␊␍␊
-//
-// HMSG <SUBJECT> <SID> [REPLY] <HDR_LEN> <TOT_LEN>
-// <PAYLOAD>
-//
-// HDR_LEN includes the entire serialized header, from the start of the version string (NATS/1.0)
-// up to and including the ␍␊ before the payload
-//
-// TOT_LEN the payload length plus the HDR_LEN
-
 pub const MessageType = enum {
     UNKNOWN,
     INFO,
