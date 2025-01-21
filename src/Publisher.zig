@@ -45,11 +45,17 @@ mt: MT = MT.UNKNOWN,
 ///     - failed connection
 ///     - already existing connection
 pub fn connect(pb: *Publisher, allocator: Allocator, co: ConnectOpts) !void {
+    pb.mutex.lock();
+    defer pb.mutex.unlock();
+
     try pb.client.connect(allocator, co);
     pb.thread = std.Thread.spawn(.{}, run, .{pb}) catch unreachable;
 }
 
 pub fn publish(pb: *Publisher, subject: []const u8, reply2: ?[]const u8, headers: ?*Headers, payload: ?[]const u8) !void {
+    pb.mutex.lock();
+    defer pb.mutex.unlock();
+
     var repl: []const u8 = undefined;
 
     if (reply2 == null) {
@@ -110,11 +116,12 @@ fn _PUB(pb: *Publisher, subject: []const u8, reply2: []const u8, payload: []cons
 // TOT_LEN the payload length plus the HDR_LEN
 // =======================================
 fn _HPUB(pb: *Publisher, subject: []const u8, reply2: []const u8, headers: *Headers, payload: []const u8) !void {
-    const HDR_LEN = headers.buffer.body().?.len;
+    const HDR_LEN = headers.buffer.body().?.len + 1; // +1 for ␍␊
     const TOT_LEN = HDR_LEN + payload.len;
 
     try pb.client.print("HPUB {0s} {1s} {2d} {3d}\r\n", .{ subject, reply2, HDR_LEN, TOT_LEN });
     try pb.client.write(headers.buffer.body().?);
+    try pb.client.write("\r\n");
     try pb.client.write(payload);
     try pb.client.write("\r\n");
 
@@ -166,7 +173,7 @@ fn recv_next(pb: *Publisher) !void {
         pb.mt = mt;
         switch (mt) {
             MT.PING => {
-                try pb.client.pong();
+                try pb.pong();
             },
             MT.PONG => {
                 return;
@@ -185,4 +192,18 @@ fn recv_next(pb: *Publisher) !void {
 
 fn waitFinish(pb: *Publisher) void {
     pb.thread.join();
+}
+
+fn ping(pb: *Publisher) !void {
+    pb.mutex.lock();
+    defer pb.mutex.unlock();
+
+    try pb.client.ping();
+}
+
+fn pong(pb: *Publisher) !void {
+    pb.mutex.lock();
+    defer pb.mutex.unlock();
+
+    try pb.client.pong();
 }

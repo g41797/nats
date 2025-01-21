@@ -12,15 +12,18 @@ pub const MSGMailBox = mailbox.MailBox(MSG);
 
 pub const AllocatedMSG = MSGMailBox.Envelope;
 
-pub fn alloc(allocator: Allocator) ?*AllocatedMSG {
+const PAYLOADLEN = 256;
+
+pub fn alloc(allocator: Allocator, plen: usize) ?*AllocatedMSG {
     if (allocator.create(AllocatedMSG)) |am| {
         errdefer allocator.destroy(am);
-        am.*.letter.init(allocator) catch {
+        am.*.letter.init(allocator, plen) catch {
             return null;
         };
         return am;
+    } else |_| {
+        return null;
     }
-    return null;
 }
 
 pub fn free(amsg: *AllocatedMSG) void {
@@ -38,21 +41,21 @@ pub const Messages = struct {
     }
 
     pub fn deinit(msgs: *Messages) void {
-        const allocated = msgs.pool.close();
+        var allocated = msgs.pool.close();
         if (allocated != null) {
             const next = allocated.?.next;
-            free(allocated);
+            free(allocated.?);
             allocated = next;
         }
     }
 
     pub fn get(msgs: *Messages, timeout_ns: u64) ?*AllocatedMSG {
         if (msgs.pool.receive(timeout_ns)) |amsg| {
-            amsg.*.letter.reset();
+            amsg.*.letter.reset() catch unreachable;
             return amsg;
         } else |er| {
             if (er == error.Timeout) {
-                return alloc(msgs.allocator);
+                return alloc(msgs.allocator, PAYLOADLEN);
             } else {
                 return null;
             }

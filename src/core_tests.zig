@@ -20,11 +20,16 @@ const Headers = protocol.Headers;
 const HeaderIterator = protocol.HeaderIterator;
 const nats = @import("client.zig");
 const Publisher = @import("Publisher.zig");
+const Subscriber = @import("Subscriber.zig");
 
-test "publisher connect disconnect" {
+test "publisher/Subscriber connect disconnect" {
     var pb: Publisher = .{};
     try pb.connect(std.testing.allocator, .{});
     defer pb.disconnect();
+
+    var sb: Subscriber = .{};
+    try sb.connect(std.testing.allocator, .{});
+    defer sb.disconnect();
 }
 
 test "publisher simplest PUB" {

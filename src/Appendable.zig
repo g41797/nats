@@ -120,7 +120,7 @@ fn free(apndbl: *Appendable) void {
     return;
 }
 
-pub fn body(apndbl: *Appendable) ?[]u8 {
+pub fn body(apndbl: *Appendable) ?[]const u8 {
     if (apndbl.buffer == null) {
         return null;
     }

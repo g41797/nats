@@ -155,11 +155,11 @@ pub const MSG = struct {
 
     pub fn deinit(msg: *MSG) void {
         msg.mt = MessageType.UNKNOWN;
-        msg.subject.free();
-        msg.sid.free();
-        msg.reply_to.free();
-        msg.headers.free();
-        msg.payload.free();
+        msg.subject.deinit();
+        msg.sid.deinit();
+        msg.reply_to.deinit();
+        msg.headers.deinit();
+        msg.payload.deinit();
         return;
     }
 

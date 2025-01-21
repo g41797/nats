@@ -12,8 +12,7 @@ jobs:
         os: [windows]
 
     steps:
-      - if: matrix.os == 'windows'
-        run: git config --global core.autocrlf false
+      - run: git config --global core.autocrlf false
 
       - uses: actions/checkout@v2
         with:
