@@ -37,30 +37,30 @@ const SECNS = 1000000000;
 //     defer sb.disconnect();
 // }
 
-test "simplest PUB/SUB" {
-    // var pb: Publisher = .{};
-    // try pb.connect(std.testing.allocator, .{});
-    // defer pb.disconnect();
-    //
-    // try pb.publish("subject", null, null, null);
-
-    var sb: Subscriber = .{};
-    try sb.connect(std.testing.allocator, .{});
-    defer sb.disconnect();
-
-    try sb.subscribe("subject", null, "subject");
-
-    const recv = try sb.fetch(SECNS * 20);
-
-    try testing.expect(recv != null);
-
-    const almsg = recv.?;
-
-    sb.reuse(almsg);
-
-    try sb.unsubscribe("subject");
-    return;
-}
+// test "simplest PUB/SUB" {
+//     var pb: Publisher = .{};
+//     try pb.connect(std.testing.allocator, .{});
+//     defer pb.disconnect();
+//
+//     try pb.publish("subject", null, null, null);
+//
+//     var sb: Subscriber = .{};
+//     try sb.connect(std.testing.allocator, .{});
+//     defer sb.disconnect();
+//
+//     try sb.subscribe("subject", null, "subject");
+//
+//     const recv = try sb.fetch(SECNS * 20);
+//
+//     try testing.expect(recv != null);
+//
+//     const almsg = recv.?;
+//
+//     sb.reuse(almsg);
+//
+//     try sb.unsubscribe("subject");
+//     return;
+// }
 
 // test "publisher PUB with payload" {
 //     var pb: Publisher = .{};

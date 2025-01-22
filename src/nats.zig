@@ -7,9 +7,12 @@ const net = std.net;
 const http = std.http;
 const posix = std.posix;
 const Connection = net.Stream;
+const Stream = net.Stream;
 const Socket = posix.socket_t;
 const Allocator = std.mem.Allocator;
+const Thread = std.Thread;
 const Mutex = std.Thread.Mutex;
+const Sema = std.Thread.Semaphore;
 
 const err = @import("err.zig");
 const ReturnedError = err.ReturnedError;
@@ -51,13 +54,13 @@ const ClientOpts = struct {
 };
 
 const ConnectString = "CONNECT {\"verbose\":false,\"pedantic\":false,\"tls_required\":false,\"lang\":\"Zig\",\"version\":\"T.B.D\",\"protocol\":0,\"echo\":false}\r\n";
-const INFO = "INFO {\"server_id\":\"SID\",\"server_name\":\"SNAM\",\"proto\":1,\"headers\":true,\"max_payload\":1048576,\"jetstream\":true,}";
+const InfoString = "INFO {\"server_id\":\"SID\",\"server_name\":\"SNAM\",\"proto\":1,\"headers\":true,\"max_payload\":1048576,\"jetstream\":true}\r\n";
 
 pub const Conn = struct {
     allocator: Allocator = undefined,
     connection: ?*Connection = null,
-    line: Appendable = undefined,
-    printbuf: Appendable = undefined,
+    line: Appendable = .{},
+    printbuf: Appendable = .{},
     fbs: std.io.FixedBufferStream([]u8) = undefined,
 
     pub fn connect(cn: *Conn, allocator: Allocator, co: ConnectOpts) !void {
@@ -99,41 +102,24 @@ pub const Conn = struct {
         return;
     }
 
-    pub fn use(cn: *Conn, allocator: Allocator, co: ConnectOpts) !void {
-        if (cn.connection != null) {
-            return error.AlreadyConnected;
-        }
-
+    pub fn use(cn: *Conn, allocator: Allocator, socket: Socket) !void {
         cn.allocator = allocator;
 
-        var host: []const u8 = DefaultAddr;
-
-        if (co.addr != null) {
-            host = co.addr.?;
-        }
-
-        var prt: u16 = DefaultPort;
-
-        if (co.port != null) {
-            prt = co.port.?;
-        }
-
-        cn.connection = try cn.connectTcp(host, prt);
+        cn.connection = try cn.useTcp(socket);
 
         errdefer cn.disconnect();
 
         try cn.line.init(allocator, 128, 32);
         try cn.printbuf.init(allocator, 128, 32);
+        cn.fbs = std.io.fixedBufferStream(cn.printbuf.buffer.?);
+
+        try cn.connection.?.writer().writeAll(InfoString);
 
         const mt = try cn.read_mt();
 
-        if (mt != .INFO) {
+        if (mt != .CONNECT) {
             return error.ProtocolError;
         }
-
-        try cn.connection.?.writer().writeAll(ConnectString);
-
-        cn.fbs = std.io.fixedBufferStream(cn.printbuf.buffer.?);
 
         return;
     }
@@ -203,29 +189,6 @@ pub const Conn = struct {
                 .UNKNOWN => {
                     return ReturnedError.CommunicationFailure;
                 },
-                // .INFO => {
-                //     return cn.read_oneliner(mt, pool);
-                // },
-                // .CONNECT => {
-                //     return cn.read_oneliner(mt, pool);
-                // },
-                // .SUB => {
-                //     return cn.read_oneliner(mt, pool);
-                // },
-                // .UNSUB => {
-                //     return cn.read_oneliner(mt, pool);
-                // },
-                // .PING => {
-                //     return cn.read_oneliner(mt, pool);                },
-                // .PONG => {
-                //     return cn.read_oneliner(mt, pool);
-                // },
-                // .OK => {
-                //     return cn.read_oneliner(mt, pool);
-                // },
-                // .ERR => {
-                //     return cn.read_oneliner(mt, pool);
-                // },
                 .PUB => {
                     return null;
                 },
@@ -238,6 +201,7 @@ pub const Conn = struct {
                 .HMSG => {
                     return cn.read_HMSG(pool);
                 },
+                // .INFO .CONNECT .SUB .UNSUB .PING .PONG .OK .ERR
                 else => {
                     return cn.read_oneliner(mt, pool);
                 },
@@ -444,4 +408,114 @@ pub const Conn = struct {
 
         return conn;
     }
+
+    fn useTcp(client: *Conn, socket: Socket) !*Connection {
+        const conn = try client.allocator.create(Connection);
+        errdefer client.allocator.destroy(conn);
+
+        conn.* = Stream{ .handle = socket };
+
+        return conn;
+    }
+};
+
+pub const ServersMailBox = mailbox.MailBox(Conn);
+
+pub const AllocatedConn = ServersMailBox.Envelope;
+
+pub const Srv = struct {
+    listener: Socket = undefined,
+    allocator: Allocator = undefined,
+    port: u16 = undefined,
+    thread: Thread = undefined,
+    connected: ServersMailBox = .{},
+    count: u16 = 0,
+
+    pub fn listen(srv: *Srv, allocator: Allocator) !u16 {
+        srv.allocator = allocator;
+
+        var address: std.net.Address = undefined;
+        address = try std.net.Address.parseIp("127.0.0.1", 0);
+
+        const listener = try posix.socket(address.any.family, posix.SOCK.STREAM, posix.IPPROTO.TCP);
+        errdefer posix.close(listener);
+
+        try posix.setsockopt(listener, posix.SOL.SOCKET, posix.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));
+
+        try posix.bind(listener, &address.any, address.getOsSockLen());
+        try posix.listen(listener, 128);
+
+        var len: posix.socklen_t = @sizeOf(net.Address);
+
+        try posix.getsockname(listener, &address.any, &len);
+
+        const port: u16 = address.getPort();
+
+        srv.listener = listener;
+        srv.port = port;
+
+        return port;
+    }
+
+    pub fn close(srv: *Srv) void {
+        posix.close(srv.listener);
+
+        var chain = srv.connected.close();
+        if (chain != null) {
+            const next = chain.?.next;
+            chain.?.letter.disconnect();
+            srv.allocator.destroy(chain.?);
+            chain = next;
+        }
+    }
+
+    pub fn startAccept(srv: *Srv, count: u16) void {
+        srv.count = count;
+        srv.thread = std.Thread.spawn(.{}, run, .{srv}) catch unreachable;
+    }
+
+    pub fn waitAccept(srv: *Srv) void {
+        srv.thread.join();
+    }
+
+    fn accept(srv: *Srv) *AllocatedConn {
+        var client_address: net.Address = undefined;
+        var client_address_len: posix.socklen_t = @sizeOf(net.Address);
+        const socket = posix.accept(srv.listener, &client_address.any, &client_address_len, 0) catch unreachable;
+        errdefer posix.close(socket);
+
+        var alc = srv.allocator.create(AllocatedConn) catch unreachable;
+        alc.* = .{ .letter = .{} };
+        alc.letter.use(srv.allocator, socket) catch unreachable;
+
+        return alc;
+    }
+
+    fn run(srv: *Srv) void {
+        for (0..srv.count) |_| {
+            const cl = srv.accept();
+            srv.connected.send(cl) catch unreachable;
+        }
+        return;
+    }
+};
+
+
+pub const Server = struct {
+    allocator: Allocator = undefined,
+    alcon: *AllocatedConn = undefined,
+    pool: Messages = .{},
+
+    pub fn init(s: *Server, allocator: Allocator, alcon: *AllocatedConn) void {
+        s.allocator = allocator;
+        s.alcon = alcon;
+        s.pool.init(allocator);
+    }
+
+    pub fn deinit(s: *Server) void {
+        s.alcon.letter.disconnect();
+        s.allocator.destroy(s.alcon);
+    }
+    
+    
 };

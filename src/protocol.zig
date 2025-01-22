@@ -85,7 +85,7 @@ const MessageTypeMap = EnumMap(MessageType, []const u8).init(.{
 });
 
 pub const Headers = struct {
-    buffer: Appendable = undefined,
+    buffer: Appendable = .{},
 
     pub fn init(hdrs: *Headers, allocator: Allocator, len: usize) !void {
         try hdrs.buffer.init(allocator, len, null);
@@ -137,11 +137,11 @@ pub const Headers = struct {
 
 pub const MSG = struct {
     mt: MessageType = MessageType.UNKNOWN,
-    subject: Appendable = undefined,
-    sid: Appendable = undefined,
-    reply_to: Appendable = undefined,
-    headers: Headers = undefined,
-    payload: Appendable = undefined,
+    subject: Appendable = .{},
+    sid: Appendable = .{},
+    reply_to: Appendable = .{},
+    headers: Headers = .{},
+    payload: Appendable = .{},
 
     pub fn init(msg: *MSG, allocator: Allocator, plen: usize) !void {
         msg.mt = MessageType.UNKNOWN;
