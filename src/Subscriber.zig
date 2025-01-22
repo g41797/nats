@@ -16,7 +16,7 @@ const Allocator = std.mem.Allocator;
 const err = @import("err.zig");
 const parse = @import("parse.zig");
 const protocol = @import("protocol.zig");
-const nats = @import("client.zig");
+const nats = @import("nats.zig");
 const messages = @import("messages.zig");
 
 const ReturnedError = err.ReturnedError;
@@ -25,7 +25,7 @@ pub const MT = protocol.MessageType;
 pub const Header = protocol.Header;
 pub const Headers = protocol.Headers;
 pub const HeaderIterator = protocol.HeaderIterator;
-const Client = nats.Client;
+const Client = nats.Conn;
 pub const ConnectOpts = nats.ConnectOpts;
 pub const alloc = messages.alloc;
 pub const Messages = messages.Messages;
@@ -84,7 +84,7 @@ pub fn subscribe(sb: *Subscriber, subject: []const u8, queue_group: ?[]const u8,
         qgr = queue_group.?;
     }
 
-    try sb.client.print("SUB {0s} {1s} {2d}\r\n", .{ subject, qgr, sid });
+    try sb.client.print("SUB {0s} {1s} {2s}\r\n", .{ subject, qgr, sid });
 
     return;
 }
@@ -106,7 +106,7 @@ pub fn fetch(sb: *Subscriber, timeout_ns: u64) !?*AllocatedMSG {
     }
 }
 
-pub fn reuse(sb: *Subscriber, msg: *AllocatedMSG) !?*AllocatedMSG {
+pub fn reuse(sb: *Subscriber, msg: *AllocatedMSG) void {
     sb.pool.put(msg);
 }
 

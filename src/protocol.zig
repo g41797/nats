@@ -68,7 +68,7 @@ pub const MessageType = enum {
     }
 };
 
-const MessageTypeMap = EnumMap(MessageType, []u8).init(.{
+const MessageTypeMap = EnumMap(MessageType, []const u8).init(.{
     .UNKNOWN = "UNKNOWN",
     .INFO = "INFO",
     .CONNECT = "CONNECT",

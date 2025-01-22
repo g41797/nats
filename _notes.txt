@@ -57,3 +57,5 @@ ParseOptions
 How to reallocate without loosing data
     https://ziggit.dev/t/how-to-reallocate-without-loosing-data/7723
 
+TCP Server in Zig - Part 1 - Single Threaded
+    https://www.openmymind.net/TCP-Server-In-Zig-Part-1-Single-Threaded/

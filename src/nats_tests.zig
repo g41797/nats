@@ -6,7 +6,7 @@ const testing = std.testing;
 const expect = testing.expect;
 const net = std.net;
 const http = std.http;
-const Connection = http.Client.Connection;
+const Connection = http.Conn.Connection;
 const Allocator = std.mem.Allocator;
 
 const err = @import("err.zig");
@@ -18,16 +18,16 @@ const MT = protocol.MessageType;
 const Header = protocol.Header;
 const Headers = protocol.Headers;
 const HeaderIterator = protocol.HeaderIterator;
-const Client = @import("client.zig").Client;
+const Conn = @import("nats.zig").Conn;
 
 test "connect disconnect" {
-    var cl: Client = .{};
+    var cl: Conn = .{};
     try cl.connect(std.testing.allocator, .{});
     defer cl.disconnect();
 }
 
 test "ping-pong" {
-    var cl: Client = .{};
+    var cl: Conn = .{};
     try cl.connect(std.testing.allocator, .{});
     defer cl.disconnect();
 

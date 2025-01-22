@@ -15,7 +15,7 @@ const Allocator = std.mem.Allocator;
 const err = @import("err.zig");
 const parse = @import("parse.zig");
 const protocol = @import("protocol.zig");
-const nats = @import("client.zig");
+const nats = @import("nats.zig");
 const messages = @import("messages.zig");
 
 const ReturnedError = err.ReturnedError;
@@ -24,7 +24,7 @@ pub const MT = protocol.MessageType;
 pub const Header = protocol.Header;
 pub const Headers = protocol.Headers;
 pub const HeaderIterator = protocol.HeaderIterator;
-const Client = nats.Client;
+const Client = nats.Conn;
 pub const ConnectOpts = nats.ConnectOpts;
 
 mutex: Mutex = .{},
@@ -172,13 +172,13 @@ fn recv_next(pb: *Publisher) !void {
     if (pb.client.read_mt()) |mt| {
         pb.mt = mt;
         switch (mt) {
-            MT.PING => {
+            .PING => {
                 try pb.pong();
             },
-            MT.PONG => {
+            .PONG => {
                 return;
             },
-            MT.OK => {
+            .OK => {
                 return;
             },
             else => {

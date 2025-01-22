@@ -5,7 +5,9 @@ const std = @import("std");
 const mailbox = @import("mailbox");
 const net = std.net;
 const http = std.http;
+const posix = std.posix;
 const Connection = net.Stream;
+const Socket = posix.socket_t;
 const Allocator = std.mem.Allocator;
 const Mutex = std.Thread.Mutex;
 
@@ -48,21 +50,22 @@ const ClientOpts = struct {
     nkey: ?[]const u8 = null,
 };
 
-const ConnectString = "CONNECT {{{\"verbose\":false,\"pedantic\":false,\"tls_required\":false,\"lang\":\"Zig\",\"version\":\"T.B.D\",\"protocol\":0,\"echo\":false}}}\r\n";
+const ConnectString = "CONNECT {\"verbose\":false,\"pedantic\":false,\"tls_required\":false,\"lang\":\"Zig\",\"version\":\"T.B.D\",\"protocol\":0,\"echo\":false}\r\n";
+const INFO = "INFO {\"server_id\":\"SID\",\"server_name\":\"SNAM\",\"proto\":1,\"headers\":true,\"max_payload\":1048576,\"jetstream\":true,}";
 
-pub const Client = struct {
+pub const Conn = struct {
     allocator: Allocator = undefined,
     connection: ?*Connection = null,
     line: Appendable = undefined,
     printbuf: Appendable = undefined,
     fbs: std.io.FixedBufferStream([]u8) = undefined,
 
-    pub fn connect(cl: *Client, allocator: Allocator, co: ConnectOpts) !void {
-        if (cl.connection != null) {
+    pub fn connect(cn: *Conn, allocator: Allocator, co: ConnectOpts) !void {
+        if (cn.connection != null) {
             return error.AlreadyConnected;
         }
 
-        cl.allocator = allocator;
+        cn.allocator = allocator;
 
         var host: []const u8 = DefaultAddr;
 
@@ -76,106 +79,182 @@ pub const Client = struct {
             prt = co.port.?;
         }
 
-        cl.connection = try cl.connectTcp(host, prt);
+        cn.connection = try cn.connectTcp(host, prt);
 
-        errdefer cl.disconnect();
+        errdefer cn.disconnect();
 
-        try cl.line.init(allocator, 128, 32);
-        try cl.printbuf.init(allocator, 128, 32);
+        try cn.line.init(allocator, 128, 32);
+        try cn.printbuf.init(allocator, 128, 32);
 
-        const mt = try cl.read_mt();
+        const mt = try cn.read_mt();
 
         if (mt != .INFO) {
             return error.ProtocolError;
         }
 
-        try cl.connection.?.writer().writeAll(ConnectString);
+        try cn.connection.?.writer().writeAll(ConnectString);
 
-        cl.fbs = std.io.fixedBufferStream(cl.printbuf.buffer.?);
+        cn.fbs = std.io.fixedBufferStream(cn.printbuf.buffer.?);
 
         return;
     }
 
-    pub fn disconnect(cl: *Client) void {
-        if (cl.connection == null) {
+    pub fn use(cn: *Conn, allocator: Allocator, co: ConnectOpts) !void {
+        if (cn.connection != null) {
+            return error.AlreadyConnected;
+        }
+
+        cn.allocator = allocator;
+
+        var host: []const u8 = DefaultAddr;
+
+        if (co.addr != null) {
+            host = co.addr.?;
+        }
+
+        var prt: u16 = DefaultPort;
+
+        if (co.port != null) {
+            prt = co.port.?;
+        }
+
+        cn.connection = try cn.connectTcp(host, prt);
+
+        errdefer cn.disconnect();
+
+        try cn.line.init(allocator, 128, 32);
+        try cn.printbuf.init(allocator, 128, 32);
+
+        const mt = try cn.read_mt();
+
+        if (mt != .INFO) {
+            return error.ProtocolError;
+        }
+
+        try cn.connection.?.writer().writeAll(ConnectString);
+
+        cn.fbs = std.io.fixedBufferStream(cn.printbuf.buffer.?);
+
+        return;
+    }
+
+    pub fn disconnect(cn: *Conn) void {
+        if (cn.connection == null) {
             return;
         }
 
-        cl.connection.?.close();
+        cn.connection.?.close();
 
-        cl.allocator.destroy(cl.connection.?);
+        cn.allocator.destroy(cn.connection.?);
 
-        cl.connection = null;
-        cl.line.deinit();
-        cl.printbuf.deinit();
+        cn.connection = null;
+        cn.line.deinit();
+        cn.printbuf.deinit();
 
         return;
     }
 
-    pub fn ping(cl: *Client) !void {
-        try cl.write("PING\r\n");
+    pub fn ping(cn: *Conn) !void {
+        try cn.write("PING\r\n");
     }
 
-    pub fn pong(cl: *Client) !void {
-        try cl.write("PONG\r\n");
+    pub fn pong(cn: *Conn) !void {
+        try cn.write("PONG\r\n");
     }
 
     // Writes the formatted output to underlying stream.
-    pub fn print(cl: *Client, comptime fmt: []const u8, args: anytype) !void {
-        if (cl.connection == null) {
+    pub fn print(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
+        if (cn.connection == null) {
             return ReturnedError.CommunicationFailure;
         }
 
         while (true) {
-            if (cl._print(fmt, args)) |_| {
+            if (cn._print(fmt, args)) |_| {
                 break;
             } else |_| {
-                _ = try cl.printbuf.alloc(cl.printbuf.buffer.?.len + 256);
-                cl.fbs = std.io.fixedBufferStream(cl.printbuf.buffer.?);
+                _ = try cn.printbuf.alloc(cn.printbuf.buffer.?.len + 256);
+                cn.fbs = std.io.fixedBufferStream(cn.printbuf.buffer.?);
                 continue;
             }
         }
-        try cl.connection.?.writer().writeAll(cl.printbuf.body().?);
+        try cn.connection.?.writer().writeAll(cn.printbuf.body().?);
     }
 
-    pub fn _print(cl: *Client, comptime fmt: []const u8, args: anytype) !void {
-        cl.*.fbs.reset();
-        _ = try cl.*.fbs.writer().print(fmt, args);
-        try cl.printbuf.change(cl.*.fbs.getWritten().len);
+    pub fn _print(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
+        cn.*.fbs.reset();
+        _ = try cn.*.fbs.writer().print(fmt, args);
+        try cn.printbuf.change(cn.*.fbs.getWritten().len);
     }
 
     // Writes the buffer to underlying stream.
-    pub fn write(cl: *Client, buffer: []const u8) !void {
-        if (cl.connection == null) {
+    pub fn write(cn: *Conn, buffer: []const u8) !void {
+        if (cn.connection == null) {
             return ReturnedError.CommunicationFailure;
         }
         if (buffer.len == 0) {
             return;
         }
-        try cl.connection.?.writer().writeAll(buffer);
+        try cn.connection.?.writer().writeAll(buffer);
     }
 
-    pub fn read_msg(cl: *Client, pool: *Messages) !?*AllocatedMSG {
-        const mt = try cl.read_mt();
-
-        switch (mt) {
-            .UNKNOWN => {
-                return ReturnedError.CommunicationFailure;
-            },
-            .PING => {
-                try cl.pong();
-                return null;
-            },
-            .MSG => {
-                return cl.read_MSG(pool);
-            },
-            .HMSG => {
-                return cl.read_HMSG(pool);
-            },
-            else => {
-                return null;
-            },
+    pub fn read_msg(cn: *Conn, pool: *Messages) !?*AllocatedMSG {
+        if (cn.read_mt()) |mt| {
+            switch (mt) {
+                .UNKNOWN => {
+                    return ReturnedError.CommunicationFailure;
+                },
+                // .INFO => {
+                //     return cn.read_oneliner(mt, pool);
+                // },
+                // .CONNECT => {
+                //     return cn.read_oneliner(mt, pool);
+                // },
+                // .SUB => {
+                //     return cn.read_oneliner(mt, pool);
+                // },
+                // .UNSUB => {
+                //     return cn.read_oneliner(mt, pool);
+                // },
+                // .PING => {
+                //     return cn.read_oneliner(mt, pool);                },
+                // .PONG => {
+                //     return cn.read_oneliner(mt, pool);
+                // },
+                // .OK => {
+                //     return cn.read_oneliner(mt, pool);
+                // },
+                // .ERR => {
+                //     return cn.read_oneliner(mt, pool);
+                // },
+                .PUB => {
+                    return null;
+                },
+                .HPUB => {
+                    return null;
+                },
+                .MSG => {
+                    return cn.read_MSG(pool);
+                },
+                .HMSG => {
+                    return cn.read_HMSG(pool);
+                },
+                else => {
+                    return cn.read_oneliner(mt, pool);
+                },
+            }
+        } else |rerr| {
+            return rerr;
         }
+    }
+
+    fn read_oneliner(cn: *Conn, mt: MT, pool: *Messages) !?*AllocatedMSG {
+        _ = cn;
+        _ = pool;
+        _ = mt;
+
+        //        const mname = MT.to_string(mt).?;
+
+        return null;
     }
 
     // =======================================
@@ -188,8 +267,8 @@ pub const Client = struct {
     // MSG FOO.BAR 9 11␍␊Hello World␍␊
     //
     // MSG FOO.BAR 9 GREETING.34 11␍␊Hello World␍␊
-    fn read_MSG(cl: *Client, pool: *Messages) !?*AllocatedMSG {
-        const recvd = cl.line.body().?;
+    fn read_MSG(cn: *Conn, pool: *Messages) !?*AllocatedMSG {
+        const recvd = cn.line.body().?;
 
         var repl2exists: bool = true;
         const args = parse.count_substrings(recvd);
@@ -210,7 +289,7 @@ pub const Client = struct {
         const alm = pool.get(0).?;
 
         try alm.letter.prepare(.MSG);
-        try cl.read_buffer(&alm.letter.payload, parsed.size + 2); // ␍␊
+        try cn.read_buffer(&alm.letter.payload, parsed.size + 2); // ␍␊
         try alm.letter.payload.shrink(2);
 
         var procstrs = try parse.cut_tail(parsed.shrinked);
@@ -243,8 +322,8 @@ pub const Client = struct {
     // up to and including the ␍␊ before the payload
     //
     // TOT_LEN the payload length plus the HDR_LEN
-    fn read_HMSG(cl: *Client, pool: *Messages) !?*AllocatedMSG {
-        const recvd = cl.line.body().?;
+    fn read_HMSG(cn: *Conn, pool: *Messages) !?*AllocatedMSG {
+        const recvd = cn.line.body().?;
 
         var repl2exists: bool = true;
         const args = parse.count_substrings(recvd);
@@ -272,10 +351,10 @@ pub const Client = struct {
 
         const HDR_LEN = parsed.size;
 
-        try cl.read_buffer(&alm.letter.headers.buffer, HDR_LEN);
+        try cn.read_buffer(&alm.letter.headers.buffer, HDR_LEN);
         try alm.letter.headers.buffer.shrink(2); // remove ␍␊
 
-        try cl.read_buffer(&alm.letter.payload, TOT_LEN - HDR_LEN + 1);
+        try cn.read_buffer(&alm.letter.payload, TOT_LEN - HDR_LEN + 1);
         try alm.letter.payload.shrink(2); // remove ␍␊
 
         var procstrs = try parse.cut_tail(parsed.shrinked);
@@ -293,10 +372,10 @@ pub const Client = struct {
         return alm;
     }
 
-    pub fn read_mt(cl: *Client) !MT {
-        try cl.read_line();
+    pub fn read_mt(cn: *Conn) !MT {
+        try cn.read_line();
 
-        const recvd = cl.line.body();
+        const recvd = cn.line.body();
         if (recvd != null) {
             const mt = MT.from_line(recvd.?);
             return mt;
@@ -306,15 +385,15 @@ pub const Client = struct {
     }
 
     // Reads underlying stream exclude \r\n or \n to the internal buffer.
-    fn read_line(cl: *Client) !void {
-        if (cl.connection == null) {
+    fn read_line(cn: *Conn) !void {
+        if (cn.connection == null) {
             return ReturnedError.CommunicationFailure;
         }
 
-        try cl.line.reset();
+        try cn.line.reset();
 
         while (true) {
-            if (cl.connection.?.reader().readByte()) |char| {
+            if (cn.connection.?.reader().readByte()) |char| {
                 if (char == '\r') {
                     continue;
                 }
@@ -322,7 +401,7 @@ pub const Client = struct {
                     return;
                 }
                 const str: [1]u8 = .{char};
-                try cl.line.append(str[0..1]);
+                try cn.line.append(str[0..1]);
             } else |er| {
                 return er;
             }
@@ -332,8 +411,8 @@ pub const Client = struct {
     }
 
     // Reads 'len' bytes from underlying stream to the buffer.
-    pub fn read_buffer(cl: *Client, buffer: *Appendable, len: usize) !void {
-        if (cl.connection == null) {
+    pub fn read_buffer(cn: *Conn, buffer: *Appendable, len: usize) !void {
+        if (cn.connection == null) {
             return ReturnedError.CommunicationFailure;
         }
 
@@ -345,7 +424,7 @@ pub const Client = struct {
 
         try buffer.alloc(len);
 
-        const rlen = try cl.connection.?.reader().readAll(buffer.buffer.?[0..len]);
+        const rlen = try cn.connection.?.reader().readAll(buffer.buffer.?[0..len]);
 
         if (rlen < len) {
             return error.NoCRLF;
@@ -354,7 +433,7 @@ pub const Client = struct {
         return;
     }
 
-    fn connectTcp(client: *Client, host: []const u8, port: u16) !*Connection {
+    fn connectTcp(client: *Conn, host: []const u8, port: u16) !*Connection {
         const conn = try client.allocator.create(Connection);
         errdefer client.allocator.destroy(conn);
 
