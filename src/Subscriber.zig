@@ -76,15 +76,7 @@ pub fn subscribe(sb: *Subscriber, subject: []const u8, queue_group: ?[]const u8,
     sb.mutex.lock();
     defer sb.mutex.unlock();
 
-    var qgr: []const u8 = undefined;
-
-    if (queue_group == null) {
-        qgr = "";
-    } else {
-        qgr = queue_group.?;
-    }
-
-    try sb.client.print("SUB {0s} {1s} {2s}\r\n", .{ subject, qgr, sid });
+    try sb.client.SUB(subject, queue_group, sid);
 
     return;
 }
@@ -93,7 +85,7 @@ pub fn unsubscribe(sb: *Subscriber, sid: []const u8) !void {
     sb.mutex.lock();
     defer sb.mutex.unlock();
 
-    try sb.client.print("UNSUB {0s}\r\n", .{sid});
+    try sb.client.UNSUB(sid);
 
     return;
 }

@@ -3,13 +3,12 @@
 
 const std = @import("std");
 const mailbox = @import("mailbox");
-const Allocator = std.mem.Allocator;
 pub const Appendable = @import("Appendable.zig");
 pub const protocol = @import("protocol.zig");
+
+const Allocator = std.mem.Allocator;
 pub const MSG = protocol.MSG;
-
 pub const MSGMailBox = mailbox.MailBox(MSG);
-
 pub const AllocatedMSG = MSGMailBox.Envelope;
 
 const PAYLOADLEN = 256;
@@ -17,6 +16,7 @@ const PAYLOADLEN = 256;
 pub fn alloc(allocator: Allocator, plen: usize) ?*AllocatedMSG {
     if (allocator.create(AllocatedMSG)) |am| {
         errdefer allocator.destroy(am);
+        am.*.letter = .{};
         am.*.letter.init(allocator, plen) catch {
             return null;
         };

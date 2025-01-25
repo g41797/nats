@@ -105,41 +105,24 @@ Without payloads
 With payloads    
     PUB         Client  Publish a message to a subject, with optional reply subject
 
-                        PUB <subject> [reply-to] <#bytes>␍␊
-                        [payload]␍␊
+                        PUB <subject> [reply-to] <#bytes>␍␊[payload]␍␊
                         
-                        PUB FOO 11␍␊
-                        Hello NATS!␍␊
+                        PUB FOO 11␍␊Hello NATS!␍␊
                         
-                        PUB FRONT.DOOR JOKE.22 11␍␊
-                        Knock Knock␍␊
+                        PUB FRONT.DOOR JOKE.22 11␍␊Knock Knock␍␊
                         
-                        PUB NOTIFY 0␍␊
-                        ␍␊
+                        PUB NOTIFY 0␍␊␍␊
                 
     HPUB        Client  Publish a message to a subject including NATS headers, with optional reply subject
 
-                        HPUB <subject> [reply-to] <#header bytes> <#total bytes>␍␊
-                        [headers]␍␊␍␊
-                        [payload]␍␊
+                        HPUB <subject> [reply-to] <#header bytes> <#total bytes>␍␊[headers]␍␊␍␊[payload]␍␊
                         
-                        HPUB FOO 22 33␍␊
-                        NATS/1.0␍␊
-                        Bar: Baz␍␊␍␊
-                        Hello NATS!␍␊
+                        HPUB FOO 22 33␍␊NATS/1.0␍␊Bar: Baz␍␊␍␊Hello NATS!␍␊
                         
-                        HPUB FRONT.DOOR JOKE.22 45 56␍␊
-                        NATS/1.0␍␊
-                        BREAKFAST: donut␍␊
-                        LUNCH: burger␍␊␍␊
-                        Knock Knock␍␊
+                        HPUB FRONT.DOOR JOKE.22 45 56␍␊NATS/1.0␍␊BREAKFAST: donut␍␊LUNCH: burger␍␊␍␊Knock Knock␍␊
                         
-                        HPUB MORNING.MENU 47 51␍␊
-                        NATS/1.0␍␊
-                        BREAKFAST: donut␍␊
-                        BREAKFAST: eggs␍␊␍␊
-                        Yum!␍␊
-                    
+                        HPUB MORNING.MENU 47 51␍␊NATS/1.0␍␊BREAKFAST: donut␍␊BREAKFAST: eggs␍␊␍␊Yum!␍␊                    
+
     MSG         Server  Delivers a message payload to a subscriber
 
                         MSG <subject> <sid> [reply-to] <#bytes>␍␊

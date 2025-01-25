@@ -3,6 +3,11 @@
 
 const std = @import("std");
 const mailbox = @import("mailbox");
+const err = @import("err.zig");
+const parse = @import("parse.zig");
+const protocol = @import("protocol.zig");
+const messages = @import("messages.zig");
+
 const net = std.net;
 const http = std.http;
 const posix = std.posix;
@@ -14,11 +19,7 @@ const Thread = std.Thread;
 const Mutex = std.Thread.Mutex;
 const Sema = std.Thread.Semaphore;
 
-const err = @import("err.zig");
 const ReturnedError = err.ReturnedError;
-const parse = @import("parse.zig");
-const protocol = @import("protocol.zig");
-const messages = @import("messages.zig");
 
 const Appendable = protocol.Appendable;
 const MT = protocol.MessageType;
@@ -53,7 +54,7 @@ const ClientOpts = struct {
     nkey: ?[]const u8 = null,
 };
 
-const ConnectString = "CONNECT {\"verbose\":false,\"pedantic\":false,\"tls_required\":false,\"lang\":\"Zig\",\"version\":\"T.B.D\",\"protocol\":0,\"echo\":false}\r\n";
+const ConnectString = "CONNECT {\"verbose\":false,\"pedantic\":false,\"tls_required\":false,\"lang\":\"Zig\",\"version\":\"T.B.D\",\"protocol\":0,\"echo\":true}\r\n";
 const InfoString = "INFO {\"server_id\":\"SID\",\"server_name\":\"SNAM\",\"proto\":1,\"headers\":true,\"max_payload\":1048576,\"jetstream\":true}\r\n";
 
 pub const Conn = struct {
@@ -140,11 +141,132 @@ pub const Conn = struct {
         return;
     }
 
-    pub fn ping(cn: *Conn) !void {
-        try cn.write("PING\r\n");
+    pub fn publish(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: ?*Headers, payload: ?[]const u8) !void {
+        if ((headers == null) or (headers.?.buffer.body() == null) or (headers.?.buffer.body().?.len == 0)) {
+            return cn.PUB(subject, reply2, payload);
+        }
+        return cn.HPUB(subject, reply2, headers.?, payload);
     }
 
-    pub fn pong(cn: *Conn) !void {
+    // =======================================
+    //            PUB [Publisher=>Server]
+    // =======================================
+    // PUB <subject> [reply-to] <#bytes>␍␊[payload]␍␊
+    //
+    // #bytes> - length of payload without ␍␊
+    //
+    // PUB FOO 11␍␊Hello NATS!␍␊
+    //
+    // PUB FRONT.DOOR JOKE.22 11␍␊Knock Knock␍␊
+    //
+    // PUB NOTIFY 0␍␊␍␊     #bytes == 0 => empty payload
+    // =======================================
+    pub fn PUB(cn: *Conn, subject: []const u8, reply2: ?[]const u8, payload: ?[]const u8) !void {
+        var repl: []const u8 = undefined;
+
+        if (reply2 == null) {
+            repl = "";
+        } else {
+            repl = reply2.?;
+        }
+
+        var body: []const u8 = undefined;
+
+        if (payload == null) {
+            body = "";
+        } else {
+            body = payload.?;
+        }
+
+        try cn.print("PUB {0s} {1s} {2d}\r\n", .{ subject, repl, body.len });
+        try cn.write(body);
+        try cn.write("\r\n");
+        return;
+    }
+
+    // =======================================
+    //          HPUB [Publisher=>Server]
+    // =======================================
+    // HPUB <subject> [reply-to] <#header bytes> <#total bytes>␍␊[headers]␍␊␍␊[payload]␍␊
+    //
+    // HPUB FOO 22 33␍␊NATS/1.0␍␊Bar: Baz␍␊␍␊Hello NATS!␍␊
+    //
+    // HPUB FRONT.DOOR JOKE.22 45 56␍␊NATS/1.0␍␊BREAKFAST: donut␍␊LUNCH: burger␍␊␍␊Knock Knock␍␊
+    //
+    // HPUB MORNING.MENU 47 51␍␊NATS/1.0␍␊BREAKFAST: donut␍␊BREAKFAST: eggs␍␊␍␊Yum!␍␊
+    //
+    // HPUB <SUBJ> [REPLY] <HDR_LEN> <TOT_LEN> <HEADER><PAYLOAD>
+    //
+    // HDR_LEN includes the entire serialized header,
+    // from the start of the version string (NATS/1.0)
+    // up to and including the ␍␊ before the payload
+    //
+    // TOT_LEN the payload length plus the HDR_LEN
+    // =======================================
+    pub fn HPUB(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: *Headers, payload: ?[]const u8) !void {
+        var repl: []const u8 = undefined;
+
+        if (reply2 == null) {
+            repl = "";
+        } else {
+            repl = reply2.?;
+        }
+
+        var body: []const u8 = undefined;
+
+        if (payload == null) {
+            body = "";
+        } else {
+            body = payload.?;
+        }
+
+        const HDR_LEN = headers.buffer.body().?.len + 1; // +1 for ␍␊
+        const TOT_LEN = HDR_LEN + body.len;
+
+        try cn.print("HPUB {0s} {1s} {2d} {3d}\r\n", .{ subject, repl, HDR_LEN, TOT_LEN });
+        try cn.write(headers.buffer.body().?);
+        try cn.write("\r\n");
+        try cn.write(body);
+        try cn.write("\r\n");
+
+        return;
+    }
+
+    // =======================================
+    //          SUB [Subscriber=>Server]
+    // =======================================
+    // SUB <subject> [queue group] <sid>␍␊
+    pub fn SUB(cn: *Conn, subject: []const u8, queue_group: ?[]const u8, sid: []const u8) !void {
+        var qgr: []const u8 = undefined;
+
+        if (queue_group == null) {
+            qgr = "";
+        } else {
+            qgr = queue_group.?;
+        }
+
+        try cn.print("SUB {0s} {1s} {2s}\r\n", .{ subject, qgr, sid });
+
+        return;
+    }
+
+    // =======================================
+    //          UNSUB [Subscriber=>Server]
+    // =======================================
+    // UNSUB <sid>
+    pub fn UNSUB(cn: *Conn, sid: []const u8) !void {
+        try cn.print("UNSUB {0s}\r\n", .{sid});
+
+        return;
+    }
+
+    // =======================================
+    // PING/PONG [Client<=>Server]
+    // =======================================
+    pub fn PING(cn: *Conn) !void {
+        try cn.write("PING\r\n");
+    }
+    pub fn PONG(cn: *Conn) !void {
         try cn.write("PONG\r\n");
     }
 
@@ -190,10 +312,10 @@ pub const Conn = struct {
                     return ReturnedError.CommunicationFailure;
                 },
                 .PUB => {
-                    return null;
+                    return cn.read_PUB(pool);
                 },
                 .HPUB => {
-                    return null;
+                    return cn.read_HPUB(pool);
                 },
                 .MSG => {
                     return cn.read_MSG(pool);
@@ -211,18 +333,19 @@ pub const Conn = struct {
         }
     }
 
+    // .INFO .CONNECT .SUB .UNSUB .PING .PONG .OK .ERR
     fn read_oneliner(cn: *Conn, mt: MT, pool: *Messages) !?*AllocatedMSG {
         _ = cn;
-        _ = pool;
-        _ = mt;
 
-        //        const mname = MT.to_string(mt).?;
+        const alm = pool.get(0).?;
 
-        return null;
+        try alm.letter.prepare(mt);
+
+        return alm;
     }
 
     // =======================================
-    //                  MSG [Server]
+    //          MSG [Server=>Subscriber]
     // =======================================
     // MSG <subject> <sid> [reply-to] <#bytes>␍␊[payload]␍␊
     //
@@ -265,22 +388,29 @@ pub const Conn = struct {
 
         try alm.letter.sid.copy(procstrs.tail);
 
-        procstrs = try parse.cut_tail(parsed.shrinked);
+        procstrs = try parse.cut_tail(procstrs.shrinked);
         try alm.letter.subject.copy(procstrs.tail);
 
         return alm;
     }
+    pub fn MSG(cn: *Conn, subject: []const u8, sid: []const u8, reply2: []const u8, payload: []const u8) !void {
+        try cn.print("MSG {0s} {1s} {2s} {3d}\r\n", .{ subject, sid, reply2, payload.len });
+        try cn.write(payload);
+        try cn.write("\r\n");
+        return;
+    }
 
     // =======================================
-    //                  HMSG [Server]
+    //          HMSG [Server=>Subscriber]
     // =======================================
+    // HMSG <SUBJECT> <SID> [REPLY] <HDR_LEN> <TOT_LEN>
+    // <PAYLOAD>
+    //
     // HMSG SUBJECT 1 REPLY 23 30␍␊NATS/1.0␍␊Header: X␍␊␍␊PAYLOAD␍␊
     // HMSG SUBJECT 1 REPLY 23 23␍␊NATS/1.0␍␊Header: X␍␊␍␊␍␊
     // HMSG SUBJECT 1 REPLY 48 55␍␊NATS/1.0␍␊Header1: X␍␊Header1: Y␍␊Header2: Z␍␊␍␊PAYLOAD␍␊
     // HMSG SUBJECT 1 REPLY 48 48␍␊NATS/1.0␍␊Header1: X␍␊Header1: Y␍␊Header2: Z␍␊␍␊␍␊
     //
-    // HMSG <SUBJECT> <SID> [REPLY] <HDR_LEN> <TOT_LEN>
-    // <PAYLOAD>
     //
     // HDR_LEN includes the entire serialized header, from the start of the version string (NATS/1.0)
     // up to and including the ␍␊ before the payload
@@ -335,6 +465,16 @@ pub const Conn = struct {
 
         return alm;
     }
+    pub fn HMSG(cn: *Conn, subject: []const u8, sid: []const u8, reply2: []const u8, headers: *Headers, payload: []const u8) !void {
+        const HDR_LEN = headers.buffer.body().?.len + 1; // +1 for ␍␊
+        const TOT_LEN = HDR_LEN + payload.len;
+
+        try cn.print("HMSG {0s} {1s} {2s} {3d} {4d}\r\n", .{ subject, sid, reply2, HDR_LEN, TOT_LEN });
+        try cn.write(headers.buffer.body().?);
+        try cn.write("\r\n");
+        try cn.write(payload);
+        try cn.write("\r\n");
+    }
 
     pub fn read_mt(cn: *Conn) !MT {
         try cn.read_line();
@@ -348,7 +488,7 @@ pub const Conn = struct {
         }
     }
 
-    // Reads underlying stream exclude \r\n or \n to the internal buffer.
+    // Reads underlying stream include \r\n or \n to the internal buffer.
     fn read_line(cn: *Conn) !void {
         if (cn.connection == null) {
             return ReturnedError.CommunicationFailure;
@@ -358,14 +498,16 @@ pub const Conn = struct {
 
         while (true) {
             if (cn.connection.?.reader().readByte()) |char| {
+                const str: [1]u8 = .{char};
+                try cn.line.append(str[0..1]);
+
                 if (char == '\r') {
                     continue;
                 }
+
                 if (char == '\n') {
                     return;
                 }
-                const str: [1]u8 = .{char};
-                try cn.line.append(str[0..1]);
             } else |er| {
                 return er;
             }
@@ -393,7 +535,9 @@ pub const Conn = struct {
         if (rlen < len) {
             return error.NoCRLF;
         }
-
+        
+        try buffer.change(rlen);
+        
         return;
     }
 
@@ -417,105 +561,16 @@ pub const Conn = struct {
 
         return conn;
     }
-};
 
-pub const ServersMailBox = mailbox.MailBox(Conn);
-
-pub const AllocatedConn = ServersMailBox.Envelope;
-
-pub const Srv = struct {
-    listener: Socket = undefined,
-    allocator: Allocator = undefined,
-    port: u16 = undefined,
-    thread: Thread = undefined,
-    connected: ServersMailBox = .{},
-    count: u16 = 0,
-
-    pub fn listen(srv: *Srv, allocator: Allocator) !u16 {
-        srv.allocator = allocator;
-
-        var address: std.net.Address = undefined;
-        address = try std.net.Address.parseIp("127.0.0.1", 0);
-
-        const listener = try posix.socket(address.any.family, posix.SOCK.STREAM, posix.IPPROTO.TCP);
-        errdefer posix.close(listener);
-
-        try posix.setsockopt(listener, posix.SOL.SOCKET, posix.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));
-
-        try posix.bind(listener, &address.any, address.getOsSockLen());
-        try posix.listen(listener, 128);
-
-        var len: posix.socklen_t = @sizeOf(net.Address);
-
-        try posix.getsockname(listener, &address.any, &len);
-
-        const port: u16 = address.getPort();
-
-        srv.listener = listener;
-        srv.port = port;
-
-        return port;
+    fn read_PUB(cn: *Conn, pool: *Messages) !?*AllocatedMSG {
+        _ = cn;
+        _ = pool;
+        return error.NotImplemented;
     }
 
-    pub fn close(srv: *Srv) void {
-        posix.close(srv.listener);
-
-        var chain = srv.connected.close();
-        if (chain != null) {
-            const next = chain.?.next;
-            chain.?.letter.disconnect();
-            srv.allocator.destroy(chain.?);
-            chain = next;
-        }
+    fn read_HPUB(cn: *Conn, pool: *Messages) !?*AllocatedMSG {
+        _ = cn;
+        _ = pool;
+        return error.NotImplemented;
     }
-
-    pub fn startAccept(srv: *Srv, count: u16) void {
-        srv.count = count;
-        srv.thread = std.Thread.spawn(.{}, run, .{srv}) catch unreachable;
-    }
-
-    pub fn waitAccept(srv: *Srv) void {
-        srv.thread.join();
-    }
-
-    fn accept(srv: *Srv) *AllocatedConn {
-        var client_address: net.Address = undefined;
-        var client_address_len: posix.socklen_t = @sizeOf(net.Address);
-        const socket = posix.accept(srv.listener, &client_address.any, &client_address_len, 0) catch unreachable;
-        errdefer posix.close(socket);
-
-        var alc = srv.allocator.create(AllocatedConn) catch unreachable;
-        alc.* = .{ .letter = .{} };
-        alc.letter.use(srv.allocator, socket) catch unreachable;
-
-        return alc;
-    }
-
-    fn run(srv: *Srv) void {
-        for (0..srv.count) |_| {
-            const cl = srv.accept();
-            srv.connected.send(cl) catch unreachable;
-        }
-        return;
-    }
-};
-
-
-pub const Server = struct {
-    allocator: Allocator = undefined,
-    alcon: *AllocatedConn = undefined,
-    pool: Messages = .{},
-
-    pub fn init(s: *Server, allocator: Allocator, alcon: *AllocatedConn) void {
-        s.allocator = allocator;
-        s.alcon = alcon;
-        s.pool.init(allocator);
-    }
-
-    pub fn deinit(s: *Server) void {
-        s.alcon.letter.disconnect();
-        s.allocator.destroy(s.alcon);
-    }
-    
-    
 };

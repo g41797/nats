@@ -56,76 +56,7 @@ pub fn publish(pb: *Publisher, subject: []const u8, reply2: ?[]const u8, headers
     pb.mutex.lock();
     defer pb.mutex.unlock();
 
-    var repl: []const u8 = undefined;
-
-    if (reply2 == null) {
-        repl = "";
-    } else {
-        repl = reply2.?;
-    }
-
-    var body: []const u8 = undefined;
-
-    if (payload == null) {
-        body = "";
-    } else {
-        body = payload.?;
-    }
-
-    if ((headers == null) or (headers.?.buffer.body() == null) or (headers.?.buffer.body().?.len == 0)) {
-        return pb._PUB(subject, repl, body);
-    }
-    return pb._HPUB(subject, repl, headers.?, body);
-}
-
-// =======================================
-//                  PUB [Client]
-// =======================================
-// PUB <subject> [reply-to] <#bytes>␍␊[payload]␍␊
-//
-// #bytes> - length of payload without ␍␊
-//
-// PUB FOO 11␍␊Hello NATS!␍␊
-//
-// PUB FRONT.DOOR JOKE.22 11␍␊Knock Knock␍␊
-//
-// PUB NOTIFY 0␍␊␍␊     #bytes == 0 => empty payload
-// =======================================
-fn _PUB(pb: *Publisher, subject: []const u8, reply2: []const u8, payload: []const u8) !void {
-    try pb.client.print("PUB {0s} {1s} {2d}\r\n", .{ subject, reply2, payload.len });
-    try pb.client.write(payload);
-    try pb.client.write("\r\n");
-    return;
-}
-
-// =======================================
-//                  HPUB [Client]
-// =======================================
-// HPUB SUBJECT REPLY 23 30␍␊NATS/1.0␍␊Header: X␍␊␍␊PAYLOAD␍␊
-// HPUB SUBJECT REPLY 23 23␍␊NATS/1.0␍␊Header: X␍␊␍␊␍␊
-// HPUB SUBJECT REPLY 48 55␍␊NATS/1.0␍␊Header1: X␍␊Header1: Y␍␊Header2: Z␍␊␍␊PAYLOAD␍␊
-// HPUB SUBJECT REPLY 48 48␍␊NATS/1.0␍␊Header1: X␍␊Header1: Y␍␊Header2: Z␍␊␍␊␍␊
-//
-// HPUB <SUBJ> [REPLY] <HDR_LEN> <TOT_LEN>
-// <HEADER><PAYLOAD>
-//
-// HDR_LEN includes the entire serialized header,
-// from the start of the version string (NATS/1.0)
-// up to and including the ␍␊ before the payload
-//
-// TOT_LEN the payload length plus the HDR_LEN
-// =======================================
-fn _HPUB(pb: *Publisher, subject: []const u8, reply2: []const u8, headers: *Headers, payload: []const u8) !void {
-    const HDR_LEN = headers.buffer.body().?.len + 1; // +1 for ␍␊
-    const TOT_LEN = HDR_LEN + payload.len;
-
-    try pb.client.print("HPUB {0s} {1s} {2d} {3d}\r\n", .{ subject, reply2, HDR_LEN, TOT_LEN });
-    try pb.client.write(headers.buffer.body().?);
-    try pb.client.write("\r\n");
-    try pb.client.write(payload);
-    try pb.client.write("\r\n");
-
-    return;
+    return pb.client.publish(subject, reply2, headers, payload);
 }
 
 pub fn disconnect(pb: *Publisher) void {
@@ -198,12 +129,12 @@ fn ping(pb: *Publisher) !void {
     pb.mutex.lock();
     defer pb.mutex.unlock();
 
-    try pb.client.ping();
+    try pb.client.PING();
 }
 
 fn pong(pb: *Publisher) !void {
     pb.mutex.lock();
     defer pb.mutex.unlock();
 
-    try pb.client.pong();
+    try pb.client.PONG();
 }

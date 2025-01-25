@@ -4,15 +4,7 @@
 pub const Appendable = @This();
 
 const std = @import("std");
-const mailbox = @import("mailbox");
-const ascii = std.ascii;
-const EnumMap = std.enums.EnumMap;
 const Allocator = std.mem.Allocator;
-pub const Header = std.http.Header;
-pub const HeaderIterator = std.http.HeaderIterator;
-const err = @import("err.zig");
-const ReturnedError = err.ReturnedError;
-const parse = @import("parse.zig");
 
 buffer: ?[]u8 = null,
 actual_len: usize = 0,
