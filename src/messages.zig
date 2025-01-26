@@ -52,9 +52,11 @@ pub const Messages = struct {
     pub fn get(msgs: *Messages, timeout_ns: u64) ?*AllocatedMSG {
         if (msgs.pool.receive(timeout_ns)) |amsg| {
             amsg.*.letter.reset() catch unreachable;
+            //std.io.getStdOut().writer().print("Get message from the pool\r\n", .{}) catch unreachable;
             return amsg;
         } else |er| {
             if (er == error.Timeout) {
+                //std.io.getStdOut().writer().print("Allocate message\r\n", .{}) catch unreachable;
                 return alloc(msgs.allocator, PAYLOADLEN);
             } else {
                 return null;

@@ -85,6 +85,8 @@ pub const Conn = struct {
 
         try cn.line.init(allocator, 128, 32);
         try cn.printbuf.init(allocator, 128, 32);
+        cn.pool.init(allocator);
+        cn.received.init(allocator);
 
         const mt = try cn.read_mt();
 
@@ -97,8 +99,6 @@ pub const Conn = struct {
         cn.fbs = std.io.fixedBufferStream(cn.printbuf.buffer.?);
 
         cn.thread = std.Thread.spawn(.{}, run, .{cn}) catch unreachable;
-        cn.pool.init(allocator);
-        cn.received.init(allocator);
 
         return;
     }
@@ -298,6 +298,7 @@ pub const Conn = struct {
     }
 
     pub fn reuse(cn: *Conn, msg: *AllocatedMSG) void {
+        //std.io.getStdOut().writer().print("Put to pool {0s}\r\n", .{msg.letter.mt.to_string().?}) catch unreachable;
         cn.pool.put(msg);
     }
 

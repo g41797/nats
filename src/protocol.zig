@@ -178,15 +178,15 @@ pub const MSG = struct {
         return;
     }
 
-    pub fn Subject(msg: *MSG) ?[]u8 {
+    pub fn Subject(msg: *MSG) ?[]const u8 {
         return msg.subject.body();
     }
 
-    pub fn Sid(msg: *MSG) ?[]u8 {
+    pub fn Sid(msg: *MSG) ?[]const u8 {
         return msg.sid.body();
     }
 
-    pub fn ReplyTo(msg: *MSG) ?[]u8 {
+    pub fn ReplyTo(msg: *MSG) ?[]const u8 {
         return msg.reply_to.body();
     }
 
@@ -197,7 +197,7 @@ pub const MSG = struct {
         return null;
     }
 
-    pub fn getPayload(msg: *MSG) ?[]u8 {
+    pub fn getPayload(msg: *MSG) ?[]const u8 {
         if (msg.mt.has_payload()) {
             return msg.payload.body();
         }

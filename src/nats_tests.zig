@@ -43,6 +43,8 @@ const messages = @import("messages.zig");
 const Messages = messages.Messages;
 const AllocatedMSG = messages.AllocatedMSG;
 
+const NOTIFY: []const u8 = "NOTIFY";
+
 test "PUB-SUB" {
     var sb: Conn = .{};
     try sb.connect(std.testing.allocator, .{});
@@ -50,7 +52,7 @@ test "PUB-SUB" {
 
     // SUB <subject> [queue group] <sid>␍␊
     // SUB NOTIFY                  NSID
-    try sb.SUB("NOTIFY", null, "NSID");
+    try sb.SUB(NOTIFY, null, "NSID");
 
     var pb: Conn = .{};
     try pb.connect(std.testing.allocator, .{});
@@ -58,9 +60,11 @@ test "PUB-SUB" {
 
     // PUB <subject> [reply-to] <#bytes>␍␊[payload]␍␊
     // PUB NOTIFY 0␍␊␍␊     #bytes == 0 => empty payload
-    try pb.PUB("NOTIFY", null, null);
+    try pb.PUB(NOTIFY, null, null);
 
     const rmsg = try wait(&sb, .MSG);
+
+    try testing.expectEqual(std.mem.eql(u8, NOTIFY, rmsg.letter.Subject().?), true);
 
     sb.reuse(rmsg);
 
@@ -78,11 +82,29 @@ fn wait(cl: *Conn, mt: MT) !*AllocatedMSG {
 
         const almsg = recv.?;
 
+        //std.io.getStdOut().writer().print("Receive message {0s}\r\n", .{almsg.*.letter.mt.to_string().?}) catch unreachable;
+
         if (almsg.*.letter.mt == mt) {
             return almsg;
         }
 
+        const rmt = almsg.letter.mt;
+
         cl.reuse(almsg);
+
+        switch (rmt) {
+            .PING => {
+                try cl.PONG();
+                continue;
+            },
+            .PONG, .OK => {
+                continue;
+            },
+            // .INFO .CONNECT .SUB .UNSUB .ERR
+            else => {
+                return ReturnedError.CommunicationFailure;
+            },
+        }
     }
 
     return error.NotReceived;
