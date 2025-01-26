@@ -31,7 +31,6 @@ pub const alloc = messages.alloc;
 pub const Messages = messages.Messages;
 pub const AllocatedMSG = messages.AllocatedMSG;
 
-mutex: Mutex = .{},
 client: Client = .{},
 attention: Sema = .{},
 thread: Thread = undefined,
@@ -42,9 +41,6 @@ pool: Messages = .{},
 received: Messages = .{},
 
 pub fn connect(sb: *Subscriber, allocator: Allocator, co: ConnectOpts) !void {
-    sb.mutex.lock();
-    defer sb.mutex.unlock();
-
     try sb.client.connect(allocator, co);
     sb.thread = std.Thread.spawn(.{}, run, .{sb}) catch unreachable;
     sb.pool.init(allocator);
@@ -52,9 +48,6 @@ pub fn connect(sb: *Subscriber, allocator: Allocator, co: ConnectOpts) !void {
 }
 
 pub fn disconnect(sb: *Subscriber) void {
-    sb.mutex.lock();
-    defer sb.mutex.unlock();
-
     if (sb.disconnected) {
         return;
     }
@@ -73,20 +66,13 @@ pub fn disconnect(sb: *Subscriber) void {
 
 // SUB <subject> [queue group] <sid>␍␊
 pub fn subscribe(sb: *Subscriber, subject: []const u8, queue_group: ?[]const u8, sid: []const u8) !void {
-    sb.mutex.lock();
-    defer sb.mutex.unlock();
-
     try sb.client.SUB(subject, queue_group, sid);
 
     return;
 }
 // UNSUB <sid>
 pub fn unsubscribe(sb: *Subscriber, sid: []const u8) !void {
-    sb.mutex.lock();
-    defer sb.mutex.unlock();
-
     try sb.client.UNSUB(sid);
-
     return;
 }
 

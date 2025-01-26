@@ -51,7 +51,7 @@ test "PUB-SUB" {
     defer sb.disconnect();
 
     // SUB <subject> [queue group] <sid>␍␊
-    // SUB NOTIFY NSID
+    // SUB NOTIFY                  NSID
     try sb.SUB("NOTIFY", null, "NSID");
 
     var pb: Conn = .{};
@@ -67,7 +67,7 @@ test "PUB-SUB" {
     pool.put(rmsg);
 
     // UNSUB <sid>
-    try sb.UNSUB("NSID");
+    try sb.UNSUB("NSID", null);
 
     return;
 }

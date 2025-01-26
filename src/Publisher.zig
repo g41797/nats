@@ -27,7 +27,6 @@ pub const HeaderIterator = protocol.HeaderIterator;
 const Client = nats.Conn;
 pub const ConnectOpts = nats.ConnectOpts;
 
-mutex: Mutex = .{},
 client: Client = .{},
 attention: Sema = .{},
 thread: Thread = undefined,
@@ -45,24 +44,15 @@ mt: MT = MT.UNKNOWN,
 ///     - failed connection
 ///     - already existing connection
 pub fn connect(pb: *Publisher, allocator: Allocator, co: ConnectOpts) !void {
-    pb.mutex.lock();
-    defer pb.mutex.unlock();
-
     try pb.client.connect(allocator, co);
     pb.thread = std.Thread.spawn(.{}, run, .{pb}) catch unreachable;
 }
 
 pub fn publish(pb: *Publisher, subject: []const u8, reply2: ?[]const u8, headers: ?*Headers, payload: ?[]const u8) !void {
-    pb.mutex.lock();
-    defer pb.mutex.unlock();
-
     return pb.client.publish(subject, reply2, headers, payload);
 }
 
 pub fn disconnect(pb: *Publisher) void {
-    pb.mutex.lock();
-    defer pb.mutex.unlock();
-
     if (pb.disconnected) {
         return;
     }
@@ -126,15 +116,9 @@ fn waitFinish(pb: *Publisher) void {
 }
 
 fn ping(pb: *Publisher) !void {
-    pb.mutex.lock();
-    defer pb.mutex.unlock();
-
     try pb.client.PING();
 }
 
 fn pong(pb: *Publisher) !void {
-    pb.mutex.lock();
-    defer pb.mutex.unlock();
-
     try pb.client.PONG();
 }

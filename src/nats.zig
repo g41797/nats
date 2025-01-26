@@ -9,7 +9,6 @@ const protocol = @import("protocol.zig");
 const messages = @import("messages.zig");
 
 const net = std.net;
-const http = std.http;
 const posix = std.posix;
 const Connection = net.Stream;
 const Stream = net.Stream;
@@ -17,10 +16,8 @@ const Socket = posix.socket_t;
 const Allocator = std.mem.Allocator;
 const Thread = std.Thread;
 const Mutex = std.Thread.Mutex;
-const Sema = std.Thread.Semaphore;
 
 const ReturnedError = err.ReturnedError;
-
 const Appendable = protocol.Appendable;
 const MT = protocol.MessageType;
 const Header = protocol.Header;
@@ -30,6 +27,11 @@ pub const alloc = messages.alloc;
 pub const Messages = messages.Messages;
 pub const AllocatedMSG = messages.AllocatedMSG;
 
+const CRLF: [2]u8 = .{
+    '\r',
+    '\n',
+};
+
 pub const DefaultAddr = "127.0.0.1";
 pub const DefaultPort = 4222;
 
@@ -38,26 +40,11 @@ pub const ConnectOpts = struct {
     port: ?u16 = DefaultPort,
 };
 
-const ClientOpts = struct {
-    verbose: bool = false,
-    pedantic: bool = false,
-    tls_required: bool = false,
-    auth_token: ?[]const u8 = null,
-    user: ?[]const u8 = null,
-    pass: ?[]const u8 = null,
-    lang: []const u8 = "Zig",
-    version: []const u8 = "TBD",
-    protocol: []const u8 = "0",
-    echo: bool = false,
-    sig: ?[]const u8 = null,
-    headers: bool = true,
-    nkey: ?[]const u8 = null,
-};
-
 const ConnectString = "CONNECT {\"verbose\":false,\"pedantic\":false,\"tls_required\":false,\"lang\":\"Zig\",\"version\":\"T.B.D\",\"protocol\":0,\"echo\":true}\r\n";
 const InfoString = "INFO {\"server_id\":\"SID\",\"server_name\":\"SNAM\",\"proto\":1,\"headers\":true,\"max_payload\":1048576,\"jetstream\":true}\r\n";
 
 pub const Conn = struct {
+    mutex: Mutex = .{},
     allocator: Allocator = undefined,
     connection: ?*Connection = null,
     line: Appendable = .{},
@@ -65,6 +52,9 @@ pub const Conn = struct {
     fbs: std.io.FixedBufferStream([]u8) = undefined,
 
     pub fn connect(cn: *Conn, allocator: Allocator, co: ConnectOpts) !void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
         if (cn.connection != null) {
             return error.AlreadyConnected;
         }
@@ -103,29 +93,10 @@ pub const Conn = struct {
         return;
     }
 
-    pub fn use(cn: *Conn, allocator: Allocator, socket: Socket) !void {
-        cn.allocator = allocator;
-
-        cn.connection = try cn.useTcp(socket);
-
-        errdefer cn.disconnect();
-
-        try cn.line.init(allocator, 128, 32);
-        try cn.printbuf.init(allocator, 128, 32);
-        cn.fbs = std.io.fixedBufferStream(cn.printbuf.buffer.?);
-
-        try cn.connection.?.writer().writeAll(InfoString);
-
-        const mt = try cn.read_mt();
-
-        if (mt != .CONNECT) {
-            return error.ProtocolError;
-        }
-
-        return;
-    }
-
     pub fn disconnect(cn: *Conn) void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
         if (cn.connection == null) {
             return;
         }
@@ -162,6 +133,9 @@ pub const Conn = struct {
     // PUB NOTIFY 0␍␊␍␊     #bytes == 0 => empty payload
     // =======================================
     pub fn PUB(cn: *Conn, subject: []const u8, reply2: ?[]const u8, payload: ?[]const u8) !void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
         var repl: []const u8 = undefined;
 
         if (reply2 == null) {
@@ -179,8 +153,14 @@ pub const Conn = struct {
         }
 
         try cn.print("PUB {0s} {1s} {2d}\r\n", .{ subject, repl, body.len });
-        try cn.write(body);
-        try cn.write("\r\n");
+
+        var buffers: [2]std.posix.iovec_const = .{
+            .{ .base = body.ptr, .len = body.len },
+            .{ .base = &CRLF, .len = CRLF.len },
+        };
+
+        try cn.writev(&buffers);
+
         return;
     }
 
@@ -204,6 +184,9 @@ pub const Conn = struct {
     // TOT_LEN the payload length plus the HDR_LEN
     // =======================================
     pub fn HPUB(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: *Headers, payload: ?[]const u8) !void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
         var repl: []const u8 = undefined;
 
         if (reply2 == null) {
@@ -224,10 +207,15 @@ pub const Conn = struct {
         const TOT_LEN = HDR_LEN + body.len;
 
         try cn.print("HPUB {0s} {1s} {2d} {3d}\r\n", .{ subject, repl, HDR_LEN, TOT_LEN });
-        try cn.write(headers.buffer.body().?);
-        try cn.write("\r\n");
-        try cn.write(body);
-        try cn.write("\r\n");
+
+        var buffers: [4]posix.iovec_const = .{
+            .{ .base = headers.buffer.body().?.ptr, .len = headers.buffer.body().?.len },
+            .{ .base = CRLF.ptr, .len = CRLF.len },
+            .{ .base = body.ptr, .len = body.len },
+            .{ .base = CRLF.ptr, .len = CRLF.len },
+        };
+
+        try cn.writev(&buffers);
 
         return;
     }
@@ -237,6 +225,9 @@ pub const Conn = struct {
     // =======================================
     // SUB <subject> [queue group] <sid>␍␊
     pub fn SUB(cn: *Conn, subject: []const u8, queue_group: ?[]const u8, sid: []const u8) !void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
         var qgr: []const u8 = undefined;
 
         if (queue_group == null) {
@@ -253,10 +244,24 @@ pub const Conn = struct {
     // =======================================
     //          UNSUB [Subscriber=>Server]
     // =======================================
-    // UNSUB <sid>
-    pub fn UNSUB(cn: *Conn, sid: []const u8) !void {
-        try cn.print("UNSUB {0s}\r\n", .{sid});
+    // UNSUB <sid>  [max_msgs]␍␊
+    pub fn UNSUB(cn: *Conn, sid: []const u8, max_msgs: ?u32) !void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
 
+        var mm: u32 = undefined;
+
+        if (max_msgs == null) {
+            mm = 0;
+        } else {
+            mm = max_msgs.?;
+        }
+
+        if (mm == 0) {
+            try cn.print("UNSUB {0s}\r\n", .{sid});
+        } else {
+            try cn.print("UNSUB {0s} {1d}\r\n", .{ sid, mm });
+        }
         return;
     }
 
@@ -264,9 +269,15 @@ pub const Conn = struct {
     // PING/PONG [Client<=>Server]
     // =======================================
     pub fn PING(cn: *Conn) !void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
         try cn.write("PING\r\n");
     }
     pub fn PONG(cn: *Conn) !void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
         try cn.write("PONG\r\n");
     }
 
@@ -285,7 +296,7 @@ pub const Conn = struct {
                 continue;
             }
         }
-        try cn.connection.?.writer().writeAll(cn.printbuf.body().?);
+        try cn.connection.?.writeAll(cn.printbuf.body().?);
     }
 
     pub fn _print(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
@@ -302,7 +313,18 @@ pub const Conn = struct {
         if (buffer.len == 0) {
             return;
         }
-        try cn.connection.?.writer().writeAll(buffer);
+        try cn.connection.?.writeAll(buffer);
+    }
+
+    // Writes the buffers to underlying stream.
+    pub fn writev(cn: *Conn, iovecs: []posix.iovec_const) !void {
+        if (cn.connection == null) {
+            return ReturnedError.CommunicationFailure;
+        }
+        if (iovecs.len == 0) {
+            return;
+        }
+        try cn.connection.?.writevAll(iovecs);
     }
 
     pub fn read_msg(cn: *Conn, pool: *Messages) !?*AllocatedMSG {
@@ -333,7 +355,8 @@ pub const Conn = struct {
         }
     }
 
-    // .INFO .CONNECT .SUB .UNSUB .PING .PONG .OK .ERR
+    // [Server=>Client].INFO .PING .PONG .OK .ERR
+    // [Client=>Server].CONNECT .SUB .UNSUB .PING .PONG
     fn read_oneliner(cn: *Conn, mt: MT, pool: *Messages) !?*AllocatedMSG {
         _ = cn;
 
@@ -392,12 +415,6 @@ pub const Conn = struct {
         try alm.letter.subject.copy(procstrs.tail);
 
         return alm;
-    }
-    pub fn MSG(cn: *Conn, subject: []const u8, sid: []const u8, reply2: []const u8, payload: []const u8) !void {
-        try cn.print("MSG {0s} {1s} {2s} {3d}\r\n", .{ subject, sid, reply2, payload.len });
-        try cn.write(payload);
-        try cn.write("\r\n");
-        return;
     }
 
     // =======================================
@@ -465,16 +482,6 @@ pub const Conn = struct {
 
         return alm;
     }
-    pub fn HMSG(cn: *Conn, subject: []const u8, sid: []const u8, reply2: []const u8, headers: *Headers, payload: []const u8) !void {
-        const HDR_LEN = headers.buffer.body().?.len + 1; // +1 for ␍␊
-        const TOT_LEN = HDR_LEN + payload.len;
-
-        try cn.print("HMSG {0s} {1s} {2s} {3d} {4d}\r\n", .{ subject, sid, reply2, HDR_LEN, TOT_LEN });
-        try cn.write(headers.buffer.body().?);
-        try cn.write("\r\n");
-        try cn.write(payload);
-        try cn.write("\r\n");
-    }
 
     pub fn read_mt(cn: *Conn) !MT {
         try cn.read_line();
@@ -497,15 +504,15 @@ pub const Conn = struct {
         try cn.line.reset();
 
         while (true) {
-            if (cn.connection.?.reader().readByte()) |char| {
-                const str: [1]u8 = .{char};
+            var str: [1]u8 = undefined;
+            if (cn.connection.?.readAll(&str)) |_| {
                 try cn.line.append(str[0..1]);
 
-                if (char == '\r') {
+                if (str[0] == '\r') {
                     continue;
                 }
 
-                if (char == '\n') {
+                if (str[0] == '\n') {
                     return;
                 }
             } else |er| {
@@ -530,14 +537,14 @@ pub const Conn = struct {
 
         try buffer.alloc(len);
 
-        const rlen = try cn.connection.?.reader().readAll(buffer.buffer.?[0..len]);
+        const rlen = try cn.connection.?.readAll(buffer.buffer.?[0..len]);
 
         if (rlen < len) {
             return error.NoCRLF;
         }
-        
+
         try buffer.change(rlen);
-        
+
         return;
     }
 
@@ -562,6 +569,61 @@ pub const Conn = struct {
         return conn;
     }
 
+    pub fn use(cn: *Conn, allocator: Allocator, socket: Socket) !void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
+        cn.allocator = allocator;
+
+        cn.connection = try cn.useTcp(socket);
+
+        errdefer cn.disconnect();
+
+        try cn.line.init(allocator, 128, 32);
+        try cn.printbuf.init(allocator, 128, 32);
+        cn.fbs = std.io.fixedBufferStream(cn.printbuf.buffer.?);
+
+        try cn.connection.?.writer().writeAll(InfoString);
+
+        const mt = try cn.read_mt();
+
+        if (mt != .CONNECT) {
+            return error.ProtocolError;
+        }
+
+        return;
+    }
+
+    pub fn MSG(cn: *Conn, subject: []const u8, sid: []const u8, reply2: []const u8, payload: []const u8) !void {
+        try cn.print("MSG {0s} {1s} {2s} {3d}\r\n", .{ subject, sid, reply2, payload.len });
+
+        var buffers: [2]posix.iovec_const = .{
+            .{ .base = payload.ptr, .len = payload.len },
+            .{ .base = CRLF.ptr, .len = CRLF.len },
+        };
+
+        try cn.writev(&buffers);
+        return;
+    }
+
+    pub fn HMSG(cn: *Conn, subject: []const u8, sid: []const u8, reply2: []const u8, headers: *Headers, payload: []const u8) !void {
+        const HDR_LEN = headers.buffer.body().?.len + 1; // +1 for ␍␊
+        const TOT_LEN = HDR_LEN + payload.len;
+
+        try cn.print("HMSG {0s} {1s} {2s} {3d} {4d}\r\n", .{ subject, sid, reply2, HDR_LEN, TOT_LEN });
+
+        var buffers: [4]posix.iovec_const = .{
+            .{ .base = headers.buffer.body().?.ptr, .len = headers.buffer.body().?.len },
+            .{ .base = CRLF.ptr, .len = CRLF.len },
+            .{ .base = payload.ptr, .len = payload.len },
+            .{ .base = CRLF.ptr, .len = CRLF.len },
+        };
+
+        try cn.writev(&buffers);
+
+        return;
+    }
+
     fn read_PUB(cn: *Conn, pool: *Messages) !?*AllocatedMSG {
         _ = cn;
         _ = pool;
@@ -573,4 +635,20 @@ pub const Conn = struct {
         _ = pool;
         return error.NotImplemented;
     }
+};
+
+const ClientOpts = struct {
+    verbose: bool = false,
+    pedantic: bool = false,
+    tls_required: bool = false,
+    auth_token: ?[]const u8 = null,
+    user: ?[]const u8 = null,
+    pass: ?[]const u8 = null,
+    lang: []const u8 = "Zig",
+    version: []const u8 = "TBD",
+    protocol: []const u8 = "0",
+    echo: bool = false,
+    sig: ?[]const u8 = null,
+    headers: bool = true,
+    nkey: ?[]const u8 = null,
 };
