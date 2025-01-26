@@ -21,6 +21,8 @@ const HeaderIterator = protocol.HeaderIterator;
 const nats = @import("nats.zig");
 const Conn = nats.Conn;
 
+const SECNS = 1000000000;
+
 test "connect disconnect" {
     var cl: Conn = .{};
     try cl.connect(std.testing.allocator, .{});
@@ -42,10 +44,6 @@ const Messages = messages.Messages;
 const AllocatedMSG = messages.AllocatedMSG;
 
 test "PUB-SUB" {
-    var pool: Messages = .{};
-    pool.init(std.testing.allocator);
-    defer pool.deinit();
-
     var sb: Conn = .{};
     try sb.connect(std.testing.allocator, .{});
     defer sb.disconnect();
@@ -62,9 +60,9 @@ test "PUB-SUB" {
     // PUB NOTIFY 0␍␊␍␊     #bytes == 0 => empty payload
     try pb.PUB("NOTIFY", null, null);
 
-    const rmsg = try wait(&sb, &pool, .MSG);
+    const rmsg = try wait(&sb, .MSG);
 
-    pool.put(rmsg);
+    sb.reuse(rmsg);
 
     // UNSUB <sid>
     try sb.UNSUB("NSID", null);
@@ -72,9 +70,9 @@ test "PUB-SUB" {
     return;
 }
 
-fn wait(cl: *Conn, pool: *Messages, mt: MT) !*AllocatedMSG {
+fn wait(cl: *Conn, mt: MT) !*AllocatedMSG {
     for (0..10) |_| {
-        const recv = try cl.read_msg(pool);
+        const recv = try cl.fetch(SECNS * 10);
 
         try testing.expect(recv != null);
 
@@ -84,7 +82,7 @@ fn wait(cl: *Conn, pool: *Messages, mt: MT) !*AllocatedMSG {
             return almsg;
         }
 
-        pool.put(almsg);
+        cl.reuse(almsg);
     }
 
     return error.NotReceived;

@@ -16,6 +16,7 @@ const Socket = posix.socket_t;
 const Allocator = std.mem.Allocator;
 const Thread = std.Thread;
 const Mutex = std.Thread.Mutex;
+const Sema = std.Thread.Semaphore;
 
 const ReturnedError = err.ReturnedError;
 const Appendable = protocol.Appendable;
@@ -50,6 +51,11 @@ pub const Conn = struct {
     line: Appendable = .{},
     printbuf: Appendable = .{},
     fbs: std.io.FixedBufferStream([]u8) = undefined,
+
+    attention: Sema = .{},
+    thread: Thread = undefined,
+    pool: Messages = .{},
+    received: Messages = .{},
 
     pub fn connect(cn: *Conn, allocator: Allocator, co: ConnectOpts) !void {
         cn.mutex.lock();
@@ -90,6 +96,10 @@ pub const Conn = struct {
 
         cn.fbs = std.io.fixedBufferStream(cn.printbuf.buffer.?);
 
+        cn.thread = std.Thread.spawn(.{}, run, .{cn}) catch unreachable;
+        cn.pool.init(allocator);
+        cn.received.init(allocator);
+
         return;
     }
 
@@ -103,20 +113,26 @@ pub const Conn = struct {
 
         cn.connection.?.close();
 
-        cn.allocator.destroy(cn.connection.?);
-
-        cn.connection = null;
         cn.line.deinit();
         cn.printbuf.deinit();
+
+        cn.raiseAttention();
+        cn.waitFinish();
+
+        cn.allocator.destroy(cn.connection.?);
+        cn.connection = null;
+        cn.pool.deinit();
+        cn.received.deinit();
 
         return;
     }
 
-    pub fn publish(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: ?*Headers, payload: ?[]const u8) !void {
-        if ((headers == null) or (headers.?.buffer.body() == null) or (headers.?.buffer.body().?.len == 0)) {
-            return cn.PUB(subject, reply2, payload);
+    pub fn fetch(cn: *Conn, timeout_ns: u64) !?*AllocatedMSG {
+        if (cn.received.receive(timeout_ns)) |recvd| {
+            return recvd;
+        } else |rerr| {
+            return rerr;
         }
-        return cn.HPUB(subject, reply2, headers.?, payload);
     }
 
     // =======================================
@@ -281,6 +297,10 @@ pub const Conn = struct {
         try cn.write("PONG\r\n");
     }
 
+    pub fn reuse(cn: *Conn, msg: *AllocatedMSG) void {
+        cn.pool.put(msg);
+    }
+
     // Writes the formatted output to underlying stream.
     pub fn print(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
         if (cn.connection == null) {
@@ -327,27 +347,27 @@ pub const Conn = struct {
         try cn.connection.?.writevAll(iovecs);
     }
 
-    pub fn read_msg(cn: *Conn, pool: *Messages) !?*AllocatedMSG {
+    pub fn read_msg(cn: *Conn) !?*AllocatedMSG {
         if (cn.read_mt()) |mt| {
             switch (mt) {
                 .UNKNOWN => {
                     return ReturnedError.CommunicationFailure;
                 },
                 .PUB => {
-                    return cn.read_PUB(pool);
+                    return cn.read_PUB();
                 },
                 .HPUB => {
-                    return cn.read_HPUB(pool);
+                    return cn.read_HPUB();
                 },
                 .MSG => {
-                    return cn.read_MSG(pool);
+                    return cn.read_MSG();
                 },
                 .HMSG => {
-                    return cn.read_HMSG(pool);
+                    return cn.read_HMSG();
                 },
                 // .INFO .CONNECT .SUB .UNSUB .PING .PONG .OK .ERR
                 else => {
-                    return cn.read_oneliner(mt, pool);
+                    return cn.read_oneliner(mt);
                 },
             }
         } else |rerr| {
@@ -357,10 +377,8 @@ pub const Conn = struct {
 
     // [Server=>Client].INFO .PING .PONG .OK .ERR
     // [Client=>Server].CONNECT .SUB .UNSUB .PING .PONG
-    fn read_oneliner(cn: *Conn, mt: MT, pool: *Messages) !?*AllocatedMSG {
-        _ = cn;
-
-        const alm = pool.get(0).?;
+    fn read_oneliner(cn: *Conn, mt: MT) !?*AllocatedMSG {
+        const alm = cn.pool.get(0).?;
 
         try alm.letter.prepare(mt);
 
@@ -377,7 +395,7 @@ pub const Conn = struct {
     // MSG FOO.BAR 9 11␍␊Hello World␍␊
     //
     // MSG FOO.BAR 9 GREETING.34 11␍␊Hello World␍␊
-    fn read_MSG(cn: *Conn, pool: *Messages) !?*AllocatedMSG {
+    fn read_MSG(cn: *Conn) !?*AllocatedMSG {
         const recvd = cn.line.body().?;
 
         var repl2exists: bool = true;
@@ -396,7 +414,8 @@ pub const Conn = struct {
 
         const parsed = try parse.cut_tail_size(recvd);
 
-        const alm = pool.get(0).?;
+        const alm = cn.pool.get(0).?;
+        errdefer cn.pool.put(alm);
 
         try alm.letter.prepare(.MSG);
         try cn.read_buffer(&alm.letter.payload, parsed.size + 2); // ␍␊
@@ -433,7 +452,7 @@ pub const Conn = struct {
     // up to and including the ␍␊ before the payload
     //
     // TOT_LEN the payload length plus the HDR_LEN
-    fn read_HMSG(cn: *Conn, pool: *Messages) !?*AllocatedMSG {
+    fn read_HMSG(cn: *Conn) !?*AllocatedMSG {
         const recvd = cn.line.body().?;
 
         var repl2exists: bool = true;
@@ -452,8 +471,8 @@ pub const Conn = struct {
 
         var parsed = try parse.cut_tail_size(recvd);
 
-        var alm = pool.get(0).?;
-        errdefer pool.put(alm);
+        var alm = cn.pool.get(0).?;
+        errdefer cn.pool.put(alm);
 
         try alm.letter.prepare(.HMSG);
 
@@ -569,6 +588,13 @@ pub const Conn = struct {
         return conn;
     }
 
+    pub fn publish(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: ?*Headers, payload: ?[]const u8) !void {
+        if ((headers == null) or (headers.?.buffer.body() == null) or (headers.?.buffer.body().?.len == 0)) {
+            return cn.PUB(subject, reply2, payload);
+        }
+        return cn.HPUB(subject, reply2, headers.?, payload);
+    }
+
     pub fn use(cn: *Conn, allocator: Allocator, socket: Socket) !void {
         cn.mutex.lock();
         defer cn.mutex.unlock();
@@ -624,16 +650,49 @@ pub const Conn = struct {
         return;
     }
 
-    fn read_PUB(cn: *Conn, pool: *Messages) !?*AllocatedMSG {
+    fn read_PUB(cn: *Conn) !?*AllocatedMSG {
         _ = cn;
-        _ = pool;
         return error.NotImplemented;
     }
 
-    fn read_HPUB(cn: *Conn, pool: *Messages) !?*AllocatedMSG {
+    fn read_HPUB(cn: *Conn) !?*AllocatedMSG {
         _ = cn;
-        _ = pool;
         return error.NotImplemented;
+    }
+
+    fn run(cn: *Conn) void {
+        while (!cn.wasRaised()) {
+            if (cn.read_msg()) |almsg| {
+                if (almsg == null) {
+                    continue;
+                }
+                if (cn.received.send(almsg.?)) |_| {
+                    continue;
+                } else |_| {
+                    break;
+                }
+            } else |_| {
+                break;
+            }
+        }
+
+        return;
+    }
+
+    fn raiseAttention(cn: *Conn) void {
+        _ = cn.attention.post();
+    }
+
+    inline fn wasRaised(cn: *Conn) bool {
+        if (cn.attention.timedWait(0)) |_| {
+            return true;
+        } else |_| {
+            return false;
+        }
+    }
+
+    fn waitFinish(cn: *Conn) void {
+        cn.thread.join();
     }
 };
 
