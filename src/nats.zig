@@ -523,7 +523,9 @@ pub const Conn = struct {
 
         try cn.line.reset();
 
-        while (true) {
+        try cn.setTimeOut();
+
+        while (!cn.wasRaised()) {
             var str: [1]u8 = undefined;
             if (cn.connection.?.readAll(&str)) |_| {
                 try cn.line.append(str[0..1]);
@@ -533,9 +535,13 @@ pub const Conn = struct {
                 }
 
                 if (str[0] == '\n') {
+                    try cn.resetTimeOut();
                     return;
                 }
             } else |er| {
+                if (er == error.WouldBlock) {
+                    continue;
+                }
                 return er;
             }
         }
@@ -694,6 +700,16 @@ pub const Conn = struct {
 
     fn waitFinish(cn: *Conn) void {
         cn.thread.join();
+    }
+
+    inline fn setTimeOut(cn: *Conn) !void {
+        const timeout = posix.timeval{ .sec = 1, .usec = 0 };
+        try posix.setsockopt(cn.connection.?.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
+    }
+
+    inline fn resetTimeOut(cn: *Conn) !void {
+        const timeout = posix.timeval{ .sec = 0, .usec = 0 };
+        try posix.setsockopt(cn.connection.?.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
     }
 };
 

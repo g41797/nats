@@ -59,3 +59,13 @@ How to reallocate without loosing data
 
 TCP Server in Zig - Part 1 - Single Threaded
     https://www.openmymind.net/TCP-Server-In-Zig-Part-1-Single-Threaded/
+
+Text creator    
+    https://textpro.me/create-a-metallic-text-effect-free-online-1041.html
+    
+Background remover    
+    https://www.photoroom.com/tools/background-remover
+
+Zig Utility Library    
+    https://github.com/karlseguin/zul
+    https://github.com/karlseguin/zul/blob/master/src/uuid.zig UUID v4/v7 

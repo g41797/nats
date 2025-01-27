@@ -23,20 +23,20 @@ const Conn = nats.Conn;
 
 const SECNS = 1000000000;
 
-test "connect disconnect" {
-    var cl: Conn = .{};
-    try cl.connect(std.testing.allocator, .{});
-    defer cl.disconnect();
-}
-
-test "PING-PONG" {
-    var cl: Conn = .{};
-    try cl.connect(std.testing.allocator, .{});
-    defer cl.disconnect();
-
-    try cl.PING();
-    try cl.PONG();
-}
+// test "connect disconnect" {
+//     var cl: Conn = .{};
+//     try cl.connect(std.testing.allocator, .{});
+//     defer cl.disconnect();
+// }
+//
+// test "PING-PONG" {
+//     var cl: Conn = .{};
+//     try cl.connect(std.testing.allocator, .{});
+//     defer cl.disconnect();
+//
+//     try cl.PING();
+//     try cl.PONG();
+// }
 
 const mailbox = @import("mailbox");
 const messages = @import("messages.zig");

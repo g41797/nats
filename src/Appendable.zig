@@ -10,6 +10,7 @@ buffer: ?[]u8 = null,
 actual_len: usize = 0,
 allocator: Allocator = undefined,
 round: usize = undefined,
+fbs: std.io.FixedBufferStream([]u8) = undefined,
 
 pub fn init(apndbl: *Appendable, allocator: Allocator, len: usize, round: ?usize) !void {
     apndbl.allocator = allocator;
@@ -127,4 +128,10 @@ inline fn roundlen(apndbl: *Appendable, len: usize) usize {
         return apndbl.round;
     }
     return (((len - 1) / apndbl.round) + 1) * apndbl.round;
+}
+
+fn _print(apndbl: *Appendable, comptime fmt: []const u8, args: anytype) !void {
+    apndbl.fbs.reset();
+    _ = try apndbl.fbs.writer().print(fmt, args);
+    try apndbl.change(apndbl.fbs.getWritten().len);
 }
