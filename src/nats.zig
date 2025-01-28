@@ -130,21 +130,6 @@ pub const Conn = struct {
         return;
     }
 
-    pub fn FETCH(cn: *Conn, timeout_ns: u64) !?*AllocatedMSG {
-        cn.mutex.lock();
-        defer cn.mutex.unlock();
-
-        return cn.fetch(timeout_ns);
-    }
-
-    pub fn fetch(cn: *Conn, timeout_ns: u64) !?*AllocatedMSG {
-        if (cn.received.receive(timeout_ns)) |recvd| {
-            return recvd;
-        } else |rerr| {
-            return rerr;
-        }
-    }
-
     // =======================================
     //            PUB [Publisher=>Server]
     // =======================================
@@ -163,35 +148,6 @@ pub const Conn = struct {
         defer cn.mutex.unlock();
 
         return cn._pub(subject, reply2, payload);
-    }
-
-    fn _pub(cn: *Conn, subject: []const u8, reply2: ?[]const u8, payload: ?[]const u8) !void {
-        var repl: []const u8 = undefined;
-
-        if (reply2 == null) {
-            repl = "";
-        } else {
-            repl = reply2.?;
-        }
-
-        var body: []const u8 = undefined;
-
-        if (payload == null) {
-            body = "";
-        } else {
-            body = payload.?;
-        }
-
-        try cn.print("PUB {0s} {1s} {2d}\r\n", .{ subject, repl, body.len });
-
-        var buffers: [2]std.posix.iovec_const = .{
-            .{ .base = body.ptr, .len = body.len },
-            .{ .base = &CRLF, .len = CRLF.len },
-        };
-
-        try cn.writev(&buffers);
-
-        return;
     }
 
     // =======================================
@@ -261,6 +217,88 @@ pub const Conn = struct {
         return cn.sub(subject, queue_group, sid);
     }
 
+    // =======================================
+    //          UNSUB [Subscriber=>Server]
+    // =======================================
+    // UNSUB <sid>  [max_msgs]␍␊
+    pub fn UNSUB(cn: *Conn, sid: []const u8, max_msgs: ?u32) !void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
+        return cn.unsub(sid, max_msgs);
+    }
+
+    // =======================================
+    // PING/PONG [Client<=>Server]
+    // =======================================
+    pub fn PING(cn: *Conn) !void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
+        try cn.ping();
+    }
+    pub fn PONG(cn: *Conn) !void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
+        try cn.pong();
+    }
+
+    pub fn FETCH(cn: *Conn, timeout_ns: u64) !?*AllocatedMSG {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
+        return cn.fetch(timeout_ns);
+    }
+
+    pub fn REQUEST(cn: *Conn, subject: []const u8, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
+        return cn.request(subject, payload, timeout_ns);
+    }
+
+    pub fn reuse(cn: *Conn, msg: *AllocatedMSG) void {
+        cn.pool.put(msg);
+    }
+
+    pub fn fetch(cn: *Conn, timeout_ns: u64) !?*AllocatedMSG {
+        if (cn.received.receive(timeout_ns)) |recvd| {
+            return recvd;
+        } else |rerr| {
+            return rerr;
+        }
+    }
+
+    fn _pub(cn: *Conn, subject: []const u8, reply2: ?[]const u8, payload: ?[]const u8) !void {
+        var repl: []const u8 = undefined;
+
+        if (reply2 == null) {
+            repl = "";
+        } else {
+            repl = reply2.?;
+        }
+
+        var body: []const u8 = undefined;
+
+        if (payload == null) {
+            body = "";
+        } else {
+            body = payload.?;
+        }
+
+        try cn.print("PUB {0s} {1s} {2d}\r\n", .{ subject, repl, body.len });
+
+        var buffers: [2]std.posix.iovec_const = .{
+            .{ .base = body.ptr, .len = body.len },
+            .{ .base = &CRLF, .len = CRLF.len },
+        };
+
+        try cn.writev(&buffers);
+
+        return;
+    }
+
     fn sub(cn: *Conn, subject: []const u8, queue_group: ?[]const u8, sid: []const u8) !void {
         var qgr: []const u8 = undefined;
 
@@ -273,17 +311,6 @@ pub const Conn = struct {
         try cn.print("SUB {0s} {1s} {2s}\r\n", .{ subject, qgr, sid });
 
         return;
-    }
-
-    // =======================================
-    //          UNSUB [Subscriber=>Server]
-    // =======================================
-    // UNSUB <sid>  [max_msgs]␍␊
-    pub fn UNSUB(cn: *Conn, sid: []const u8, max_msgs: ?u32) !void {
-        cn.mutex.lock();
-        defer cn.mutex.unlock();
-
-        return cn.unsub(sid, max_msgs);
     }
 
     fn unsub(cn: *Conn, sid: []const u8, max_msgs: ?u32) !void {
@@ -312,32 +339,12 @@ pub const Conn = struct {
         }
     }
 
-    // =======================================
-    // PING/PONG [Client<=>Server]
-    // =======================================
-    pub fn PING(cn: *Conn) !void {
-        cn.mutex.lock();
-        defer cn.mutex.unlock();
-
-        try cn.ping();
-    }
-    pub fn PONG(cn: *Conn) !void {
-        cn.mutex.lock();
-        defer cn.mutex.unlock();
-
-        try cn.pong();
-    }
-
     fn ping(cn: *Conn) !void {
         try cn.write("PING\r\n");
     }
+    
     fn pong(cn: *Conn) !void {
         try cn.write("PONG\r\n");
-    }
-
-    pub fn reuse(cn: *Conn, msg: *AllocatedMSG) void {
-        //std.io.getStdOut().writer().print("Put to pool {0s}\r\n", .{msg.letter.mt.to_string().?}) catch unreachable;
-        cn.pool.put(msg);
     }
 
     // Writes the formatted output to underlying stream.
@@ -376,7 +383,7 @@ pub const Conn = struct {
     }
 
     // Writes the buffers to underlying stream.
-    pub fn writev(cn: *Conn, iovecs: []posix.iovec_const) !void {
+    fn writev(cn: *Conn, iovecs: []posix.iovec_const) !void {
         if (cn.connection == null) {
             return ReturnedError.CommunicationFailure;
         }
@@ -386,7 +393,7 @@ pub const Conn = struct {
         try cn.connection.?.writevAll(iovecs);
     }
 
-    pub fn read_msg(cn: *Conn) !?*AllocatedMSG {
+    fn read_msg(cn: *Conn) !?*AllocatedMSG {
         if (cn.read_mt()) |mt| {
             switch (mt) {
                 .UNKNOWN => {
@@ -541,7 +548,7 @@ pub const Conn = struct {
         return alm;
     }
 
-    pub fn read_mt(cn: *Conn) !MT {
+    fn read_mt(cn: *Conn) !MT {
         try cn.read_line();
 
         const recvd = cn.line.body();
@@ -592,7 +599,7 @@ pub const Conn = struct {
     }
 
     // Reads 'len' bytes from underlying stream to the buffer.
-    pub fn read_buffer(cn: *Conn, buffer: *Appendable, len: usize) !void {
+    fn read_buffer(cn: *Conn, buffer: *Appendable, len: usize) !void {
         if (cn.wasRaised()) {
             return error.WasCancelled;
         }
@@ -673,7 +680,7 @@ pub const Conn = struct {
         return;
     }
 
-    pub fn MSG(cn: *Conn, subject: []const u8, sid: []const u8, reply2: []const u8, payload: []const u8) !void {
+    fn MSG(cn: *Conn, subject: []const u8, sid: []const u8, reply2: []const u8, payload: []const u8) !void {
         try cn.print("MSG {0s} {1s} {2s} {3d}\r\n", .{ subject, sid, reply2, payload.len });
 
         var buffers: [2]posix.iovec_const = .{
@@ -685,7 +692,7 @@ pub const Conn = struct {
         return;
     }
 
-    pub fn HMSG(cn: *Conn, subject: []const u8, sid: []const u8, reply2: []const u8, headers: *Headers, payload: []const u8) !void {
+    fn HMSG(cn: *Conn, subject: []const u8, sid: []const u8, reply2: []const u8, headers: *Headers, payload: []const u8) !void {
         const HDR_LEN = headers.buffer.body().?.len + 1; // +1 for ␍␊
         const TOT_LEN = HDR_LEN + payload.len;
 
@@ -758,14 +765,7 @@ pub const Conn = struct {
         try posix.setsockopt(cn.connection.?.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
     }
 
-    pub fn REQUEST(cn: *Conn, subject: []const u8, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
-        cn.mutex.lock();
-        defer cn.mutex.unlock();
-
-        return cn.request(subject, payload, timeout_ns);
-    }
-
-    pub fn request(cn: *Conn, subject: []const u8, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
+    fn request(cn: *Conn, subject: []const u8, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
         // Prepare for response
         const inbox = try newInbox();
         try cn.sub(&inbox, null, &inbox);
