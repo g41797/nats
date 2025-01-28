@@ -69,3 +69,7 @@ Background remover
 Zig Utility Library    
     https://github.com/karlseguin/zul
     https://github.com/karlseguin/zul/blob/master/src/uuid.zig UUID v4/v7 
+    
+MD hacks
+    https://www.markdownguide.org/hacks/
+    
