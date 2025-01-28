@@ -111,18 +111,19 @@ pub const Conn = struct {
             return;
         }
 
+        cn.raiseAttention();
+        cn.pool.deinit();
+        cn.received.deinit();
+
         cn.connection.?.close();
+
+        cn.waitFinish();
 
         cn.line.deinit();
         cn.printbuf.deinit();
 
-        cn.raiseAttention();
-        cn.waitFinish();
-
         cn.allocator.destroy(cn.connection.?);
         cn.connection = null;
-        cn.pool.deinit();
-        cn.received.deinit();
 
         return;
     }
@@ -527,7 +528,11 @@ pub const Conn = struct {
 
         while (!cn.wasRaised()) {
             var str: [1]u8 = undefined;
-            if (cn.connection.?.readAll(&str)) |_| {
+            if (cn.connection.?.read(&str)) |rcount| {
+                if(rcount == 0) {
+                    continue;
+                }
+                
                 try cn.line.append(str[0..1]);
 
                 if (str[0] == '\r') {
@@ -546,11 +551,15 @@ pub const Conn = struct {
             }
         }
 
-        return error.NoCRLF;
+        return error.WasCancelled;
     }
 
     // Reads 'len' bytes from underlying stream to the buffer.
     pub fn read_buffer(cn: *Conn, buffer: *Appendable, len: usize) !void {
+        if (cn.wasRaised()) {
+            return error.WasCancelled;
+        }
+
         if (cn.connection == null) {
             return ReturnedError.CommunicationFailure;
         }
