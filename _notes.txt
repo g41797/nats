@@ -72,4 +72,10 @@ Zig Utility Library
     
 MD hacks
     https://www.markdownguide.org/hacks/
+
+Programming with Zig: From Basics to Mastery    
+    https://gencmurat.com/en/posts/
+    https://gencmurat.com/en/pages/programming-with-zig/
     
+Import
+    zig fetch --save=zul git+https://github.com/karlseguin/zul

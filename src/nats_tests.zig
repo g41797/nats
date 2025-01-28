@@ -23,20 +23,25 @@ const Conn = nats.Conn;
 
 const SECNS = 1000000000;
 
-// test "connect disconnect" {
-//     var cl: Conn = .{};
-//     try cl.connect(std.testing.allocator, .{});
-//     defer cl.disconnect();
-// }
-//
-// test "PING-PONG" {
-//     var cl: Conn = .{};
-//     try cl.connect(std.testing.allocator, .{});
-//     defer cl.disconnect();
-//
-//     try cl.PING();
-//     try cl.PONG();
-// }
+test "new inbox" {
+    const inbox = try nats.newInbox();
+    _ = inbox;
+}
+
+test "connect disconnect" {
+    var cl: Conn = .{};
+    try cl.connect(std.testing.allocator, .{});
+    defer cl.disconnect();
+}
+
+test "PING-PONG" {
+    var cl: Conn = .{};
+    try cl.connect(std.testing.allocator, .{});
+    defer cl.disconnect();
+
+    try cl.PING();
+    try cl.PONG();
+}
 
 const mailbox = @import("mailbox");
 const messages = @import("messages.zig");
@@ -76,7 +81,7 @@ test "PUB-SUB" {
 
 fn wait(cl: *Conn, mt: MT) !*AllocatedMSG {
     for (0..10) |_| {
-        const recv = try cl.fetch(SECNS * 10);
+        const recv = try cl.FETCH(SECNS * 10);
 
         try testing.expect(recv != null);
 
@@ -108,6 +113,78 @@ fn wait(cl: *Conn, mt: MT) !*AllocatedMSG {
     }
 
     return error.NotReceived;
+}
+
+test "PUB-SUB the same connection" {
+    var sb: Conn = .{};
+    try sb.connect(std.testing.allocator, .{});
+    defer sb.disconnect();
+
+    // SUB <subject> [queue group] <sid>␍␊
+    // SUB NOTIFY                  NSID
+    try sb.SUB(NOTIFY, null, "NSID");
+
+    // PUB <subject> [reply-to] <#bytes>␍␊[payload]␍␊
+    // PUB NOTIFY 0␍␊␍␊     #bytes == 0 => empty payload
+    try sb.PUB(NOTIFY, null, null);
+
+    const rmsg = try wait(&sb, .MSG);
+
+    try testing.expectEqual(std.mem.eql(u8, NOTIFY, rmsg.letter.Subject().?), true);
+
+    sb.reuse(rmsg);
+
+    // UNSUB <sid>
+    try sb.UNSUB("NSID", null);
+
+    return;
+}
+
+test "request prototype" {
+    var cl: Conn = .{};
+    try cl.connect(std.testing.allocator, .{});
+    defer cl.disconnect();
+
+    // Prepare for response
+    const inbox = try nats.newInbox();
+    try cl.SUB(&inbox, null, &inbox);
+    defer _unsub_(&cl, &inbox);
+
+    // Request
+    // try cl.PUB(subject,  &inbox, payload)
+
+    // Simulate response
+    try cl.PUB(&inbox, null, null);
+
+    const rmsg = try wait(&cl, .MSG);
+
+    try testing.expectEqual(std.mem.eql(u8, &inbox, rmsg.letter.Subject().?), true);
+
+    cl.reuse(rmsg);
+
+    return;
+}
+
+fn _unsub_(cl: *Conn, sid: []const u8) void {
+    if (cl.UNSUB(sid, 0)) |_| {
+        return;
+    } else |_| {
+        return;
+    }
+}
+
+test "request" {
+    const SUBJECT = "$JS.API.INFO";
+
+    var rqtr: Conn = .{};
+    try rqtr.connect(std.testing.allocator, .{});
+    defer rqtr.disconnect();
+
+    const resp = try rqtr.REQUEST(SUBJECT, null, SECNS * 20);
+
+    rqtr.reuse(resp);
+
+    return;
 }
 
 // test "server listen" {

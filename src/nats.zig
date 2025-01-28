@@ -3,6 +3,7 @@
 
 const std = @import("std");
 const mailbox = @import("mailbox");
+const zul = @import("zul");
 const err = @import("err.zig");
 const parse = @import("parse.zig");
 const protocol = @import("protocol.zig");
@@ -27,6 +28,7 @@ const HeaderIterator = protocol.HeaderIterator;
 pub const alloc = messages.alloc;
 pub const Messages = messages.Messages;
 pub const AllocatedMSG = messages.AllocatedMSG;
+pub const UUID = zul.UUID;
 
 const CRLF: [2]u8 = .{
     '\r',
@@ -79,14 +81,14 @@ pub const Conn = struct {
             prt = co.port.?;
         }
 
-        cn.connection = try cn.connectTcp(host, prt);
-
-        errdefer cn.disconnect();
-
         try cn.line.init(allocator, 128, 32);
         try cn.printbuf.init(allocator, 128, 32);
         cn.pool.init(allocator);
         cn.received.init(allocator);
+
+        cn.connection = try cn.connectTcp(host, prt);
+
+        errdefer cn.disconnect();
 
         const mt = try cn.read_mt();
 
@@ -128,6 +130,13 @@ pub const Conn = struct {
         return;
     }
 
+    pub fn FETCH(cn: *Conn, timeout_ns: u64) !?*AllocatedMSG {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
+        return cn.fetch(timeout_ns);
+    }
+
     pub fn fetch(cn: *Conn, timeout_ns: u64) !?*AllocatedMSG {
         if (cn.received.receive(timeout_ns)) |recvd| {
             return recvd;
@@ -153,6 +162,10 @@ pub const Conn = struct {
         cn.mutex.lock();
         defer cn.mutex.unlock();
 
+        return cn._pub(subject, reply2, payload);
+    }
+
+    fn _pub(cn: *Conn, subject: []const u8, reply2: ?[]const u8, payload: ?[]const u8) !void {
         var repl: []const u8 = undefined;
 
         if (reply2 == null) {
@@ -245,6 +258,10 @@ pub const Conn = struct {
         cn.mutex.lock();
         defer cn.mutex.unlock();
 
+        return cn.sub(subject, queue_group, sid);
+    }
+
+    fn sub(cn: *Conn, subject: []const u8, queue_group: ?[]const u8, sid: []const u8) !void {
         var qgr: []const u8 = undefined;
 
         if (queue_group == null) {
@@ -266,6 +283,10 @@ pub const Conn = struct {
         cn.mutex.lock();
         defer cn.mutex.unlock();
 
+        return cn.unsub(sid, max_msgs);
+    }
+
+    fn unsub(cn: *Conn, sid: []const u8, max_msgs: ?u32) !void {
         var mm: u32 = undefined;
 
         if (max_msgs == null) {
@@ -282,6 +303,15 @@ pub const Conn = struct {
         return;
     }
 
+    // Does not return error - used for defer
+    fn _unsub_(cn: *Conn, sid: []const u8) void {
+        if (cn.unsub(sid, 0)) |_| {
+            return;
+        } else |_| {
+            return;
+        }
+    }
+
     // =======================================
     // PING/PONG [Client<=>Server]
     // =======================================
@@ -289,12 +319,19 @@ pub const Conn = struct {
         cn.mutex.lock();
         defer cn.mutex.unlock();
 
-        try cn.write("PING\r\n");
+        try cn.ping();
     }
     pub fn PONG(cn: *Conn) !void {
         cn.mutex.lock();
         defer cn.mutex.unlock();
 
+        try cn.pong();
+    }
+
+    fn ping(cn: *Conn) !void {
+        try cn.write("PING\r\n");
+    }
+    fn pong(cn: *Conn) !void {
         try cn.write("PONG\r\n");
     }
 
@@ -304,27 +341,27 @@ pub const Conn = struct {
     }
 
     // Writes the formatted output to underlying stream.
-    pub fn print(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
-        if (cn.connection == null) {
-            return ReturnedError.CommunicationFailure;
-        }
-
-        while (true) {
-            if (cn._print(fmt, args)) |_| {
-                break;
-            } else |_| {
-                _ = try cn.printbuf.alloc(cn.printbuf.buffer.?.len + 256);
-                cn.fbs = std.io.fixedBufferStream(cn.printbuf.buffer.?);
-                continue;
-            }
-        }
+    fn print(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
+        try cn._format(fmt, args, &cn.printbuf);
         try cn.connection.?.writeAll(cn.printbuf.body().?);
     }
 
-    pub fn _print(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
+    fn _format(cn: *Conn, comptime fmt: []const u8, args: anytype, fbuff: *Appendable) !void {
+        while (true) {
+            if (cn._tryformat(fmt, args, fbuff)) |_| {
+                return;
+            } else |_| {
+                _ = try fbuff.alloc(fbuff.buffer.?.len + 256);
+                cn.fbs = std.io.fixedBufferStream(fbuff.buffer.?);
+                continue;
+            }
+        }
+    }
+
+    fn _tryformat(cn: *Conn, comptime fmt: []const u8, args: anytype, fbuff: *Appendable) !void {
         cn.*.fbs.reset();
         _ = try cn.*.fbs.writer().print(fmt, args);
-        try cn.printbuf.change(cn.*.fbs.getWritten().len);
+        try fbuff.change(cn.*.fbs.getWritten().len);
     }
 
     // Writes the buffer to underlying stream.
@@ -529,10 +566,10 @@ pub const Conn = struct {
         while (!cn.wasRaised()) {
             var str: [1]u8 = undefined;
             if (cn.connection.?.read(&str)) |rcount| {
-                if(rcount == 0) {
+                if (rcount == 0) {
                     continue;
                 }
-                
+
                 try cn.line.append(str[0..1]);
 
                 if (str[0] == '\r') {
@@ -720,7 +757,68 @@ pub const Conn = struct {
         const timeout = posix.timeval{ .sec = 0, .usec = 0 };
         try posix.setsockopt(cn.connection.?.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
     }
+
+    pub fn REQUEST(cn: *Conn, subject: []const u8, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
+        return cn.request(subject, payload, timeout_ns);
+    }
+
+    pub fn request(cn: *Conn, subject: []const u8, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
+        // Prepare for response
+        const inbox = try newInbox();
+        try cn.sub(&inbox, null, &inbox);
+        defer cn._unsub_(&inbox);
+
+        // Send request
+        try cn._pub(subject, &inbox, payload);
+
+        return cn.waitResponse(timeout_ns);
+    }
+
+    // Temporary quick&durty
+    fn waitResponse(cn: *Conn, timeout_ns: u64) !*AllocatedMSG {
+        for (0..10) |_| {
+            const recv = try cn.fetch(timeout_ns);
+
+            if (recv == null) {
+                continue;
+            }
+
+            const almsg = recv.?;
+
+            if ((almsg.*.letter.mt == .MSG) or (almsg.*.letter.mt == .HMSG)) {
+                return almsg;
+            }
+
+            const rmt = almsg.letter.mt;
+
+            cn.reuse(almsg);
+
+            switch (rmt) {
+                .PING => {
+                    try cn.pong();
+                    continue;
+                },
+                .PONG, .OK => {
+                    continue;
+                },
+                // .INFO .CONNECT .SUB .UNSUB .ERR
+                else => {
+                    return ReturnedError.CommunicationFailure;
+                },
+            }
+        }
+
+        return error.NotReceived;
+    }
 };
+
+pub fn newInbox() ![36]u8 {
+    const uuid4 = UUID.v4();
+    return UUID.binToHex(&uuid4.bin, .upper);
+}
 
 const ClientOpts = struct {
     verbose: bool = false,

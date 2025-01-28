@@ -158,6 +158,31 @@ Connecting
 
     Turning Off Echo'd Messages
         https://docs.nats.io/using-nats/developer/connecting/noecho
-        
-    ..........................
-                                                        
+
+Request-Reply
+    https://docs.nats.io/nats-concepts/core-nats/reqreply
+
+Reply for "$JS.API.INFO" request
+{
+  "type" : "io.nats.jetstream.api.v1.account_info_response",
+  "memory" : 0,
+  "storage" : 0,
+  "reserved_memory" : 0,
+  "reserved_storage" : 0,
+  "streams" : 0,
+  "consumers" : 0,
+  "limits" : {
+    "max_memory" : -1,
+    "max_storage" : -1,
+    "max_streams" : -1,
+    "max_consumers" : -1,
+    "max_ack_pending" : -1,
+    "memory_max_stream_bytes" : -1,
+    "storage_max_stream_bytes" : -1,
+    "max_bytes_required" : false
+  },
+  "api" : {
+    "total" : 0,
+    "errors" : 0
+  }
+}                                                        

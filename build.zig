@@ -20,6 +20,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const zul = b.dependency("zul", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
     const lib = b.addStaticLibrary(.{
         .name = "nats",
         // In this case the main source file is merely a path, however, in more
@@ -31,6 +36,7 @@ pub fn build(b: *std.Build) void {
     });
     
     lib.root_module.addImport("mailbox", mailbox.module("mailbox"));
+    lib.root_module.addImport("zul", zul.module("zul"));
     
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
@@ -82,6 +88,8 @@ pub fn build(b: *std.Build) void {
     });
     
     lib_unit_tests.root_module.addImport("mailbox", mailbox.module("mailbox"));
+    lib_unit_tests.root_module.addImport("zul", zul.module("zul"));
+    
     b.installArtifact(lib_unit_tests);
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
