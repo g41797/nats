@@ -4,14 +4,11 @@
 const std = @import("std");
 const testing = std.testing;
 const expect = testing.expect;
-const net = std.net;
-const http = std.http;
-const Connection = http.Core.Connection;
 const Allocator = std.mem.Allocator;
 
 const err = @import("err.zig");
 const ReturnedError = err.ReturnedError;
-const parse = @import("parse.zig");
+
 const protocol = @import("protocol.zig");
 const Appendable = protocol.Appendable;
 const MT = protocol.MessageType;
@@ -20,12 +17,7 @@ const Headers = protocol.Headers;
 const HeaderIterator = protocol.HeaderIterator;
 const Core = @import("Core.zig");
 
-const SECNS = 1000000000;
-
-test "new inbox" {
-    const inbox = try protocol.newInbox();
-    _ = inbox;
-}
+const SECNS = protocol.SECNS;
 
 test "CONNECT DISCONNECT" {
     var cl: Core = .{};

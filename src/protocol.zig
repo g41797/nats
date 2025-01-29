@@ -219,6 +219,8 @@ pub const MSG = struct {
     }
 };
 
+pub const SECNS = 1000000000;
+
 pub const CRLF: [2]u8 = .{
     '\r',
     '\n',

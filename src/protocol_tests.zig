@@ -14,6 +14,11 @@ const Header = protocol.Header;
 const Headers = protocol.Headers;
 const HeaderIterator = protocol.HeaderIterator;
 
+test "new inbox" {
+    const inbox = try protocol.newInbox();
+    _ = inbox;
+}
+
 test "appendable" {
     var ap: Appendable = .{};
     try ap.init(std.testing.allocator, 1, 1);
