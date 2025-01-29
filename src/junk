@@ -1,0 +1,207 @@
+// test "server listen" {
+//     var srv: Srv = .{};
+//     const port = try srv.listen(std.testing.allocator);
+//
+//     try testing.expect(port != 0);
+//
+//     defer srv.close();
+// }
+//
+// test "server accept 1" {
+//     var srv: Srv = .{};
+//     const port = try srv.listen(std.testing.allocator);
+//     try testing.expect(port != 0);
+//     defer srv.close();
+//
+//     srv.startAccept(1);
+//
+//     var cl: Conn = .{};
+//     try cl.connect(std.testing.allocator, .{ .port = port });
+//     defer cl.disconnect();
+//
+//     srv.waitAccept();
+//
+//     try testing.expectEqual(1, srv.connected.letters());
+// }
+
+const posix = std.posix;
+const Socket = posix.socket_t;
+const Thread = std.Thread;
+const ServersMailBox = mailbox.MailBox(Conn);
+const AllocatedConn = ServersMailBox.Envelope;
+
+pub const Srv = struct {
+    listener: Socket = undefined,
+    allocator: Allocator = undefined,
+    port: u16 = undefined,
+    thread: Thread = undefined,
+    connected: ServersMailBox = .{},
+    count: u16 = 0,
+
+    pub fn listen(srv: *Srv, allocator: Allocator) !u16 {
+        srv.allocator = allocator;
+
+        var address: std.net.Address = undefined;
+        address = try std.net.Address.parseIp("127.0.0.1", 0);
+
+        const listener = try posix.socket(address.any.family, posix.SOCK.STREAM, posix.IPPROTO.TCP);
+        errdefer posix.close(listener);
+
+        try posix.setsockopt(listener, posix.SOL.SOCKET, posix.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));
+
+        try posix.bind(listener, &address.any, address.getOsSockLen());
+        try posix.listen(listener, 128);
+
+        var len: posix.socklen_t = @sizeOf(net.Address);
+
+        try posix.getsockname(listener, &address.any, &len);
+
+        const port: u16 = address.getPort();
+
+        srv.listener = listener;
+        srv.port = port;
+
+        return port;
+    }
+
+    pub fn close(srv: *Srv) void {
+        posix.close(srv.listener);
+
+        var chain = srv.connected.close();
+        if (chain != null) {
+            const next = chain.?.next;
+            chain.?.letter.disconnect();
+            srv.allocator.destroy(chain.?);
+            chain = next;
+        }
+    }
+
+    pub fn startAccept(srv: *Srv, count: u16) void {
+        srv.count = count;
+        srv.thread = std.Thread.spawn(.{}, run, .{srv}) catch unreachable;
+    }
+
+    pub fn waitAccept(srv: *Srv) void {
+        srv.thread.join();
+    }
+
+    fn accept(srv: *Srv) *AllocatedConn {
+        var client_address: net.Address = undefined;
+        var client_address_len: posix.socklen_t = @sizeOf(net.Address);
+        const socket = posix.accept(srv.listener, &client_address.any, &client_address_len, 0) catch unreachable;
+        errdefer posix.close(socket);
+
+        var alc = srv.allocator.create(AllocatedConn) catch unreachable;
+        alc.* = .{ .letter = .{} };
+        alc.letter.use(srv.allocator, socket) catch unreachable;
+
+        return alc;
+    }
+
+    fn run(srv: *Srv) void {
+        for (0..srv.count) |_| {
+            const cl = srv.accept();
+            srv.connected.send(cl) catch unreachable;
+        }
+        return;
+    }
+};
+
+pub const Server = struct {
+    allocator: Allocator = undefined,
+    alcon: *AllocatedConn = undefined,
+    pool: Messages = .{},
+
+    pub fn init(s: *Server, allocator: Allocator, alcon: *AllocatedConn) void {
+        s.allocator = allocator;
+        s.alcon = alcon;
+        s.pool.init(allocator);
+    }
+
+    pub fn deinit(s: *Server) void {
+        s.alcon.letter.disconnect();
+        s.allocator.destroy(s.alcon);
+    }
+
+    pub fn read_msg(s: *Server) !?*AllocatedMSG {
+        return s.alcon.letter.read_msg(s.pool);
+    }
+
+    pub fn reuse_msg(s: *Server, almsg: *AllocatedMSG) void {
+        return s.pool.put(almsg);
+    }
+};
+
+=========================================================================
+
+    fn useTcp(client: *Conn, socket: Socket) !*Stream {
+        const conn = try client.allocator.create(Stream);
+        errdefer client.allocator.destroy(conn);
+
+        conn.* = Stream{ .handle = socket };
+
+        return conn;
+    }
+
+    fn publish(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: ?*Headers, payload: ?[]const u8) !void {
+        if ((headers == null) or (headers.?.buffer.body() == null) or (headers.?.buffer.body().?.len == 0)) {
+            return cn._pub(subject, reply2, payload);
+        }
+        return cn.hpub(subject, reply2, headers.?, payload);
+    }
+
+
+    fn use(cn: *Conn, allocator: Allocator, socket: Socket) !void {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
+        cn.allocator = allocator;
+
+        cn.connection = try cn.useTcp(socket);
+
+        errdefer cn.disconnect();
+
+        try cn.line.init(allocator, 128, 32);
+        try cn.printbuf.init(allocator, 128, 32);
+        cn.fbs = std.io.fixedBufferStream(cn.printbuf.buffer.?);
+
+        try cn.connection.?.writer().writeAll(protocol.InfoString);
+
+        const mt = try cn.read_mt();
+
+        if (mt != .CONNECT) {
+            return error.ProtocolError;
+        }
+
+        return;
+    }
+
+    fn MSG(cn: *Conn, subject: []const u8, sid: []const u8, reply2: []const u8, payload: []const u8) !void {
+        try cn.print("MSG {0s} {1s} {2s} {3d}\r\n", .{ subject, sid, reply2, payload.len });
+
+        var buffers: [2]posix.iovec_const = .{
+            .{ .base = payload.ptr, .len = payload.len },
+            .{ .base = protocol.CRLF.ptr, .len = protocol.CRLF.len },
+        };
+
+        try cn.writev(&buffers);
+        return;
+    }
+
+    fn HMSG(cn: *Conn, subject: []const u8, sid: []const u8, reply2: []const u8, headers: *Headers, payload: []const u8) !void {
+        const HDR_LEN = headers.buffer.body().?.len + 1; // +1 for ␍␊
+        const TOT_LEN = HDR_LEN + payload.len;
+
+        try cn.print("HMSG {0s} {1s} {2s} {3d} {4d}\r\n", .{ subject, sid, reply2, HDR_LEN, TOT_LEN });
+
+        var buffers: [4]posix.iovec_const = .{
+            .{ .base = headers.buffer.body().?.ptr, .len = headers.buffer.body().?.len },
+            .{ .base = protocol.CRLF.ptr, .len = protocol.CRLF.len },
+            .{ .base = payload.ptr, .len = payload.len },
+            .{ .base = protocol.CRLF.ptr, .len = protocol.CRLF.len },
+        };
+
+        try cn.writev(&buffers);
+
+        return;
+    }

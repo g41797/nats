@@ -4,6 +4,6 @@
 test {
     _ = @import("parse_tests.zig");
     _ = @import("protocol_tests.zig");
-    _ = @import("nats_tests.zig");
+    _ = @import("Core_tests.zig");
     @import("std").testing.refAllDecls(@This());
 }

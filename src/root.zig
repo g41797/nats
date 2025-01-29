@@ -4,6 +4,6 @@
 const parse = @import("parse.zig");
 const err = @import("err.zig");
 const protocol = @import("protocol.zig");
-const nats = @import("nats.zig");
+const Core = @import("Core.zig");
 const Appendable = @import("Appendable.zig");
 const pool = @import("messages.zig");
