@@ -11,8 +11,7 @@ const messages = @import("messages.zig");
 const Allocator = std.mem.Allocator;
 const Mutex = std.Thread.Mutex;
 
-const Headers = protocol.Headers;
-pub const Messages = messages.Messages;
+const Headers = messages.Headers;
 pub const AllocatedMSG = messages.AllocatedMSG;
 
 mutex: Mutex = .{},

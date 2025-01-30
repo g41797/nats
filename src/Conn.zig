@@ -4,12 +4,6 @@
 pub const Conn = @This();
 
 const std = @import("std");
-const mailbox = @import("mailbox");
-
-const err = @import("err.zig");
-const parse = @import("parse.zig");
-const protocol = @import("protocol.zig");
-const messages = @import("messages.zig");
 
 const net = std.net;
 const posix = std.posix;
@@ -17,15 +11,19 @@ const Stream = net.Stream;
 const Socket = posix.socket_t;
 const Allocator = std.mem.Allocator;
 const Thread = std.Thread;
-const Mutex = std.Thread.Mutex;
 const Sema = std.Thread.Semaphore;
 
+const err = @import("err.zig");
+const parse = @import("parse.zig");
+const protocol = @import("protocol.zig");
+const messages = @import("messages.zig");
+const Appendable = @import("Appendable.zig");
+
 const ReturnedError = err.ReturnedError;
-const Appendable = protocol.Appendable;
-const MT = protocol.MessageType;
-const Header = protocol.Header;
-const Headers = protocol.Headers;
-const HeaderIterator = protocol.HeaderIterator;
+const MT = messages.MessageType;
+const Header = messages.Header;
+const Headers = messages.Headers;
+const HeaderIterator = messages.HeaderIterator;
 pub const alloc = messages.alloc;
 pub const Messages = messages.Messages;
 pub const AllocatedMSG = messages.AllocatedMSG;
@@ -239,10 +237,15 @@ fn _format(cn: *Conn, comptime fmt: []const u8, args: anytype, fbuff: *Appendabl
     while (true) {
         if (cn._tryformat(fmt, args, fbuff)) |_| {
             return;
-        } else |_| {
-            _ = try fbuff.alloc(fbuff.buffer.?.len + 256);
-            cn.fbs = std.io.fixedBufferStream(fbuff.buffer.?);
-            continue;
+        } else |ferr| switch (ferr) {
+            error.NoSpaceLeft => {
+                _ = try fbuff.alloc(fbuff.buffer.?.len + 256);
+                cn.fbs = std.io.fixedBufferStream(fbuff.buffer.?);
+                continue;
+            },
+            else => {
+                return ferr;
+            },
         }
     }
 }

@@ -36,7 +36,7 @@ pub fn change(apndbl: *Appendable, actual_len: usize) !void {
     }
 
     if (apndbl.buffer.?.len < actual_len) {
-        return error.NotEnoughSpace;
+        return error.NoSpaceLeft;
     }
 
     apndbl.actual_len = actual_len;

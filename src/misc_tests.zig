@@ -4,14 +4,12 @@
 const std = @import("std");
 const testing = std.testing;
 
-const err = @import("err.zig");
-const ReturnedError = err.ReturnedError;
-const parse = @import("parse.zig");
 const protocol = @import("protocol.zig");
-const Appendable = protocol.Appendable;
-const MT = protocol.MessageType;
-const Header = protocol.Header;
-const Headers = protocol.Headers;
+const messages = @import("messages.zig");
+const Appendable = @import("Appendable.zig");
+const MT = messages.MessageType;
+const Header = messages.Header;
+const Headers = messages.Headers;
 const HeaderIterator = protocol.HeaderIterator;
 
 test "new inbox" {

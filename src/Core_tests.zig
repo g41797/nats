@@ -2,20 +2,27 @@
 // SPDX-License-Identifier: MIT
 
 const std = @import("std");
+const mailbox = @import("mailbox");
+
 const testing = std.testing;
-const expect = testing.expect;
 const Allocator = std.mem.Allocator;
 
+const protocol = @import("protocol.zig");
+const messages = @import("messages.zig");
+const Appendable = @import("Appendable.zig");
 const err = @import("err.zig");
+const Core = @import("Core.zig");
+
 const ReturnedError = err.ReturnedError;
 
-const protocol = @import("protocol.zig");
-const Appendable = protocol.Appendable;
-const MT = protocol.MessageType;
-const Header = protocol.Header;
-const Headers = protocol.Headers;
-const HeaderIterator = protocol.HeaderIterator;
-const Core = @import("Core.zig");
+const Messages = messages.Messages;
+const AllocatedMSG = messages.AllocatedMSG;
+const MT = messages.MessageType;
+const Header = messages.Header;
+const Headers = messages.Headers;
+const HeaderIterator = messages.HeaderIterator;
+
+const NOTIFY: []const u8 = "NOTIFY";
 
 const SECNS = protocol.SECNS;
 
@@ -33,13 +40,6 @@ test "PING-PONG" {
     try cl.PING();
     try cl.PONG();
 }
-
-const mailbox = @import("mailbox");
-const messages = @import("messages.zig");
-const Messages = messages.Messages;
-const AllocatedMSG = messages.AllocatedMSG;
-
-const NOTIFY: []const u8 = "NOTIFY";
 
 test "PUB-SUB" {
     var sb: Core = .{};
