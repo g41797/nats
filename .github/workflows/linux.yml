@@ -20,7 +20,7 @@ jobs:
 
       - uses: mlugg/setup-zig@v1
         with:
-          version: master
+          version: 0.14.0-dev.2335+8594f179f
 
       - run: zig build test -freference-trace --summary all
 
