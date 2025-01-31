@@ -25,10 +25,10 @@ pub fn deinit(frmtr: *Formatter) void {
     frmtr.formatbuf.deinit();
 }
 
-pub fn format(frmtr: *Formatter, comptime fmt: []const u8, args: anytype) !?[]const u8 {
+pub fn sprintf(frmtr: *Formatter, comptime fmt: []const u8, args: anytype) !?[]const u8 {
     while (true) {
         if (frmtr.tryformat(fmt, args)) |_| {
-            return;
+            return frmtr.*.formatbuf.body();
         } else |ferr| switch (ferr) {
             error.NoSpaceLeft => {
                 _ = try frmtr.*.formatbuf.alloc(frmtr.*.formatbuf.buffer.?.len + 256);

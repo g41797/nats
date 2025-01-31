@@ -67,7 +67,7 @@ pub fn PUB(core: *Core, subject: []const u8, reply2: ?[]const u8, payload: ?[]co
         return error.NotConnected;
     }
 
-    return core.connection.?._pub(subject, reply2, payload);
+    return core.connection.?.@"pub"(subject, reply2, payload);
 }
 
 /// HPUB [Publisher=>Server]

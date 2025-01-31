@@ -18,6 +18,7 @@ const parse = @import("parse.zig");
 const protocol = @import("protocol.zig");
 const messages = @import("messages.zig");
 const Appendable = @import("Appendable.zig");
+const Formatter = @import("Formatter.zig");
 
 const ReturnedError = err.ReturnedError;
 const MT = messages.MessageType;
@@ -31,8 +32,7 @@ pub const AllocatedMSG = messages.AllocatedMSG;
 allocator: Allocator = undefined,
 connection: ?*Stream = null,
 line: Appendable = .{},
-printbuf: Appendable = .{},
-fbs: std.io.FixedBufferStream([]u8) = undefined,
+printbuf: Formatter = .{},
 
 attention: Sema = .{},
 thread: Thread = undefined,
@@ -59,7 +59,7 @@ pub fn connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void 
     }
 
     try cn.line.init(allocator, 128, 32);
-    try cn.printbuf.init(allocator, 128, 32);
+    cn.printbuf = try Formatter.init(allocator, 128);
     cn.pool.init(allocator);
     cn.received.init(allocator);
 
@@ -74,8 +74,6 @@ pub fn connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void 
     }
 
     try cn.connection.?.writer().writeAll(protocol.ConnectString);
-
-    cn.fbs = std.io.fixedBufferStream(cn.printbuf.buffer.?);
 
     cn.thread = std.Thread.spawn(.{}, run, .{cn}) catch unreachable;
 
@@ -116,7 +114,7 @@ pub fn reuse(cn: *Conn, msg: *AllocatedMSG) void {
     cn.pool.put(msg);
 }
 
-pub fn _pub(cn: *Conn, subject: []const u8, reply2: ?[]const u8, payload: ?[]const u8) !void {
+pub fn @"pub"(cn: *Conn, subject: []const u8, reply2: ?[]const u8, payload: ?[]const u8) !void {
     var repl: []const u8 = undefined;
 
     if (reply2 == null) {
@@ -229,31 +227,17 @@ pub fn pong(cn: *Conn) !void {
 
 // Writes the formatted output to underlying stream.
 pub fn print(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
-    try cn._format(fmt, args, &cn.printbuf);
-    try cn.connection.?.writeAll(cn.printbuf.body().?);
-}
-
-fn _format(cn: *Conn, comptime fmt: []const u8, args: anytype, fbuff: *Appendable) !void {
-    while (true) {
-        if (cn._tryformat(fmt, args, fbuff)) |_| {
+    // try cn._format(fmt, args, &cn.printbuf);
+    if (cn.printbuf.sprintf(fmt, args)) |fstr| {
+        if (fstr == null) {
             return;
-        } else |ferr| switch (ferr) {
-            error.NoSpaceLeft => {
-                _ = try fbuff.alloc(fbuff.buffer.?.len + 256);
-                cn.fbs = std.io.fixedBufferStream(fbuff.buffer.?);
-                continue;
-            },
-            else => {
-                return ferr;
-            },
         }
+        try cn.connection.?.writeAll(fstr.?);
+    } else |serr| {
+        return serr;
     }
-}
 
-fn _tryformat(cn: *Conn, comptime fmt: []const u8, args: anytype, fbuff: *Appendable) !void {
-    cn.*.fbs.reset();
-    _ = try cn.*.fbs.writer().print(fmt, args);
-    try fbuff.change(cn.*.fbs.getWritten().len);
+    return;
 }
 
 // Writes the buffer to underlying stream.
@@ -576,7 +560,7 @@ pub fn request(cn: *Conn, subject: []const u8, payload: ?[]const u8, timeout_ns:
     defer cn._unsub_(&inbox);
 
     // Send request
-    try cn._pub(subject, &inbox, payload);
+    try cn.@"pub"(subject, &inbox, payload);
 
     return cn.waitResponse(timeout_ns);
 }
