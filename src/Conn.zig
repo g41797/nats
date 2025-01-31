@@ -562,11 +562,11 @@ pub fn request(cn: *Conn, subject: []const u8, payload: ?[]const u8, timeout_ns:
     // Send request
     try cn.@"pub"(subject, &inbox, payload);
 
-    return cn.waitResponse(timeout_ns);
+    return cn.waitResponse(timeout_ns, &inbox);
 }
 
 // Temporary quick&durty
-fn waitResponse(cn: *Conn, timeout_ns: u64) !*AllocatedMSG {
+fn waitResponse(cn: *Conn, timeout_ns: u64, expected: []const u8) !*AllocatedMSG {
     for (0..10) |_| {
         const recv = try cn.fetch(timeout_ns);
 
@@ -577,7 +577,11 @@ fn waitResponse(cn: *Conn, timeout_ns: u64) !*AllocatedMSG {
         const almsg = recv.?;
 
         if ((almsg.*.letter.mt == .MSG) or (almsg.*.letter.mt == .HMSG)) {
-            return almsg;
+            if (std.mem.eql(u8, expected, almsg.letter.Subject().?)) {
+                return almsg;
+            }
+            cn.reuse(almsg);
+            return error.NotReceived;
         }
 
         const rmt = almsg.letter.mt;

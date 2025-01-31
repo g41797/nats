@@ -186,3 +186,16 @@ Reply for "$JS.API.INFO" request
     "errors" : 0
   }
 }                                                        
+
+Reply for ""$JS.API.STREAM.DELETE.NONEXISTINGSTREAM" request
+{"type":"io.nats.jetstream.api.v1.stream_delete_response","error":{"code":404,"err_code":10059,"description":"stream not found"}}
+
+{
+    "type":"io.nats.jetstream.api.v1.stream_delete_response",
+    "error": {
+        "code":404,
+        "err_code":10059, ??? optional
+        "description":"stream not found"
+    }
+}
+

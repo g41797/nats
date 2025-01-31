@@ -10,6 +10,8 @@ const Allocator = std.mem.Allocator;
 const protocol = @import("protocol.zig");
 const messages = @import("messages.zig");
 const Appendable = @import("Appendable.zig");
+const Formatter = @import("Formatter.zig");
+
 const err = @import("err.zig");
 const Core = @import("Core.zig");
 
@@ -174,6 +176,62 @@ test "request" {
     const resp = try rqtr.REQUEST(SUBJECT, null, SECNS * 20);
 
     rqtr.REUSE(resp);
+
+    return;
+}
+
+test "delete non existing stream" {
+    var frmtr: Formatter = try Formatter.init(std.testing.allocator, 128);
+    defer frmtr.deinit();
+
+    const DELETE_STREAM_T: []const u8 = "$JS.API.STREAM.DELETE.{s}";
+    const NONEXISTINGSTREAM: []const u8 = "NONEXISTINGSTREAM";
+    const SUBJECT = try frmtr.sprintf(DELETE_STREAM_T, .{NONEXISTINGSTREAM});
+
+    if (SUBJECT == null) {
+        return error.EmptyString;
+    }
+
+    var rqtr: Core = .{};
+    try rqtr.CONNECT(std.testing.allocator, .{});
+    defer rqtr.DISCONNECT();
+
+    const resp = try rqtr.REQUEST(SUBJECT.?, null, SECNS * 20);
+
+    rqtr.REUSE(resp);
+
+    return;
+}
+
+test "delete existing stream" {
+    var frmtr: Formatter = try Formatter.init(std.testing.allocator, 128);
+    defer frmtr.deinit();
+
+    const EXISTINGSTREAM: []const u8 = "EXISTINGSTREAM";
+
+    const CREATE_STREAM_T: []const u8 = "$JS.API.STREAM.CREATE.{s}";
+    const DELETE_STREAM_T: []const u8 = "$JS.API.STREAM.DELETE.{s}";
+
+    var rqtr: Core = .{};
+    try rqtr.CONNECT(std.testing.allocator, .{});
+    defer rqtr.DISCONNECT();
+
+    var SUBJECT = try frmtr.sprintf(CREATE_STREAM_T, .{EXISTINGSTREAM});
+
+    if (SUBJECT == null) {
+        return error.EmptyString;
+    }
+
+    const EMPTY_JSON: []const u8 = "{}";
+
+    const resp = try rqtr.REQUEST(SUBJECT.?, EMPTY_JSON, SECNS * 20);
+    rqtr.REUSE(resp);
+
+    SUBJECT = try frmtr.sprintf(DELETE_STREAM_T, .{EXISTINGSTREAM});
+
+    if (SUBJECT == null) {
+        return error.EmptyString;
+    }
 
     return;
 }

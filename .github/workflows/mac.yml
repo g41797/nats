@@ -19,6 +19,7 @@ jobs:
       - uses: mlugg/setup-zig@v1
         with:
           version: master
+          mirror: 'https://pkg.machengine.org/zig'
 
       - run: zig build
 
