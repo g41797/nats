@@ -28,8 +28,8 @@
             .hash = "12208d8777b69f62cccf70b4372d8c31a22bb022881279713d424689d6555532d389",
         },
         .zul = .{
-            .url = "git+https://github.com/karlseguin/zul#1cb43e85cc812ecbbfaf11b11d0061cd065d9e1c",
-            .hash = "1220288cbd5e3bad1b2b0a4ceb38b2bcdb58ba22fbf95d851e7de6357217a0fc2af5",
+            .url = "git+https://github.com/karlseguin/zul#e48d01c578b95c1a15957ba819e4094bff982277",
+            .hash = "122033def62ec92564cc4936cb870f44d9e6e8aece152bf72be564b1cac542638c76",
         },
     },
     .paths = .{
