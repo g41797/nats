@@ -50,6 +50,7 @@ Custom String Formatting and JSON [De]Serializing in Zig
     
 StringifyOptions
     https://ziglang.org/documentation/master/std/#std.json.stringify.StringifyOptions
+    https://gist.github.com/Mustafif/0aec5688cda843754f6e4b63155080cd
 
 ParseOptions
     https://ziglang.org/documentation/master/std/#std.json.static.ParseOptions                

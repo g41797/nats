@@ -198,4 +198,53 @@ Reply for ""$JS.API.STREAM.DELETE.NONEXISTINGSTREAM" request
         "description":"stream not found"
     }
 }
+{"type":"io.nats.jetstream.api.v1.stream_create_response","error":{"code":400,"err_code":10056,"description":"stream name in subject does not match request"}}
+{"type":"io.nats.jetstream.api.v1.stream_create_response","config":{"name":"EXISTINGSTREAM","subjects":["EXISTINGSTREAM"],"retention":"limits","max_consumers":-1,"max_msgs":-1,"max_bytes":-1,"max_age":0,"max_msgs_per_subject":-1,"max_msg_size":-1,"discard":"old","storage":"file","num_replicas":1,"duplicate_window":120000000000,"compression":"none","allow_direct":false,"mirror_direct":false,"sealed":false,"deny_delete":false,"deny_purge":false,"allow_rollup_hdrs":false,"consumer_limits":{}},"created":"2025-02-02T08:40:19.933368586Z","state":{"messages":0,"bytes":0,"first_seq":0,"first_ts":"0001-01-01T00:00:00Z","last_seq":0,"last_ts":"0001-01-01T00:00:00Z","consumer_count":0},"ts":"2025-02-02T08:40:19.936023057Z","did_create":true}
 
+
+Good response:
+{
+  "type": "io.nats.jetstream.api.v1.stream_names_response",
+  "total": 1,
+  "offset": 0,
+  "limit": 1024,
+  "streams": [
+    "KV_NATS"
+  ]
+}
+
+Error response:
+{
+  "type": "io.nats.jetstream.api.v1.consumer_info_response",
+  "error": {
+    "code": 404,
+    "err_code": 10059,
+    "description": "stream not found"
+  }
+}
+
+Example of APIs
+    $JS.API.STREAM.CREATE.%s
+    $JS.API.STREAM.UPDATE.%s
+    $JS.API.STREAM.NAMES
+    $JS.API.STREAM.LIST
+    $JS.API.STREAM.INFO.%s
+    $JS.API.STREAM.DELETE.%s
+    $JS.API.STREAM.PURGE.%s
+    $JS.API.STREAM.MSG.DELETE.%s
+    $JS.API.STREAM.MSG.GET.%s
+    $JS.API.STREAM.SNAPSHOT.%s
+    $JS.API.STREAM.RESTORE.%s
+    $JS.API.STREAM.PEER.REMOVE.%s
+    $JS.API.STREAM.LEADER.STEPDOWN.%s
+
+
+JetStream Configuration
+    https://docs.nats.io/nats-concepts/jetstream/streams
+
+    {"name":"EXISTINGSTREAM","retention":"limits","max_consumers":-1,"max_msgs":-1,"max_bytes":-1,"max_age":0,"max_msgs_per_subject":-1,"max_msg_size":-1,"discard":"old","storage":"file","num_replicas":1,"duplicate_window":120000000000,"compression":"none","allow_direct":false,"mirror_direct":false,"sealed":false,"deny_delete":false,"deny_purge":false,"allow_rollup_hdrs":false}
+    
+
+    
+NATS design
+    https://gitee.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-1.md

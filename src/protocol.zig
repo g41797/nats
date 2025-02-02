@@ -49,3 +49,38 @@ const ClientOpts = struct {
     headers: bool = true,
     nkey: ?[]const u8 = null,
 };
+
+// https://docs.nats.io/nats-concepts/jetstream/streams
+
+pub const RETENTION_LIMITS = "limits";
+pub const RETENTION_INTEREST = "interest";
+pub const RETENTION_WORKQUEUE = "workqueue";
+
+pub const DISCARD_OLD = "old";
+pub const DISCARD_NEW = "new";
+
+pub const STORAGE_FILE = "file";
+pub const STORAGE_MEMORY = "memory";
+
+pub const StreamConfig = struct {
+    name: []const u8 = undefined,
+    subjects: [][]const u8 = undefined,
+    retention: []const u8 = RETENTION_LIMITS,
+    max_consumers: i32 = -1,
+    max_msgs: i32 = -1,
+    max_bytes: i32 = -1,
+    max_age: i32 = 0,
+    max_msgs_per_subject: i32 = -1,
+    max_msg_size: i32 = -1,
+    discard: []const u8 = DISCARD_OLD,
+    storage: []const u8 = STORAGE_FILE,
+    num_replicas: i32 = 1,
+    duplicate_window: u64 = 120000000000,
+    compression: []const u8 = "none",
+    allow_direct: bool = false,
+    mirror_direct: bool = false,
+    sealed: bool = false,
+    deny_delete: bool = false,
+    deny_purge: bool = false,
+    allow_rollup_hdrs: bool = false,
+};

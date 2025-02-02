@@ -23,6 +23,7 @@ const MT = messages.MessageType;
 const Header = messages.Header;
 const Headers = messages.Headers;
 const HeaderIterator = messages.HeaderIterator;
+const StreamConfig = protocol.StreamConfig;
 
 const NOTIFY: []const u8 = "NOTIFY";
 
@@ -184,7 +185,6 @@ test "delete non existing stream" {
     var frmtr: Formatter = try Formatter.init(std.testing.allocator, 128);
     defer frmtr.deinit();
 
-    const DELETE_STREAM_T: []const u8 = "$JS.API.STREAM.DELETE.{s}";
     const NONEXISTINGSTREAM: []const u8 = "NONEXISTINGSTREAM";
     const SUBJECT = try frmtr.sprintf(DELETE_STREAM_T, .{NONEXISTINGSTREAM});
 
@@ -203,35 +203,67 @@ test "delete non existing stream" {
     return;
 }
 
-test "delete existing stream" {
-    var frmtr: Formatter = try Formatter.init(std.testing.allocator, 128);
-    defer frmtr.deinit();
+const CREATE_STREAM_T: []const u8 = "$JS.API.STREAM.CREATE.{s}";
+const DELETE_STREAM_T: []const u8 = "$JS.API.STREAM.DELETE.{s}";
+
+test "create delete stream" {
+    var cmd: Formatter = try Formatter.init(std.testing.allocator, 64);
+    defer cmd.deinit();
+
+    var jsn: Formatter = try Formatter.init(std.testing.allocator, 64);
+    defer jsn.deinit();
 
     const EXISTINGSTREAM: []const u8 = "EXISTINGSTREAM";
-
-    const CREATE_STREAM_T: []const u8 = "$JS.API.STREAM.CREATE.{s}";
-    const DELETE_STREAM_T: []const u8 = "$JS.API.STREAM.DELETE.{s}";
 
     var rqtr: Core = .{};
     try rqtr.CONNECT(std.testing.allocator, .{});
     defer rqtr.DISCONNECT();
 
-    var SUBJECT = try frmtr.sprintf(CREATE_STREAM_T, .{EXISTINGSTREAM});
+    var DELETE_STREAM = try cmd.sprintf(DELETE_STREAM_T, .{EXISTINGSTREAM});
 
-    if (SUBJECT == null) {
+    if (DELETE_STREAM == null) {
         return error.EmptyString;
     }
 
-    const EMPTY_JSON: []const u8 = "{}";
-
-    const resp = try rqtr.REQUEST(SUBJECT.?, EMPTY_JSON, SECNS * 20);
+    var resp = try rqtr.REQUEST(DELETE_STREAM.?, null, SECNS * 20);
     rqtr.REUSE(resp);
 
-    SUBJECT = try frmtr.sprintf(DELETE_STREAM_T, .{EXISTINGSTREAM});
+    const CREATE_STREAM = try cmd.sprintf(CREATE_STREAM_T, .{EXISTINGSTREAM});
 
-    if (SUBJECT == null) {
+    if (CREATE_STREAM == null) {
         return error.EmptyString;
     }
 
+    const config: StreamConfig = .{
+        .name = EXISTINGSTREAM,
+    };
+
+    const stream_config_json = try jsn.stringify(config, .{ .emit_strings_as_arrays = false, .whitespace = .minified });
+
+    resp = try rqtr.REQUEST(CREATE_STREAM.?, stream_config_json, SECNS * 20);
+    rqtr.REUSE(resp);
+
+    DELETE_STREAM = try cmd.sprintf(DELETE_STREAM_T, .{EXISTINGSTREAM});
+
+    if (DELETE_STREAM == null) {
+        return error.EmptyString;
+    }
+
+    resp = try rqtr.REQUEST(DELETE_STREAM.?, null, SECNS * 20);
+    rqtr.REUSE(resp);
+
     return;
+}
+
+test "stream config to json" {
+    var frmtr: Formatter = try Formatter.init(std.testing.allocator, 128);
+    defer frmtr.deinit();
+
+    const EXISTINGSTREAM: []const u8 = "EXISTINGSTREAM";
+
+    const config: StreamConfig = .{
+        .name = EXISTINGSTREAM,
+    };
+
+    _ = try frmtr.stringify(config, .{ .emit_strings_as_arrays = false, .whitespace = .indent_tab });
 }
