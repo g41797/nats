@@ -248,3 +248,46 @@ JetStream Configuration
     
 NATS design
     https://gitee.com/nats-io/nats-architecture-and-design/blob/main/adr/ADR-1.md
+    
+
+INFO
+====
+// ServerInfoV1 identifies remote servers.
+type ServerInfoV1 struct {
+	Name      string    `json:"name"`
+	Host      string    `json:"host"`
+	ID        string    `json:"id"`
+	Cluster   string    `json:"cluster,omitempty"`
+	Version   string    `json:"ver"`
+	Seq       uint64    `json:"seq"`
+	JetStream bool      `json:"jetstream"`
+	Time      time.Time `json:"time"`
+}
+
+CONNECT
+=======
+// ClientInfoV1 is detailed information about the client forming a connection.
+type ClientInfoV1 struct {
+	Start      time.Time     `json:"start,omitempty"`
+	Host       string        `json:"host,omitempty"`
+	ID         uint64        `json:"id,omitempty"`
+	Account    string        `json:"acc"`
+	User       string        `json:"user,omitempty"`
+	Name       string        `json:"name,omitempty"`
+	Lang       string        `json:"lang,omitempty"`
+	Version    string        `json:"ver,omitempty"`
+	RTT        time.Duration `json:"rtt,omitempty"`
+	Server     string        `json:"server,omitempty"`
+	Cluster    string        `json:"cluster,omitempty"`
+	Alternates []string      `json:"alts,omitempty"`
+	Stop       time.Time     `json:"stop,omitempty"`
+	Jwt        string        `json:"jwt,omitempty"`
+	IssuerKey  string        `json:"issuer_key,omitempty"`
+	NameTag    string        `json:"name_tag,omitempty"`
+	Tags       []string      `json:"tags,omitempty"`
+	Kind       string        `json:"kind,omitempty"`
+	ClientType string        `json:"client_type,omitempty"`
+}
+
+https://docs.nats.io/nats-concepts/jetstream/streams
+https://docs.nats.io/~gitbook/image?url=https%3A%2F%2F1487470910-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252F-LqMYcZML1bsXrN3Ezg0%252Fuploads%252Fgit-blob-dedcc17f082fa1e39497c54ed8191b6424ee7792%252Fstreams-and-consumers-75p.png%3Falt%3Dmedia&width=768&dpr=4&quality=100&sign=697e5d00&sv=2
