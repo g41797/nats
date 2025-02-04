@@ -83,3 +83,24 @@ pub fn cut_tail(line: []const u8) !struct { shrinked: []const u8, tail: []const 
 
     return .{ .shrinked = trl[0..tailIndex], .tail = trl[tailIndex + 1 .. tailIndex + 1 + lenOfTail] };
 }
+
+const Status = std.http.Status;
+
+pub fn responseErrorText(resp: []const u8) ?[]const u8 {
+    const expected = "\"error\":{\"code\":";
+
+    if (std.mem.indexOf(u8, resp, expected)) |index| {
+        
+        var subs_it = std.mem.splitAny(u8, resp[index + expected.len ..], ",");
+
+        if (std.fmt.parseInt(usize, subs_it.first(), 10)) |parsed| {
+            const status: Status = @enumFromInt(parsed);
+            return status.phrase();
+        } else |_| {
+            return null;
+        }
+    } else {
+        return null;
+    }
+}
+

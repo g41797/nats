@@ -43,3 +43,11 @@ test "count_substrings" {
     count = parse.count_substrings("HMSG SUBJECT 1   REPLY   48 48");
     try testing.expectEqual(count, 6);
 }
+
+test "parse response error" {
+    const resp = "{\"type\":\"io.nats.jetstream.api.v1.stream_create_response\",\"error\":{\"code\":400,\"err_code\":10056,\"description\":\"stream name in subject does not match request\"}}";
+    
+    const text = parse.responseErrorText(resp);
+    
+    try testing.expectEqual(std.mem.eql(u8, "Bad Request", text.?), true);
+}
