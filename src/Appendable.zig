@@ -22,10 +22,7 @@ pub fn init(apndbl: *Appendable, allocator: Allocator, len: usize, round: ?usize
     return;
 }
 
-pub fn reset(apndbl: *Appendable) !void {
-    if (apndbl.buffer == null) {
-        return error.WasNotAllocated;
-    }
+pub fn reset(apndbl: *Appendable) void {
     apndbl.actual_len = 0;
     return;
 }
@@ -79,7 +76,7 @@ pub inline fn shrink(apndbl: *Appendable, count: usize) !void {
 }
 
 pub fn copy(apndbl: *Appendable, from: []const u8) !void {
-    try apndbl.reset();
+    apndbl.reset();
     try apndbl.append(from);
 
     return;

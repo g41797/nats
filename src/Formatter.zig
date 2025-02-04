@@ -24,6 +24,11 @@ pub fn init(allocator: Allocator, len: usize) !Formatter {
     return frmtr;
 }
 
+pub fn reset(frmtr: *Formatter) void {
+    frmtr.*.fbs.reset();
+    frmtr.*.formatbuf.reset();
+}
+
 pub fn deinit(frmtr: *Formatter) void {
     frmtr.formatbuf.deinit();
 }

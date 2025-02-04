@@ -80,3 +80,11 @@ Programming with Zig: From Basics to Mastery
     
 Import
     zig fetch --save=zul git+https://github.com/karlseguin/zul
+
+Embed tar file
+    https://ziggit.dev/t/embed-folder-in-zig/6453/7?u=g41797
+
+Hannibal Lecter's Best Quotes    
+    https://screenrant.com/best-silence-of-the-lambs-quotes-hannibal-lecter/
+     A Lesson From Lecter:
+    "First, principles, Clarice. Simplicity..."

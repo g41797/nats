@@ -435,7 +435,7 @@ fn read_line(cn: *Conn) !void {
         return ReturnedError.CommunicationFailure;
     }
 
-    try cn.line.reset();
+    cn.line.reset();
 
     try cn.setTimeOut();
 
@@ -477,7 +477,7 @@ fn read_buffer(cn: *Conn, buffer: *Appendable, len: usize) !void {
         return ReturnedError.CommunicationFailure;
     }
 
-    try buffer.reset();
+    buffer.reset();
 
     if (len == 0) {
         return;

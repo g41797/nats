@@ -29,6 +29,7 @@ pub const MessageType = enum {
     HPUB,
     MSG,
     HMSG,
+    INTERNAL, // For internal communication - not related to NATS per se
 
     pub fn from_line(line: []const u8) MessageType {
         const trl = std.mem.trim(u8, line, " \t\r\n");
@@ -84,6 +85,7 @@ const MessageTypeMap = EnumMap(MessageType, []const u8).init(.{
     .HPUB = "HPUB",
     .MSG = "MSG",
     .HMSG = "HMSG",
+    .INTERNAL = "INTERNAL",
 });
 
 pub const Headers = struct {
@@ -123,8 +125,8 @@ pub const Headers = struct {
         return;
     }
 
-    pub fn reset(hdrs: *Headers) !void {
-        try hdrs.buffer.reset();
+    pub fn reset(hdrs: *Headers) void {
+        hdrs.buffer.reset();
         return;
     }
 
@@ -165,18 +167,18 @@ pub const MSG = struct {
         return;
     }
 
-    pub fn reset(msg: *MSG) !void {
-        try msg.subject.reset();
-        try msg.sid.reset();
-        try msg.reply_to.reset();
-        try msg.headers.reset();
-        try msg.payload.reset();
+    pub fn reset(msg: *MSG) void {
+        msg.subject.reset();
+        msg.sid.reset();
+        msg.reply_to.reset();
+        msg.headers.reset();
+        msg.payload.reset();
         return;
     }
 
     pub fn prepare(msg: *MSG, mt: MessageType) !void {
         msg.mt = mt;
-        try msg.reset();
+        msg.reset();
         return;
     }
 
@@ -254,7 +256,7 @@ pub const Messages = struct {
 
     pub fn get(msgs: *Messages, timeout_ns: u64) ?*AllocatedMSG {
         if (msgs.pool.receive(timeout_ns)) |amsg| {
-            amsg.*.letter.reset() catch unreachable;
+            amsg.*.letter.reset();
             //std.io.getStdOut().writer().print("Get message from the pool\r\n", .{}) catch unreachable;
             return amsg;
         } else |er| {

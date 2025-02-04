@@ -84,3 +84,8 @@ pub const StreamConfig = struct {
     deny_purge: bool = false,
     allow_rollup_hdrs: bool = false,
 };
+
+pub const CREATE_STREAM_T: []const u8 = "$JS.API.STREAM.CREATE.{s}";
+pub const UPDATE_STREAM_T: []const u8 = "$JS.API.STREAM.UPDATE.{s}";
+pub const PURGE_STREAM_T: []const u8 = "$JS.API.STREAM.PURGE.{s}";
+pub const DELETE_STREAM_T: []const u8 = "$JS.API.STREAM.DELETE.{s}";

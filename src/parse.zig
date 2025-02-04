@@ -90,7 +90,6 @@ pub fn responseErrorText(resp: []const u8) ?[]const u8 {
     const expected = "\"error\":{\"code\":";
 
     if (std.mem.indexOf(u8, resp, expected)) |index| {
-        
         var subs_it = std.mem.splitAny(u8, resp[index + expected.len ..], ",");
 
         if (std.fmt.parseInt(usize, subs_it.first(), 10)) |parsed| {
@@ -104,3 +103,11 @@ pub fn responseErrorText(resp: []const u8) ?[]const u8 {
     }
 }
 
+pub fn isFailed(resp: []const u8) bool {
+    const errText = responseErrorText(resp);
+    if (errText) |_| {
+        return true;
+    } else {
+        return false;
+    }
+}
