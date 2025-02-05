@@ -10,7 +10,6 @@ const Allocator = std.mem.Allocator;
 const protocol = @import("protocol.zig");
 const messages = @import("messages.zig");
 
-const err = @import("err.zig");
 const JetStreams = @import("JetStreams.zig");
 
 const Messages = messages.Messages;
@@ -32,7 +31,11 @@ test "base jetstream requests" {
 
     try js.CREATE(&CONF);
     try js.UPDATE(&CONF);
+
+    try js.PUBLISH(STREAM, null, null);
+
     try js.PURGE(STREAM);
+
     try js.DELETE(STREAM);
     return;
 }

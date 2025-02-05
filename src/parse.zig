@@ -3,8 +3,6 @@
 
 const std = @import("std");
 const ascii = std.ascii;
-const err = @import("err.zig");
-const ReturnedError = err.ReturnedError;
 
 // Server messages:
 // INFO {"option_name":option_value,...}␍␊

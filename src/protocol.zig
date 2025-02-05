@@ -12,10 +12,7 @@ pub const InfoString = "INFO {\"server_id\":\"SID\",\"server_name\":\"SNAM\",\"p
 
 pub const SECNS = 1000000000;
 
-pub const CRLF: [2]u8 = .{
-    '\r',
-    '\n',
-};
+pub const CRLF: []const u8 = "\r\n";
 
 pub const DefaultAddr = "127.0.0.1";
 pub const DefaultPort = 4222;

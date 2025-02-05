@@ -13,14 +13,12 @@ const Allocator = std.mem.Allocator;
 const Thread = std.Thread;
 const Sema = std.Thread.Semaphore;
 
-const err = @import("err.zig");
 const parse = @import("parse.zig");
 const protocol = @import("protocol.zig");
 const messages = @import("messages.zig");
 const Appendable = @import("Appendable.zig");
 const Formatter = @import("Formatter.zig");
 
-const ReturnedError = err.ReturnedError;
 const MT = messages.MessageType;
 const Header = messages.Header;
 const Headers = messages.Headers;
@@ -135,7 +133,7 @@ pub fn @"pub"(cn: *Conn, subject: []const u8, reply2: ?[]const u8, payload: ?[]c
 
     var buffers: [2]std.posix.iovec_const = .{
         .{ .base = body.ptr, .len = body.len },
-        .{ .base = &protocol.CRLF, .len = protocol.CRLF.len },
+        .{ .base = protocol.CRLF.ptr, .len = protocol.CRLF.len },
     };
 
     try cn.writev(&buffers);
@@ -175,6 +173,14 @@ pub fn hpub(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: *Heade
     try cn.writev(&buffers);
 
     return;
+}
+
+pub fn publish(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: ?*Headers, payload: ?[]const u8) !void {
+    if (headers == null) {
+        return cn.@"pub"(subject, reply2, payload);
+    } else {
+        return cn.hpub(subject, reply2, headers.?, payload);
+    }
 }
 
 pub fn sub(cn: *Conn, subject: []const u8, queue_group: ?[]const u8, sid: []const u8) !void {
@@ -243,7 +249,7 @@ pub fn print(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
 // Writes the buffer to underlying stream.
 pub fn write(cn: *Conn, buffer: []const u8) !void {
     if (cn.connection == null) {
-        return ReturnedError.CommunicationFailure;
+        return error.CommunicationFailure;
     }
     if (buffer.len == 0) {
         return;
@@ -254,7 +260,7 @@ pub fn write(cn: *Conn, buffer: []const u8) !void {
 // Writes the buffers to underlying stream.
 pub fn writev(cn: *Conn, iovecs: []posix.iovec_const) !void {
     if (cn.connection == null) {
-        return ReturnedError.CommunicationFailure;
+        return error.CommunicationFailure;
     }
     if (iovecs.len == 0) {
         return;
@@ -266,7 +272,7 @@ fn read_msg(cn: *Conn) !?*AllocatedMSG {
     if (cn.read_mt()) |mt| {
         switch (mt) {
             .UNKNOWN => {
-                return ReturnedError.CommunicationFailure;
+                return error.CommunicationFailure;
             },
             .PUB => {
                 return cn.read_PUB();
@@ -432,7 +438,7 @@ fn read_mt(cn: *Conn) !MT {
 // Reads underlying stream include \r\n or \n to the internal buffer.
 fn read_line(cn: *Conn) !void {
     if (cn.connection == null) {
-        return ReturnedError.CommunicationFailure;
+        return error.CommunicationFailure;
     }
 
     cn.line.reset();
@@ -474,7 +480,7 @@ fn read_buffer(cn: *Conn, buffer: *Appendable, len: usize) !void {
     }
 
     if (cn.connection == null) {
-        return ReturnedError.CommunicationFailure;
+        return error.CommunicationFailure;
     }
 
     buffer.reset();
@@ -553,14 +559,14 @@ inline fn resetTimeOut(cn: *Conn) !void {
     try posix.setsockopt(cn.connection.?.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
 }
 
-pub fn request(cn: *Conn, subject: []const u8, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
+pub fn request(cn: *Conn, subject: []const u8, headers: ?*Headers, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
     // Prepare for response
     const inbox = try protocol.newInbox();
     try cn.sub(&inbox, null, &inbox);
     defer cn._unsub_(&inbox);
 
     // Send request
-    try cn.@"pub"(subject, &inbox, payload);
+    try cn.publish(subject, &inbox, headers, payload);
 
     return cn.waitResponse(timeout_ns, &inbox);
 }
@@ -598,7 +604,7 @@ fn waitResponse(cn: *Conn, timeout_ns: u64, expected: []const u8) !*AllocatedMSG
             },
             // .INFO .CONNECT .SUB .UNSUB .ERR
             else => {
-                return ReturnedError.CommunicationFailure;
+                return error.CommunicationFailure;
             },
         }
     }

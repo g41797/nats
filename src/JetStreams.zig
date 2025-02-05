@@ -89,6 +89,28 @@ pub fn DELETE(js: *JetStreams, sname: []const u8) !void {
     return js.process(protocol.SECNS * 5);
 }
 
+pub fn PUBLISH(js: *JetStreams, subject: []const u8, headers: ?*Headers, payload: ?[]const u8) !void { // Check HEADERS
+    js.mutex.lock();
+    defer js.mutex.unlock();
+
+    if (js.connection == null) {
+        return error.NotConnected;
+    }
+
+    const response = try js.connection.?.request(subject, headers, payload, protocol.SECNS * 5);
+    defer js.connection.?.reuse(response);
+
+    if (response.letter.getPayload()) |data| {
+        if (parse.isFailed(data)) {
+            return error.JetStreamsRequestFailed;
+        } else {
+            return;
+        }
+    } else {
+        return;
+    }
+}
+
 pub fn DISCONNECT(js: *JetStreams) void {
     js.mutex.lock();
     defer js.mutex.unlock();
@@ -108,7 +130,7 @@ pub fn DISCONNECT(js: *JetStreams) void {
 }
 
 fn process(js: *JetStreams, timeout_ns: u64) !void {
-    const response = try js.connection.?.request(js.cmd.formatbuf.body().?, js.jsn.formatbuf.body(), timeout_ns);
+    const response = try js.connection.?.request(js.cmd.formatbuf.body().?, null, js.jsn.formatbuf.body(), timeout_ns);
     defer js.connection.?.reuse(response);
     if (response.letter.getPayload()) |payload| {
         if (parse.isFailed(payload)) {

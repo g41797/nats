@@ -4,8 +4,6 @@
 const std = @import("std");
 const testing = std.testing;
 
-const err = @import("err.zig");
-const ReturnedError = err.ReturnedError;
 const parse = @import("parse.zig");
 
 test "parse errors" {

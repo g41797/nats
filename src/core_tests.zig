@@ -12,10 +12,7 @@ const messages = @import("messages.zig");
 const Appendable = @import("Appendable.zig");
 const Formatter = @import("Formatter.zig");
 
-const err = @import("err.zig");
 const Core = @import("Core.zig");
-
-const ReturnedError = err.ReturnedError;
 
 const Messages = messages.Messages;
 const AllocatedMSG = messages.AllocatedMSG;
@@ -101,7 +98,7 @@ fn wait(cl: *Core, mt: MT) !*AllocatedMSG {
             },
             // .INFO .CONNECT .SUB .UNSUB .ERR
             else => {
-                return ReturnedError.CommunicationFailure;
+                return error.CommunicationFailure;
             },
         }
     }

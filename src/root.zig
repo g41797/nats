@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 const parse = @import("parse.zig");
-const err = @import("err.zig");
 const protocol = @import("protocol.zig");
 const Core = @import("Core.zig");
 const Conn = @import("Conn.zig");
