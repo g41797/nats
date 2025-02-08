@@ -1,7 +1,7 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
-pub const JetStreams = @This();
+pub const JetStream = @This();
 
 const std = @import("std");
 const Conn = @import("Conn.zig");
@@ -22,8 +22,8 @@ connection: ?*Conn = null,
 cmd: Formatter = .{},
 jsn: Formatter = .{},
 
-pub fn CONNECT(allocator: Allocator, co: protocol.ConnectOpts) !JetStreams {
-    var js: JetStreams = .{ .allocator = allocator };
+pub fn CONNECT(allocator: Allocator, co: protocol.ConnectOpts) !JetStream {
+    var js: JetStream = .{ .allocator = allocator };
 
     js.cmd = try Formatter.init(js.allocator, 128);
     js.jsn = try Formatter.init(js.allocator, 256);
@@ -33,7 +33,7 @@ pub fn CONNECT(allocator: Allocator, co: protocol.ConnectOpts) !JetStreams {
     return js;
 }
 
-pub fn CREATE(js: *JetStreams, sc: *protocol.StreamConfig) !void {
+pub fn CREATE(js: *JetStream, sc: *protocol.StreamConfig) !void {
     js.mutex.lock();
     defer js.mutex.unlock();
 
@@ -47,7 +47,7 @@ pub fn CREATE(js: *JetStreams, sc: *protocol.StreamConfig) !void {
     return js.process(protocol.SECNS * 5);
 }
 
-pub fn UPDATE(js: *JetStreams, sc: *protocol.StreamConfig) !void {
+pub fn UPDATE(js: *JetStream, sc: *protocol.StreamConfig) !void {
     js.mutex.lock();
     defer js.mutex.unlock();
 
@@ -61,7 +61,7 @@ pub fn UPDATE(js: *JetStreams, sc: *protocol.StreamConfig) !void {
     return js.process(protocol.SECNS * 5);
 }
 
-pub fn PURGE(js: *JetStreams, sname: []const u8) !void {
+pub fn PURGE(js: *JetStream, sname: []const u8) !void {
     js.mutex.lock();
     defer js.mutex.unlock();
 
@@ -75,7 +75,7 @@ pub fn PURGE(js: *JetStreams, sname: []const u8) !void {
     return js.process(protocol.SECNS * 5);
 }
 
-pub fn DELETE(js: *JetStreams, sname: []const u8) !void {
+pub fn DELETE(js: *JetStream, sname: []const u8) !void {
     js.mutex.lock();
     defer js.mutex.unlock();
 
@@ -89,7 +89,7 @@ pub fn DELETE(js: *JetStreams, sname: []const u8) !void {
     return js.process(protocol.SECNS * 5);
 }
 
-pub fn PUBLISH(js: *JetStreams, subject: []const u8, headers: ?*Headers, payload: ?[]const u8) !void { // Check HEADERS
+pub fn PUBLISH(js: *JetStream, subject: []const u8, headers: ?*Headers, payload: ?[]const u8) !void { // Check HEADERS
     js.mutex.lock();
     defer js.mutex.unlock();
 
@@ -97,21 +97,10 @@ pub fn PUBLISH(js: *JetStreams, subject: []const u8, headers: ?*Headers, payload
         return error.NotConnected;
     }
 
-    const response = try js.connection.?.request(subject, headers, payload, protocol.SECNS * 5);
-    defer js.connection.?.reuse(response);
-
-    if (response.letter.getPayload()) |data| {
-        if (parse.isFailed(data)) {
-            return error.JetStreamsRequestFailed;
-        } else {
-            return;
-        }
-    } else {
-        return;
-    }
+    try js.connection.?.publish(subject, null, headers, payload);
 }
 
-pub fn DISCONNECT(js: *JetStreams) void {
+pub fn DISCONNECT(js: *JetStream) void {
     js.mutex.lock();
     defer js.mutex.unlock();
 
@@ -129,7 +118,7 @@ pub fn DISCONNECT(js: *JetStreams) void {
     return;
 }
 
-fn process(js: *JetStreams, timeout_ns: u64) !void {
+fn process(js: *JetStream, timeout_ns: u64) !void {
     const response = try js.connection.?.request(js.cmd.formatbuf.body().?, null, js.jsn.formatbuf.body(), timeout_ns);
     defer js.connection.?.reuse(response);
     if (response.letter.getPayload()) |payload| {
@@ -143,7 +132,7 @@ fn process(js: *JetStreams, timeout_ns: u64) !void {
     }
 }
 
-fn createConn(js: *JetStreams, co: protocol.ConnectOpts) !void {
+fn createConn(js: *JetStream, co: protocol.ConnectOpts) !void {
     const conn = try js.allocator.create(Conn);
     conn.* = .{};
     errdefer js.allocator.destroy(conn);

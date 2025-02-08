@@ -88,3 +88,15 @@ Hannibal Lecter's Best Quotes
     https://screenrant.com/best-silence-of-the-lambs-quotes-hannibal-lecter/
      A Lesson From Lecter:
     "First, principles, Clarice. Simplicity..."
+    
+In-Depth Technical Guide to Zig Functions
+    https://gencmurat.com/en/posts/mastering-functions-in-zig/
+
+Zig Anonymous Functions and Closures: An In-Depth Analysis
+    https://gencmurat.com/en/posts/zig-anonymus-functions-and-closures/
+
+Material for mkdocs
+    https://squidfunk.github.io/mkdocs-material/
+    
+NUI
+    https://natsnui.app/

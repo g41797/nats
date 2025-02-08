@@ -292,3 +292,21 @@ type ClientInfoV1 struct {
 
 https://docs.nats.io/nats-concepts/jetstream/streams
 https://docs.nats.io/~gitbook/image?url=https%3A%2F%2F1487470910-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252F-LqMYcZML1bsXrN3Ezg0%252Fuploads%252Fgit-blob-dedcc17f082fa1e39497c54ed8191b6424ee7792%252Fstreams-and-consumers-75p.png%3Falt%3Dmedia&width=768&dpr=4&quality=100&sign=697e5d00&sv=2
+
+Wildcards: 
+    NATS supports the use of wildcards in subject subscriptions.
+
+    The asterisk character (*) matches a single token at any level of the subject.
+
+    The greater than symbol (>), also known as the full wildcard, matches one or more 
+    tokens at the tail of a subject, and must be the last token. 
+    The wildcarded subject foo.> will match foo.bar or foo.bar.baz.1, but not foo.
+
+    Wildcards must be a separate token (foo.*.baz or foo.> are syntactically valid; 
+    foo*.bar, f*o.b*r and foo> are not)
+
+    For example, the wildcard subscriptions foo.*.quux and foo.> both match foo.bar.quux, 
+    but only the latter matches foo.bar.baz. 
+    
+    With the full wildcard, it is also possible to express interest in every subject that 
+    may exist in NATS: sub > 1, limited of course by authorization settings.
