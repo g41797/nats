@@ -42,6 +42,7 @@ pub fn DISCONNECT(core: *Core) void {
         return;
     }
 
+    core.connection.?.interrupt() catch {};
     core.connection.?.disconnect();
     core.allocator.destroy(core.connection.?);
     core.connection = null;
@@ -150,9 +151,12 @@ pub fn PONG(core: *Core) !void {
 }
 
 /// Tries to get messages from receiver queue.
-/// Error returned for Communication Failure.
-/// If during timeout message was not received - returns null
-pub fn FETCH(core: *Core, timeout_ns: u64) !?*AllocatedMSG {
+/// Errors:
+/// Interrupted - need attention, usually stop processing
+/// Closed - disconnect was started
+/// NotConnected - obvious
+/// Timeout - nothing to fetch
+pub fn FETCH(core: *Core, timeout_ns: u64) error{ Interrupted, Closed, NotConnected, Timeout }!*AllocatedMSG {
     core.mutex.lock();
     defer core.mutex.unlock();
 

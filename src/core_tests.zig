@@ -74,19 +74,13 @@ fn wait(cl: *Core, mt: MT) !*AllocatedMSG {
     for (0..10) |_| {
         const recv = try cl.FETCH(SECNS * 10);
 
-        try testing.expect(recv != null);
-
-        const almsg = recv.?;
-
-        //std.io.getStdOut().writer().print("Receive message {0s}\r\n", .{almsg.*.letter.mt.to_string().?}) catch unreachable;
-
-        if (almsg.*.letter.mt == mt) {
-            return almsg;
+        if (recv.*.letter.mt == mt) {
+            return recv;
         }
 
-        const rmt = almsg.letter.mt;
+        const rmt = recv.letter.mt;
 
-        cl.REUSE(almsg);
+        cl.REUSE(recv);
 
         switch (rmt) {
             .PING => {

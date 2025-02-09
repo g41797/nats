@@ -108,6 +108,7 @@ pub fn DISCONNECT(js: *JetStream) void {
         return;
     }
 
+    js.connection.?.interrupt() catch {};
     js.connection.?.disconnect();
     js.allocator.destroy(js.connection.?);
     js.connection = null;

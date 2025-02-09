@@ -29,7 +29,7 @@ pub const MessageType = enum {
     HPUB,
     MSG,
     HMSG,
-    INTERNAL, // For internal communication - not related to NATS per se
+    INTERRUPT, // For internal communication - not related to NATS per se
 
     pub fn from_line(line: []const u8) MessageType {
         const trl = std.mem.trim(u8, line, " \t\r\n");
@@ -85,7 +85,7 @@ const MessageTypeMap = EnumMap(MessageType, []const u8).init(.{
     .HPUB = "HPUB",
     .MSG = "MSG",
     .HMSG = "HMSG",
-    .INTERNAL = "INTERNAL",
+    .INTERRUPT = "INTERRUPT",
 });
 
 pub const Headers = struct {
@@ -176,7 +176,7 @@ pub const MSG = struct {
         return;
     }
 
-    pub fn prepare(msg: *MSG, mt: MessageType) !void {
+    pub fn prepare(msg: *MSG, mt: MessageType) void {
         msg.mt = mt;
         msg.reset();
         return;
@@ -218,17 +218,12 @@ pub const MSG = struct {
 
 const PAYLOADLEN = 256;
 
-pub fn alloc(allocator: Allocator, plen: usize) ?*AllocatedMSG {
-    if (allocator.create(AllocatedMSG)) |am| {
-        errdefer allocator.destroy(am);
-        am.*.letter = .{};
-        am.*.letter.init(allocator, plen) catch {
-            return null;
-        };
-        return am;
-    } else |_| {
-        return null;
-    }
+pub fn alloc(allocator: Allocator, plen: usize) !*AllocatedMSG {
+    const am = try allocator.create(AllocatedMSG);
+    errdefer allocator.destroy(am);
+    am.*.letter = .{};
+    try am.*.letter.init(allocator, plen);
+    return am;
 }
 
 pub fn free(amsg: *AllocatedMSG) void {
@@ -254,7 +249,7 @@ pub const Messages = struct {
         }
     }
 
-    pub fn get(msgs: *Messages, timeout_ns: u64) ?*AllocatedMSG {
+    pub fn get(msgs: *Messages, timeout_ns: u64) !*AllocatedMSG {
         if (msgs.pool.receive(timeout_ns)) |amsg| {
             amsg.*.letter.reset();
             //std.io.getStdOut().writer().print("Get message from the pool\r\n", .{}) catch unreachable;
@@ -264,20 +259,16 @@ pub const Messages = struct {
                 //std.io.getStdOut().writer().print("Allocate message\r\n", .{}) catch unreachable;
                 return alloc(msgs.allocator, PAYLOADLEN);
             } else {
-                return null;
+                return er;
             }
         }
     }
 
-    pub fn receive(msgs: *Messages, timeout_ns: u64) !?*AllocatedMSG {
+    pub fn receive(msgs: *Messages, timeout_ns: u64) error{ Timeout, Closed }!*AllocatedMSG {
         if (msgs.pool.receive(timeout_ns)) |amsg| {
             return amsg;
         } else |rer| {
-            if (rer == error.Timeout) {
-                return null;
-            } else {
-                return rer;
-            }
+            return rer;
         }
     }
 

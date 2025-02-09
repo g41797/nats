@@ -44,6 +44,13 @@ test "from_line" {
     try testing.expectEqual(mt.has_payload(), true);
 }
 
+test "to string" {
+    const line = "HMSG SUBJECT 1 REPLY 23 30\r\n";
+    const mt = MT.from_line(line);
+
+    try testing.expectEqual(std.mem.eql(u8, "HMSG", MT.to_string(mt).?), true);
+}
+
 test "headers" {
     var hs: Headers = .{};
     try hs.init(std.testing.allocator, 8);

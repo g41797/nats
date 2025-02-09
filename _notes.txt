@@ -94,6 +94,9 @@ In-Depth Technical Guide to Zig Functions
 
 Zig Anonymous Functions and Closures: An In-Depth Analysis
     https://gencmurat.com/en/posts/zig-anonymus-functions-and-closures/
+    
+Advanced Guide to Return Values and Error Unions in Zig
+    https://gencmurat.com/en/posts/advanced-guide-to-return-values-and-error-unions-in-zig/    
 
 Material for mkdocs
     https://squidfunk.github.io/mkdocs-material/

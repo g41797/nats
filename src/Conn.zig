@@ -100,12 +100,24 @@ pub fn disconnect(cn: *Conn) void {
     return;
 }
 
-pub fn fetch(cn: *Conn, timeout_ns: u64) !?*AllocatedMSG {
+pub fn fetch(cn: *Conn, timeout_ns: u64) error{ Interrupted, Timeout, Closed }!*AllocatedMSG {
     if (cn.received.receive(timeout_ns)) |recvd| {
+        if (recvd.letter.mt == .INTERRUPT) {
+            cn.pool.put(recvd);
+            return error.Interrupted;
+        }
         return recvd;
     } else |rerr| {
         return rerr;
     }
+}
+
+pub fn interrupt(cn: *Conn) !void {
+    const alm = try cn.pool.get(0);
+    errdefer messages.free(alm);
+
+    alm.letter.prepare(.INTERRUPT);
+    try cn.received.send(alm);
 }
 
 pub fn reuse(cn: *Conn, msg: *AllocatedMSG) void {
@@ -298,10 +310,10 @@ fn read_msg(cn: *Conn) !?*AllocatedMSG {
 
 // [Server=>Client].INFO .PING .PONG .OK .ERR
 // [Client=>Server].CONNECT .SUB .UNSUB .PING .PONG
-fn read_oneliner(cn: *Conn, mt: MT) !?*AllocatedMSG {
-    const alm = cn.pool.get(0).?;
+fn read_oneliner(cn: *Conn, mt: MT) !*AllocatedMSG {
+    const alm = try cn.pool.get(0);
 
-    try alm.letter.prepare(mt);
+    alm.letter.prepare(mt);
 
     return alm;
 }
@@ -335,10 +347,10 @@ fn read_MSG(cn: *Conn) !?*AllocatedMSG {
 
     const parsed = try parse.cut_tail_size(recvd);
 
-    const alm = cn.pool.get(0).?;
+    const alm = try cn.pool.get(0);
     errdefer cn.pool.put(alm);
 
-    try alm.letter.prepare(.MSG);
+    alm.letter.prepare(.MSG);
     try cn.read_buffer(&alm.letter.payload, parsed.size + 2); // ␍␊
     try alm.letter.payload.shrink(2);
 
@@ -392,10 +404,10 @@ fn read_HMSG(cn: *Conn) !?*AllocatedMSG {
 
     var parsed = try parse.cut_tail_size(recvd);
 
-    var alm = cn.pool.get(0).?;
+    var alm = try cn.pool.get(0);
     errdefer cn.pool.put(alm);
 
-    try alm.letter.prepare(.HMSG);
+    alm.letter.prepare(.HMSG);
 
     const TOT_LEN = parsed.size;
     parsed = try parse.cut_tail_size(parsed.shrinked);
@@ -571,45 +583,44 @@ pub fn request(cn: *Conn, subject: []const u8, headers: ?*Headers, payload: ?[]c
     return cn.waitResponse(timeout_ns, &inbox);
 }
 
-// Temporary quick&durty
 fn waitResponse(cn: *Conn, timeout_ns: u64, expected: []const u8) !*AllocatedMSG {
-    for (0..10) |_| {
-        const recv = try cn.fetch(timeout_ns);
+    var timeout_timer = std.time.Timer.start() catch unreachable;
 
-        if (recv == null) {
-            continue;
-        }
+    var local_timeout_ns = timeout_ns;
 
-        const almsg = recv.?;
+    while (true) {
+        const recv = try cn.fetch(local_timeout_ns);
 
-        if ((almsg.*.letter.mt == .MSG) or (almsg.*.letter.mt == .HMSG)) {
-            if (std.mem.eql(u8, expected, almsg.letter.Subject().?)) {
-                return almsg;
+        if ((recv.*.letter.mt == .MSG) or (recv.*.letter.mt == .HMSG)) {
+            if (std.mem.eql(u8, expected, recv.letter.Subject().?)) {
+                return recv;
             }
-            cn.reuse(almsg);
+            cn.reuse(recv);
             return error.NotReceived;
         }
 
-        const rmt = almsg.letter.mt;
+        const rmt = recv.letter.mt;
 
-        cn.reuse(almsg);
+        cn.reuse(recv);
 
         switch (rmt) {
             .PING => {
                 try cn.pong();
-                continue;
             },
-            .PONG, .OK => {
-                continue;
-            },
+            .PONG, .OK => {},
             // .INFO .CONNECT .SUB .UNSUB .ERR
             else => {
                 return error.CommunicationFailure;
             },
         }
-    }
 
-    return error.NotReceived;
+        const elapsed = timeout_timer.read();
+
+        if (elapsed > timeout_ns)
+            return error.Timeout;
+
+        local_timeout_ns = timeout_ns - elapsed;
+    }
 }
 
 fn read_PUB(cn: *Conn) !?*AllocatedMSG {
