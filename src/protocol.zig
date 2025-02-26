@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 const std = @import("std");
-const zul = @import("zul");
 const messages = @import("messages.zig");
 
 // String representation of the default CONNECT
@@ -23,15 +22,6 @@ pub const ConnectOpts = struct {
     port: ?u16 = DefaultPort,
 };
 
-pub const UUID = zul.UUID;
-
-/// Unique ID used as INBOX
-/// in Request/Reply flow
-pub fn newInbox() ![36]u8 {
-    const uuid4 = UUID.v4();
-    return UUID.binToHex(&uuid4.bin, .upper);
-}
-
 const ClientOpts = struct {
     verbose: bool = false,
     pedantic: bool = false,
@@ -51,11 +41,6 @@ const ClientOpts = struct {
 const Drain = fn (msg: *messages.MSG) void;
 
 // https://docs.nats.io/nats-concepts/jetstream/streams
-
-pub const CREATE_STREAM_T: []const u8 = "$JS.API.STREAM.CREATE.{s}";
-pub const UPDATE_STREAM_T: []const u8 = "$JS.API.STREAM.UPDATE.{s}";
-pub const PURGE_STREAM_T: []const u8 = "$JS.API.STREAM.PURGE.{s}";
-pub const DELETE_STREAM_T: []const u8 = "$JS.API.STREAM.DELETE.{s}";
 
 pub const RETENTION_LIMITS = "limits";
 pub const RETENTION_INTEREST = "interest";
@@ -120,6 +105,7 @@ pub const ConsumerConfig = struct {
 
     // With a deliver subject, the server will PUSH messages
     // to clients subscribed to this subject.
+    // !!! MUST for Subscriber !!!
     deliver_subject: ?String = null,
 
     deliver_group: ?String = null,
@@ -132,6 +118,18 @@ pub const ConsumerConfig = struct {
     max_deliver: ?i32 = null,
     max_waiting: ?i32 = null,
     replay_policy: String = REPLAYPOLICY_INSTANT,
-    headers_only: bool = false,
-    num_replicas: i32 = 0,
+    headers_only: ?bool = false,
+    num_replicas: i32 = 1,
+    mem_storage: ?bool = null,
+    inactive_threshold: ?u64 = null,
+};
+
+// type createConsumerRequest struct {
+// Stream string          `json:"stream_name"`
+// Config *ConsumerConfig `json:"config"`
+// }
+
+pub const CreateConsumerRequest = struct {
+    stream_name: []const u8 = undefined,
+    config: ConsumerConfig = undefined,
 };

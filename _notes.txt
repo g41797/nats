@@ -103,3 +103,57 @@ Material for mkdocs
     
 NUI
     https://natsnui.app/
+
+Tcl client library
+    https://github.com/kazmirchuk/nats-tcl    
+
+Ordered Consumers
+    https://docs.nats.io/nats-concepts/jetstream/consumers#ordered-consumers    
+    https://docs.nats.io/using-nats/developer/develop_jetstream/consumers#ordered-consumers
+
+Push-specific
+    https://docs.nats.io/nats-concepts/jetstream/consumers#push-specific
+    
+Example of create consumer response
+    {
+      "type" : "io.nats.jetstream.api.v1.consumer_create_response",
+      "stream_name" : "my_stream",
+      "name" : "OwEWdUlY",
+      "created" : "2025-02-16T08:25:48.625455703Z",
+      "config" : {
+        "deliver_policy" : "all",
+        "ack_policy" : "none",
+        "ack_wait" : 79200000000000,
+        "max_deliver" : 1,
+        "filter_subject" : "tester.greet",
+        "replay_policy" : "instant",
+        "deliver_subject" : "my_stream",
+        "inactive_threshold" : 5000000000,
+        "num_replicas" : 1,
+        "mem_storage" : true
+      },
+      "delivered" : {
+        "consumer_seq" : 0,
+        "stream_seq" : 0
+      },
+      "ack_floor" : {
+        "consumer_seq" : 0,
+        "stream_seq" : 0
+      },
+      "num_ack_pending" : 0,
+      "num_redelivered" : 0,
+      "num_waiting" : 0,
+      "num_pending" : 0,
+      "ts" : "2025-02-16T08:25:48.625510866Z"
+    }  
+    
+    
+Delivery Policy with OrderedConsumer
+    https://github.com/nats-io/nats.net/discussions/425
+
+Example
+    https://docs.nats.io/nats-concepts/jetstream/consumers/example_configuration
+
+Grokking NATS Consumers: Intro and push-based
+    https://docs.nats.io/nats-concepts/jetstream/consumers
+

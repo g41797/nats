@@ -114,10 +114,16 @@ pub fn fetch(cn: *Conn, timeout_ns: u64) error{ Interrupted, Timeout, Closed }!*
 
 pub fn interrupt(cn: *Conn) !void {
     const alm = try cn.pool.get(0);
-    errdefer messages.free(alm);
 
     alm.letter.prepare(.INTERRUPT);
+
+    errdefer _free(alm);
+
     try cn.received.send(alm);
+}
+
+inline fn _free(alm: *AllocatedMSG) void {
+    messages.free(alm);
 }
 
 pub fn reuse(cn: *Conn, msg: *AllocatedMSG) void {
@@ -573,41 +579,49 @@ inline fn resetTimeOut(cn: *Conn) !void {
 
 pub fn request(cn: *Conn, subject: []const u8, headers: ?*Headers, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
     // Prepare for response
-    const inbox = try protocol.newInbox();
+    const inbox = try newInbox();
     try cn.sub(&inbox, null, &inbox);
     defer cn._unsub_(&inbox);
 
     // Send request
     try cn.publish(subject, &inbox, headers, payload);
 
-    return cn.waitResponse(timeout_ns, &inbox);
+    return cn.waitMessage(timeout_ns, &inbox);
 }
 
-fn waitResponse(cn: *Conn, timeout_ns: u64, expected: []const u8) !*AllocatedMSG {
+pub fn waitMessage(cn: *Conn, timeout_ns: u64, subject: ?[]const u8) error{ CommunicationFailure, Interrupted, Closed, NotConnected, Timeout }!*AllocatedMSG {
     var timeout_timer = std.time.Timer.start() catch unreachable;
 
     var local_timeout_ns = timeout_ns;
 
     while (true) {
         const recv = try cn.fetch(local_timeout_ns);
+        const rmt = recv.letter.mt;
 
         if ((recv.*.letter.mt == .MSG) or (recv.*.letter.mt == .HMSG)) {
-            if (std.mem.eql(u8, expected, recv.letter.Subject().?)) {
+            if (subject == null) {
+                return recv;
+            }
+
+            if (std.mem.eql(u8, subject.?, recv.letter.Subject().?)) {
                 return recv;
             }
             cn.reuse(recv);
-            return error.NotReceived;
+            continue;
         }
-
-        const rmt = recv.letter.mt;
 
         cn.reuse(recv);
 
         switch (rmt) {
             .PING => {
-                try cn.pong();
+                cn.pong() catch {
+                    return error.CommunicationFailure;
+                };
             },
             .PONG, .OK => {},
+            .INTERRUPT => {
+                return error.Interrupted;
+            },
             // .INFO .CONNECT .SUB .UNSUB .ERR
             else => {
                 return error.CommunicationFailure;
@@ -631,4 +645,15 @@ fn read_PUB(cn: *Conn) !?*AllocatedMSG {
 fn read_HPUB(cn: *Conn) !?*AllocatedMSG {
     _ = cn;
     return error.NotImplemented;
+}
+
+const zul = @import("zul");
+
+pub const UUID = zul.UUID;
+
+/// Unique ID used as INBOX
+/// in Request/Reply flow
+pub fn newInbox() ![36]u8 {
+    const uuid4 = UUID.v4();
+    return UUID.binToHex(&uuid4.bin, .upper);
 }

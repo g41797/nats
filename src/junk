@@ -205,3 +205,44 @@ pub const Server = struct {
 
         return;
     }
+
+//  Go client settings for ordered consumer
+//  (form of ephemeral push consumer)
+//      deliver subject should be provided ???
+//      the subject cannot be empty
+//      name should not be provided 
+// o.cfg.FlowControl = true
+// o.cfg.AckPolicy = AckNonePolicy
+// o.cfg.MaxDeliver = 1
+// o.cfg.AckWait = 22 * time.Hour // Just set to something known, not utilized.
+// // Force R1 and MemoryStorage for these.
+// o.cfg.Replicas = 1
+// o.cfg.MemoryStorage = true
+// if !hasHeartbeats {
+//     o.cfg.Heartbeat = orderedHeartbeatsInterval (= 5 * time.Second)
+// }
+// hasFC, hasHeartbeats = true, true
+// o.mack = true // To avoid auto-ack wrapping call below.
+// 
+// statusHdr untyped string = "Status"
+// 
+// isJSControlMessage will return true if this is an empty control status message
+// and indicate what type of control message it is, say jsCtrlHB or jsCtrlFC
+// func isJSControlMessage(msg *Msg) (bool, int) {
+//      if len(msg.Data) > 0 || msg.Header.Get(statusHdr) != controlMsg {
+//          return false, 0
+//      }
+//      val := msg.Header.Get(descrHdr)
+//      if strings.HasPrefix(val, "Idle") {
+//          return true, jsCtrlHB
+//      }
+//      if strings.HasPrefix(val, "Flow") {
+//          return true, jsCtrlFC
+//      }
+//      return true, 0
+// }
+// const (
+// 	jsCtrlHB = 1
+// 	jsCtrlFC = 2
+// )
+

@@ -13,6 +13,7 @@ const Appendable = @import("Appendable.zig");
 const Formatter = @import("Formatter.zig");
 
 const Core = @import("Core.zig");
+const Conn = @import("Conn.zig");
 
 const Messages = messages.Messages;
 const AllocatedMSG = messages.AllocatedMSG;
@@ -131,7 +132,7 @@ test "request prototype" {
     defer cl.DISCONNECT();
 
     // Prepare for response
-    const inbox = try protocol.newInbox();
+    const inbox = try Conn.newInbox();
     try cl.SUB(&inbox, null, &inbox);
     defer _unsub_(&cl, &inbox);
 

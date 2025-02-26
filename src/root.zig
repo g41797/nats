@@ -9,3 +9,4 @@ const JS = @import("JetStream.zig");
 const Appendable = @import("Appendable.zig");
 const Formatter = @import("Formatter.zig");
 const pool = @import("messages.zig");
+const Subscriber = @import("Subscriber.zig");

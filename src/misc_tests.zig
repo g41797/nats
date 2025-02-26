@@ -7,13 +7,14 @@ const testing = std.testing;
 const protocol = @import("protocol.zig");
 const messages = @import("messages.zig");
 const Appendable = @import("Appendable.zig");
+const Conn = @import("Conn.zig");
 const MT = messages.MessageType;
 const Header = messages.Header;
 const Headers = messages.Headers;
 const HeaderIterator = protocol.HeaderIterator;
 
 test "new inbox" {
-    const inbox = try protocol.newInbox();
+    const inbox = try Conn.newInbox();
     _ = inbox;
 }
 

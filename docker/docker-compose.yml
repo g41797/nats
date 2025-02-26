@@ -5,4 +5,4 @@ services:
     ports:
       - "4222:4222"
       - "8222:8222"
-    command: -js -m 8222
+    command: -DV -js -m 8222

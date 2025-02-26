@@ -310,3 +310,314 @@ Wildcards:
     
     With the full wildcard, it is also possible to express interest in every subject that 
     may exist in NATS: sub > 1, limited of course by authorization settings.
+
+
+Create Ordered Consumer request (Go)
+    {
+        "stream_name":"foo",
+        "config":
+        {
+            "name":"x8ypnsZiR8YiVV4k8bSKpD_1",
+            "deliver_policy":"all",
+            "ack_policy":"none",
+            "replay_policy":"instant",
+            "inactive_threshold":300000000000,
+            "num_replicas":1,
+            "mem_storage":true
+        },
+        "action":""
+    }
+    
+    consumerName = "x8ypnsZiR8YiVV4k8bSKpD_1"
+    
+    "CONSUMER.CREATE.foo.x8ypnsZiR8YiVV4k8bSKpD_1"
+
+
+PHP
+    $JS.API.STREAM.CREATE.my_stream
+    {
+      "allow_rollup_hdrs" : true,
+      "deny_delete" : true,
+      "discard" : "old",
+      "duplicate_window" : 0,
+      "max_age" : 0,
+      "max_consumers" : -1,
+      "name" : "my_stream",
+      "num_replicas" : 1,
+      "retention" : "workqueue",
+      "storage" : "file",
+      "subjects" : [ "tester.greet", "tester.bye" ]
+    }
+    
+    $stream->put('tester.greet', [ 'name' => 'oxidmod' ]);
+    PUB tester.greet 18
+    {"name":"oxidmod"}
+
+PUB <subject> [reply-to] <#bytes>␍␊[payload]␍␊
+
+MSG <subject> <sid> [reply-to] <#bytes>␍␊
+[payload]␍␊
+
+SUB <subject> [queue group] <sid>␍␊
+UNSUB <sid> [max_msgs]␍␊
+
+
+[DBG] 172.18.0.1:55834 - cid:8 - Client connection created
+[TRC] 172.18.0.1:55834 - cid:8 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+[TRC] 172.18.0.1:55834 - cid:8 - <<- [PING]
+[TRC] 172.18.0.1:55834 - cid:8 - ->> [PONG]
+[TRC] 172.18.0.1:55834 - cid:8 - <<- [SUB _INBOX.IM9yo2v71htzEKPX8NuCaG.*  1]
+[TRC] 172.18.0.1:55834 - cid:8 - <<- [PUB $JS.API.STREAM.CREATE.ORDERS _INBOX.IM9yo2v71htzEKPX8NuCaG.lfD22wGo 289]
+[TRC] 172.18.0.1:55834 - cid:8 - <<- MSG_PAYLOAD: ["{\"name\":\"ORDERS\",\"subjects\":[\"orders.*\",\"items.*\"],\"retention\":\"limits\",\"max_consumers\":0,\"max_msgs\":0,\"max_bytes\":0,\"discard\":\"old\",\"max_age\":0,\"max_msgs_per_subject\":0,\"storage\":\"file\",\"num_replicas\":0,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"consumer_limits\":{}}"]
+[TRC] 172.18.0.1:55834 - cid:8 - ->> [MSG _INBOX.IM9yo2v71htzEKPX8NuCaG.lfD22wGo 1 775]
+
+[DBG] 172.18.0.1:55838 - cid:9 - Client connection created
+[TRC] 172.18.0.1:55838 - cid:9 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+[TRC] 172.18.0.1:55838 - cid:9 - <<- [PING]
+[TRC] 172.18.0.1:55838 - cid:9 - ->> [PONG]
+[TRC] 172.18.0.1:55838 - cid:9 - <<- [SUB _INBOX.IM9yo2v71htzEKPX8NuCby.*  1]
+[TRC] 172.18.0.1:55838 - cid:9 - <<- [PUB $JS.API.CONSUMER.CREATE.ORDERS _INBOX.IM9yo2v71htzEKPX8NuCby.XPjHN26o 173]
+[TRC] 172.18.0.1:55838 - cid:9 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"ORDERS\",\"config\":{\"deliver_policy\":\"all\",\"ack_policy\":\"none\",\"filter_subject\":\"orders.*\",\"replay_policy\":\"instant\",\"deliver_subject\":\"p.d\",\"num_replicas\":0}}"]
+[TRC] JETSTREAM - <<- [SUB $JSC.CI.$G.ORDERS.OhcQIEBf  55]
+[TRC] 172.18.0.1:55838 - cid:9 - ->> [MSG _INBOX.IM9yo2v71htzEKPX8NuCby.XPjHN26o 1 544]
+
+[DBG] 172.18.0.1:55840 - cid:12 - Client connection created
+[TRC] 172.18.0.1:55840 - cid:12 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+[TRC] 172.18.0.1:55840 - cid:12 - <<- [PING]
+[TRC] 172.18.0.1:55840 - cid:12 - ->> [PONG]
+[TRC] 172.18.0.1:55840 - cid:12 - <<- [SUB _INBOX.IM9yo2v71htzEKPX8NuCdg.*  1]
+[TRC] 172.18.0.1:55840 - cid:12 - <<- [PUB orders.2 _INBOX.IM9yo2v71htzEKPX8NuCdg.Dk8ygm2K 7]
+[TRC] 172.18.0.1:55840 - cid:12 - <<- MSG_PAYLOAD: ["ORDER-1"]
+[TRC] 172.18.0.1:55840 - cid:12 - ->> [MSG _INBOX.IM9yo2v71htzEKPX8NuCdg.Dk8ygm2K 1 28]
+
+[TRC] 172.18.0.1:55838 - cid:9 - <<- [SUB p.d  2]
+[TRC] 172.18.0.1:55838 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.OhcQIEBf.1.1.1.1740469718563176932.8 7]
+[TRC] 172.18.0.1:55838 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.OhcQIEBf.1.2.2.1740470023740600428.7 7]
+[TRC] 172.18.0.1:55838 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.OhcQIEBf.1.3.3.1740470282717851701.6 7]
+[TRC] 172.18.0.1:55838 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.OhcQIEBf.1.4.4.1740470329082079137.5 7]
+[TRC] 172.18.0.1:55838 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.OhcQIEBf.1.5.5.1740550450526620140.4 7]
+[TRC] 172.18.0.1:55838 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.OhcQIEBf.1.6.6.1740550835660778920.3 7]
+[TRC] 172.18.0.1:55838 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.OhcQIEBf.1.7.7.1740551485585329260.2 7]
+[TRC] 172.18.0.1:55838 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.OhcQIEBf.1.8.8.1740552436543701085.1 7]
+[TRC] 172.18.0.1:55838 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.OhcQIEBf.1.9.9.1740552793162874229.0 7]
+[TRC] 172.18.0.1:55838 - cid:9 - <<- [UNSUB 2 ]
+[TRC] 172.18.0.1:55838 - cid:9 - <-> [DELSUB 2]
+[TRC] 172.18.0.1:55838 - cid:9 - <<- [PING]
+[TRC] 172.18.0.1:55838 - cid:9 - ->> [PONG]
+[TRC] 172.18.0.1:55840 - cid:12 - <<- [UNSUB 1 ]
+[TRC] 172.18.0.1:55840 - cid:12 - <-> [DELSUB 1]
+[TRC] 172.18.0.1:55834 - cid:8 - <<- [UNSUB 1 ]
+[TRC] 172.18.0.1:55834 - cid:8 - <-> [DELSUB 1]
+[TRC] 172.18.0.1:55840 - cid:12 - <<- [PING]
+[TRC] 172.18.0.1:55840 - cid:12 - ->> [PONG]
+[TRC] 172.18.0.1:55834 - cid:8 - <<- [PING]
+[TRC] 172.18.0.1:55834 - cid:8 - ->> [PONG]
+[TRC] 172.18.0.1:55840 - cid:12 - <<- [PING]
+[TRC] 172.18.0.1:55840 - cid:12 - ->> [PONG]
+[TRC] 172.18.0.1:55834 - cid:8 - <<- [PING]
+[TRC] 172.18.0.1:55834 - cid:8 - ->> [PONG]
+[DBG] 172.18.0.1:55840 - cid:12 - Client connection closed: Client Closed
+[DBG] 172.18.0.1:55834 - cid:8 - Client connection closed: Client Closed
+[DBG] 172.18.0.1:55838 - cid:9 - Client connection closed: Client Closed
+[TRC] 172.18.0.1:55838 - cid:9 - <-> [DELSUB 1]
+[TRC] JETSTREAM - <-> [DELSUB 1]
+[TRC] JETSTREAM - <-> [DELSUB 55]
+[DBG] JETSTREAM - JetStream connection closed: Client Closed
+[DBG] JETSTREAM - JetStream connection closed: Client Closed
+
+====================================================================
+
+PUB <subject> [reply-to] <#bytes>␍␊[payload]␍␊
+
+MSG <subject> <sid> [reply-to] <#bytes>␍␊
+[payload]␍␊
+
+SUB <subject> [queue group] <sid>␍␊
+UNSUB <sid> [max_msgs]␍␊
+
+Connect 1
+c->[SUB _INBOX.IM9yo2v71htzEKPX8NuCaG.*  1]
+
+	Create Stream ORDERS
+	c->[PUB $JS.API.STREAM.CREATE.ORDERS _INBOX.IM9yo2v71htzEKPX8NuCaG.lfD22wGo 289]
+	s->[MSG _INBOX.IM9yo2v71htzEKPX8NuCaG.lfD22wGo 1 775]
+
+Connect 2
+c->[SUB _INBOX.IM9yo2v71htzEKPX8NuCby.*  1]
+
+	Create Consumer ORDERS
+	c->[PUB $JS.API.CONSUMER.CREATE.ORDERS _INBOX.IM9yo2v71htzEKPX8NuCby.XPjHN26o 173]
+		MSG_PAYLOAD: 
+			stream_name=ORDERS 
+			deliver_subject=p.d
+	s->[MSG _INBOX.IM9yo2v71htzEKPX8NuCby.XPjHN26o 1 544]
+
+Connect 3
+[SUB _INBOX.IM9yo2v71htzEKPX8NuCdg.*  1]
+
+	Publish message
+	c->[PUB orders.2 _INBOX.IM9yo2v71htzEKPX8NuCdg.Dk8ygm2K 7]
+			MSG_PAYLOAD: ["ORDER-1"]
+	s->[MSG _INBOX.IM9yo2v71htzEKPX8NuCdg.Dk8ygm2K 1 28]
+
+Connect 2	
+	Subscribe
+	c->[SUB p.d  2] where p.d is deliver_subject of consumer
+	
+	Receive published mesage
+	s->[MSG orders.2 2 $JS.ACK.ORDERS.OhcQIEBf.1.1.1.1740469718563176932.8 7]
+	
+    Unsubscribe
+    c->[UNSUB 2 ]
+    
+    c<?>s[DELSUB 2]
+    
+==============================================================================
+func TestJetStreamSubscriberLocalHost(t *testing.T) {
+
+	snc := natsConn(t)
+	defer snc.Drain()
+	sjsc := jetStreamClient(t, snc)
+
+	var err error
+
+	const StreamName = "ORDERS"
+
+	// Create a stream using the server directly.
+	_, err = sjsc.AddStream(&nats.StreamConfig{Name: StreamName, Subjects: []string{"orders.*", "items.*"}})
+	if err != nil {
+		t.Fatalf("stream create failed: %v", err)
+	}
+
+	var deliver_subject = "DeliverSubject"
+
+	cnc := natsConn(t)
+	defer cnc.Drain()
+	cjsc := jetStreamClient(t, cnc)
+
+	var cinfo *nats.ConsumerInfo
+	// Create a push based consumers.
+	cinfo, err = cjsc.AddConsumer("ORDERS", &nats.ConsumerConfig{
+		AckPolicy:      nats.AckNonePolicy,
+		DeliverSubject: deliver_subject,
+	})
+	if err != nil {
+		t.Fatalf("push consumer create failed: %v", err)
+	}
+	_ = cinfo
+
+	pnc := natsConn(t)
+	defer pnc.Drain()
+	pjs := jetStreamClient(t, pnc)
+
+	// Now make sure we can send to the stream from another account.
+	toSend := 1
+	for i := 0; i < toSend; i++ {
+		if _, err := pjs.Publish("orders.2", []byte(fmt.Sprintf("ORDER-%d", i+1))); err != nil {
+			t.Fatalf("Unexpected error publishing message %d: %v", i+1, err)
+		}
+	}
+
+	var sub *nats.Subscription
+
+	// Do push based consumer using a regular NATS subscription on the import subject.
+	sub, err = cjsc.SubscribeSync( /*"orders.*"*/ "", nats.Bind(StreamName, cinfo.Name), nats.SkipConsumerLookup(), nats.DeliverSubject(deliver_subject), nats.AckNone(), nats.MaxDeliver(1))
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Can also ack from the regular NATS subscription via the imported subject.
+	for i := 0; i < toSend; i++ {
+		var msg *nats.Msg
+		msg, err := sub.NextMsg(100 * time.Millisecond)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		_ = msg
+	}
+	return
+}
+
+func natsConn(t *testing.T) *nats.Conn {
+	t.Helper()
+	nc, err := nats.Connect(nats.DefaultURL)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	return nc
+}
+
+func jetStreamClient(t *testing.T, nc *nats.Conn) nats.JetStreamContext {
+	t.Helper()
+	js, err := nc.JetStream(nats.MaxWait(10 * time.Second))
+	if err != nil {
+		t.Fatalf("Unexpected error getting JetStream context: %v", err)
+	}
+	return js
+}
+
+
+[DBG] 172.18.0.1:54234 - cid:8 - Client connection created
+[TRC] 172.18.0.1:54234 - cid:8 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+[TRC] 172.18.0.1:54234 - cid:8 - <<- [PING]
+[TRC] 172.18.0.1:54234 - cid:8 - ->> [PONG]
+[TRC] 172.18.0.1:54234 - cid:8 - <<- [SUB _INBOX.hgBCpnDk7h59s44tAQ6zqK.*  1]
+[TRC] 172.18.0.1:54234 - cid:8 - <<- [PUB $JS.API.STREAM.CREATE.ORDERS _INBOX.hgBCpnDk7h59s44tAQ6zqK.0pmMozYa 289]
+[TRC] 172.18.0.1:54234 - cid:8 - <<- MSG_PAYLOAD: ["{\"name\":\"ORDERS\",\"subjects\":[\"orders.*\",\"items.*\"],\"retention\":\"limits\",\"max_consumers\":0,\"max_msgs\":0,\"max_bytes\":0,\"discard\":\"old\",\"max_age\":0,\"max_msgs_per_subject\":0,\"storage\":\"file\",\"num_replicas\":0,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"consumer_limits\":{}}"]
+[TRC] 172.18.0.1:54234 - cid:8 - ->> [MSG _INBOX.hgBCpnDk7h59s44tAQ6zqK.0pmMozYa 1 777]
+[DBG] 172.18.0.1:54250 - cid:9 - Client connection created
+[TRC] 172.18.0.1:54250 - cid:9 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+[TRC] 172.18.0.1:54250 - cid:9 - <<- [PING]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [PONG]
+[TRC] 172.18.0.1:54250 - cid:9 - <<- [SUB _INBOX.hgBCpnDk7h59s44tAQ6zr2.*  1]
+[TRC] 172.18.0.1:54250 - cid:9 - <<- [PUB $JS.API.CONSUMER.CREATE.ORDERS _INBOX.hgBCpnDk7h59s44tAQ6zr2.F1lHulsf 156]
+[TRC] 172.18.0.1:54250 - cid:9 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"ORDERS\",\"config\":{\"deliver_policy\":\"all\",\"ack_policy\":\"none\",\"replay_policy\":\"instant\",\"deliver_subject\":\"DeliverSubject\",\"num_replicas\":0}}"]
+[TRC] JETSTREAM - <<- [SUB $JSC.CI.$G.ORDERS.LZcSnug6  55]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG _INBOX.hgBCpnDk7h59s44tAQ6zr2.F1lHulsf 1 528]
+[DBG] 172.18.0.1:54266 - cid:12 - Client connection created
+[TRC] 172.18.0.1:54266 - cid:12 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+[TRC] 172.18.0.1:54266 - cid:12 - <<- [PING]
+[TRC] 172.18.0.1:54266 - cid:12 - ->> [PONG]
+[TRC] 172.18.0.1:54266 - cid:12 - <<- [SUB _INBOX.hgBCpnDk7h59s44tAQ6zrk.*  1]
+[TRC] 172.18.0.1:54266 - cid:12 - <<- [PUB orders.2 _INBOX.hgBCpnDk7h59s44tAQ6zrk.Qmkr1L7z 7]
+[TRC] 172.18.0.1:54266 - cid:12 - <<- MSG_PAYLOAD: ["ORDER-1"]
+[TRC] 172.18.0.1:54266 - cid:12 - ->> [MSG _INBOX.hgBCpnDk7h59s44tAQ6zrk.Qmkr1L7z 1 29]
+[TRC] 172.18.0.1:54250 - cid:9 - <<- [SUB DeliverSubject  2]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.1.1.1740469718563176932.13 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.2.2.1740470023740600428.12 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.3.3.1740470282717851701.11 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.4.4.1740470329082079137.10 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.5.5.1740550450526620140.9 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.6.6.1740550835660778920.8 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.7.7.1740551485585329260.7 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.8.8.1740552436543701085.6 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.9.9.1740552793162874229.5 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.10.10.1740555295324803843.4 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.11.11.1740555769018565940.3 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.12.12.1740556113548897816.2 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.13.13.1740556502929456973.1 7]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [MSG orders.2 2 $JS.ACK.ORDERS.LZcSnug6.1.14.14.1740556767974263305.0 7]
+[TRC] 172.18.0.1:54234 - cid:8 - <<- [UNSUB 1 ]
+[TRC] 172.18.0.1:54266 - cid:12 - <<- [UNSUB 1 ]
+[TRC] 172.18.0.1:54234 - cid:8 - <-> [DELSUB 1]
+[TRC] 172.18.0.1:54266 - cid:12 - <-> [DELSUB 1]
+[TRC] 172.18.0.1:54234 - cid:8 - <<- [PING]
+[TRC] 172.18.0.1:54234 - cid:8 - ->> [PONG]
+[TRC] 172.18.0.1:54266 - cid:12 - <<- [PING]
+[TRC] 172.18.0.1:54266 - cid:12 - ->> [PONG]
+[TRC] 172.18.0.1:54250 - cid:9 - <<- [UNSUB 2 ]
+[TRC] 172.18.0.1:54250 - cid:9 - <-> [DELSUB 2]
+[TRC] 172.18.0.1:54250 - cid:9 - <<- [PING]
+[TRC] 172.18.0.1:54250 - cid:9 - ->> [PONG]
+[TRC] 172.18.0.1:54234 - cid:8 - <<- [PING]
+[TRC] 172.18.0.1:54234 - cid:8 - ->> [PONG]
+[TRC] 172.18.0.1:54266 - cid:12 - <<- [PING]
+[TRC] 172.18.0.1:54266 - cid:12 - ->> [PONG]
+[DBG] 172.18.0.1:54234 - cid:8 - Client connection closed: Client Closed
+[DBG] 172.18.0.1:54266 - cid:12 - Client connection closed: Client Closed
+[DBG] 172.18.0.1:54250 - cid:9 - Client connection closed: Client Closed
+[TRC] 172.18.0.1:54250 - cid:9 - <-> [DELSUB 1]
+[TRC] JETSTREAM - <-> [DELSUB 1]
+[TRC] JETSTREAM - <-> [DELSUB 55]
+[DBG] JETSTREAM - JetStream connection closed: Client Closed
+[DBG] JETSTREAM - JetStream connection closed: Client Closed

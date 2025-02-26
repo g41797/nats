@@ -109,3 +109,20 @@ pub fn isFailed(resp: []const u8) bool {
         return false;
     }
 }
+
+pub fn responseNameText(resp: []const u8) ?[]const u8 {
+    const expected = ",\"name\":\"";
+
+    if (std.mem.indexOf(u8, resp, expected)) |index| {
+        var subs_it = std.mem.splitAny(u8, resp[index + expected.len ..], "\"");
+
+        const ntext = subs_it.first();
+
+        if (ntext.len == 0) {
+            return null;
+        }
+
+        return ntext;
+    }
+    return null;
+}
