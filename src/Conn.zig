@@ -36,11 +36,21 @@ attention: Sema = .{},
 thread: Thread = undefined,
 pool: Messages = .{},
 received: Messages = .{},
+inbox: [38]u8 = undefined,
+subscribed: bool = false,
+next: u64 = 0,
+req_sid: u64 = 0,
+req_reply2: Formatter = .{},
 
 pub fn connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
     if (cn.connection != null) {
         return error.AlreadyConnected;
     }
+
+    const inbox = try newInbox();
+    std.mem.copyForwards(u8, cn.inbox[0..36], &inbox);
+    cn.inbox[36] = '.';
+    cn.inbox[37] = '*';
 
     cn.allocator = allocator;
 
@@ -60,6 +70,7 @@ pub fn connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void 
     cn.printbuf = try Formatter.init(allocator, 128);
     cn.pool.init(allocator);
     cn.received.init(allocator);
+    cn.req_reply2 = try Formatter.init(allocator, 48);
 
     cn.connection = try cn.connectTcp(host, prt);
 
@@ -83,6 +94,10 @@ pub fn disconnect(cn: *Conn) void {
         return;
     }
 
+    if (cn.subscribed) {
+        cn.print("UNSUB {0d}\r\n", .{cn.req_sid}) catch {};
+    }
+
     cn.raiseAttention();
     cn.pool.deinit();
     cn.received.deinit();
@@ -93,6 +108,7 @@ pub fn disconnect(cn: *Conn) void {
 
     cn.line.deinit();
     cn.printbuf.deinit();
+    cn.req_reply2.deinit();
 
     cn.allocator.destroy(cn.connection.?);
     cn.connection = null;
@@ -578,15 +594,27 @@ inline fn resetTimeOut(cn: *Conn) !void {
 }
 
 pub fn request(cn: *Conn, subject: []const u8, headers: ?*Headers, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
-    // Prepare for response
-    const inbox = try newInbox();
-    try cn.sub(&inbox, null, &inbox);
-    defer cn._unsub_(&inbox);
+    if (!cn.subscribed) {
+        try cn.print("SUB {0s}.* {1d} \r\n", .{ cn.inbox[0..36], cn.nextSid() });
+        cn.req_sid = cn.next;
+        cn.subscribed = true;
+    }
 
     // Send request
-    try cn.publish(subject, &inbox, headers, payload);
+    const REPLY_TO = try cn.nextReply2();
+    try cn.publish(subject, REPLY_TO, headers, payload);
 
-    return cn.waitMessage(timeout_ns, &inbox);
+    return cn.waitMessage(timeout_ns, REPLY_TO);
+}
+
+fn nextReply2(cn: *Conn) ![]const u8 {
+    const REPLY_TO = try cn.req_reply2.sprintf("{0s}.{1d}", .{ cn.inbox[0..36], cn.nextSid() });
+    return REPLY_TO.?;
+}
+
+fn nextSid(cn: *Conn) u64 {
+    cn.next += 1;
+    return cn.next;
 }
 
 pub fn waitMessage(cn: *Conn, timeout_ns: u64, subject: ?[]const u8) error{ CommunicationFailure, Interrupted, Closed, NotConnected, Timeout }!*AllocatedMSG {

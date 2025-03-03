@@ -157,3 +157,7 @@ Example
 Grokking NATS Consumers: Intro and push-based
     https://docs.nats.io/nats-concepts/jetstream/consumers
 
+Generate short unique IDs from numbers.
+    https://github.com/sqids/sqids-zig
+    https://sqids.org/zig
+    

@@ -28,7 +28,7 @@ test "base requests" {
     defer js.DISCONNECT();
 
     const STREAM: []const u8 = "ORDERS";
-    var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{"orders.*", "items.*"} };
+    var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{ "orders.*", "items.*" } };
 
     js.DELETE(STREAM) catch {};
 

@@ -24,15 +24,15 @@ test "base jetstream requests" {
     var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
     defer js.DISCONNECT();
 
-    const STREAM: []const u8 = "ORDERS";
-    var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{"orders.>"} };
+    const STREAM: []const u8 = "ORDS";
+    var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{"ords.>"} };
 
     try testing.expectError(error.JetStreamsRequestFailed, js.DELETE(STREAM));
     //
     try js.CREATE(&CONF);
     try js.UPDATE(&CONF);
     //
-    try js.PUBLISH("orders.received", null, "First Order");
+    try js.PUBLISH("ords.received", null, "First Order");
     //
     try js.PURGE(STREAM);
     //
