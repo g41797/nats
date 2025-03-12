@@ -612,7 +612,7 @@ fn nextReply2(cn: *Conn) ![]const u8 {
     return REPLY_TO.?;
 }
 
-fn nextSid(cn: *Conn) u64 {
+pub fn nextSid(cn: *Conn) u64 {
     cn.next += 1;
     return cn.next;
 }

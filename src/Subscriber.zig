@@ -23,8 +23,9 @@ const SubscriberConfig = protocol.ConsumerConfig;
 // $JS.API.CONSUMER.DURABLE.CREATE.<stream>.<consumer>
 // $JS.API.CONSUMER.DELETE.<stream>.<consumer>
 
-const CREATE_NONAME_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.CREATE.{s}";
-const CREATE_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.DURABLE.CREATE.{s}.{s}";
+// const CREATE_EPHEMERAL_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.CREATE.{s}";
+const CREATE_SUBJECT_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.CREATE.{s}.{s}.{s}";
+const CREATE_ALL_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.CREATE.{s}.{s}";
 const DELETE_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.DELETE.{s}.{s}";
 
 mutex: Mutex = .{},
@@ -32,14 +33,14 @@ allocator: Allocator = undefined,
 co: protocol.ConnectOpts = undefined,
 connection: ?*Conn = null,
 stream: Appendable = .{},
-name: Appendable = .{},
 cmd: Formatter = .{},
 jsn: Formatter = .{},
-subscribed: bool = false,
-durable: bool = false,
 deliver_subject: [36]u8 = undefined,
+subscr_sid: u64 = 0,
+name: [36]u8 = undefined,
+subscribed: bool = false,
 
-pub fn SUBSCRIBE(allocator: Allocator, co: protocol.ConnectOpts, stream: []const u8, conf: SubscriberConfig) !Subscriber {
+pub fn SUBSCRIBE(allocator: Allocator, co: protocol.ConnectOpts, stream: []const u8, subject: []const u8) !Subscriber {
     var sb: Subscriber = .{ .allocator = allocator };
 
     sb.connection = try JetStream.createConn(allocator, co);
@@ -48,12 +49,10 @@ pub fn SUBSCRIBE(allocator: Allocator, co: protocol.ConnectOpts, stream: []const
     _ = try sb.stream.init(sb.allocator, stream.len, null);
     try sb.stream.copy(stream);
 
-    _ = try sb.name.init(sb.allocator, 32, null);
-
     sb.cmd = try Formatter.init(sb.allocator, 128);
     sb.jsn = try Formatter.init(sb.allocator, 256);
 
-    try sb.subscribe(conf);
+    try sb.subscribe(subject);
 
     return sb;
 }
@@ -93,24 +92,37 @@ pub fn UNSUBSCRIBE(sb: *Subscriber) void {
     return;
 }
 
-fn subscribe(sb: *Subscriber, conf: SubscriberConfig) !void {
-
-    // if (conf.name == null) {
-    _ = try sb.cmd.sprintf(CREATE_NONAME_SUBSCRIBER, .{sb.stream.body().?});
-    // } else {
-    //     _ = try sb.cmd.sprintf(CREATE_SUBSCRIBER, .{
-    //         sb.stream.body().?,
-    //         conf.name.?,
-    //     });
-    //     sb.durable = true;
-    // }
+fn subscribe(sb: *Subscriber, subject: []const u8) !void {
+    if (subject.len == 0) {
+        return error.EmptySubject;
+    }
 
     sb.deliver_subject = try Conn.newInbox();
+    sb.subscr_sid = sb.connection.?.nextSid();
+    sb.name = try Conn.newInbox();
 
-    var tempCfg = conf;
-    tempCfg.deliver_subject = &sb.deliver_subject;
+    try sb.connection.?.print("SUB {0s}.* {1d} \r\n", .{ sb.deliver_subject[0..36], sb.subscr_sid });
 
-    const ccr: protocol.CreateConsumerRequest = .{ .stream_name = sb.stream.body().?, .config = tempCfg };
+    const subscrAll = ((subject[0] == '>') and (subject.len == 1));
+
+    const PUSHCONF: protocol.ConsumerConfig = .{
+        .deliver_subject = sb.deliver_subject[0..36],
+        .filter_subject = subject,
+        .ack_policy = protocol.ACKPOLICY_NONE,
+        .max_deliver = 1,
+        .ack_wait = protocol.SECNS * 3600 * 22,
+        .num_replicas = 1,
+        .mem_storage = true,
+        .inactive_threshold = 300000000000,
+    };
+
+    if (subscrAll) {
+        _ = try sb.cmd.sprintf(CREATE_ALL_SUBSCRIBER, .{ sb.stream.body().?, sb.name[0..36] });
+    } else {
+        _ = try sb.cmd.sprintf(CREATE_SUBJECT_SUBSCRIBER, .{ sb.stream.body().?, sb.name[0..36], subject });
+    }
+
+    const ccr: protocol.CreateConsumerRequest = .{ .stream_name = sb.stream.body().?, .config = PUSHCONF };
 
     _ = try sb.jsn.stringify(ccr, .{
         .emit_strings_as_arrays = false,
@@ -132,10 +144,8 @@ fn subscribe(sb: *Subscriber, conf: SubscriberConfig) !void {
         return error.UnexpectedSubscribeErrorEmptyName;
     }
 
-    sb.name.copy(consName.?) catch unreachable;
-
-    // try sb.connection.?.sub(conf.deliver_subject.?, null, "");
-
+    _ = try sb.connection.?.ping();
+    
     sb.subscribed = true;
     return;
 }
@@ -151,7 +161,7 @@ fn unsubscribe(sb: *Subscriber) !void {
 
     _ = try sb.cmd.sprintf(DELETE_SUBSCRIBER, .{
         sb.stream.body().?,
-        sb.name.body().?,
+        sb.name[0..36],
     });
     sb.jsn.reset();
 
@@ -159,6 +169,9 @@ fn unsubscribe(sb: *Subscriber) !void {
     if (delresp != null) {
         sb.connection.?.reuse(delresp.?);
     }
+
+    sb.connection.?.print("UNSUB {0d}\r\n", .{sb.subscr_sid}) catch {};
+
     return;
 }
 
@@ -173,7 +186,6 @@ fn deinit(sb: *Subscriber) void {
     sb.connection = null;
 
     sb.stream.deinit();
-    sb.name.deinit();
     sb.cmd.deinit();
     sb.jsn.deinit();
 }

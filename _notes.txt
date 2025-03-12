@@ -154,6 +154,9 @@ Delivery Policy with OrderedConsumer
 Example
     https://docs.nats.io/nats-concepts/jetstream/consumers/example_configuration
 
+Order processing architecture(description)
+    https://github.com/nats-io/nats.docs/blob/master/nats-concepts/jetstream/example_configuration.md
+
 Grokking NATS Consumers: Intro and push-based
     https://docs.nats.io/nats-concepts/jetstream/consumers
 
@@ -161,3 +164,5 @@ Generate short unique IDs from numbers.
     https://github.com/sqids/sqids-zig
     https://sqids.org/zig
     
+Comprehensive Guide to Defer and Errdefer in Zig
+    https://gencmurat.com/en/posts/defer-and-errdefer-in-zig/    

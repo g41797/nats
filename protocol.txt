@@ -569,11 +569,12 @@ cid:10 - Client connection created
 cid:10 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
 cid:10 - <<- [PING]
 cid:10 - ->> [PONG]
-cid:10 - <<- [SUB DeliverAll  1]
-cid:10 - <<- [SUB _INBOX.36RrU2QcsBPOaeR3FhO1Fg.*  2]
+
 
 suball, err = cjsc.SubscribeSync(">", nats.AckNone(), nats.MaxDeliver(1), nats.BindStream(StreamName), nats.DeliverSubject(deliver_subject))
 
+cid:10 - <<- [SUB DeliverAll  1]
+cid:10 - <<- [SUB _INBOX.36RrU2QcsBPOaeR3FhO1Fg.*  2]
 cid:10 - <<- [PUB $JS.API.CONSUMER.CREATE.EVENTS.6BJg5kX0 _INBOX.36RrU2QcsBPOaeR3FhO1Fg.1B29ffM0 194]
 cid:10 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"EVENTS\",\"config\":{\"deliver_policy\":\"all\",\"ack_policy\":\"none\",\"max_deliver\":1,\"filter_subject\":\"\\u003e\",\"replay_policy\":\"instant\",\"deliver_subject\":\"DeliverAll\",\"num_replicas\":0}}"]
 
@@ -653,91 +654,6 @@ cid:16 - <-> [DELSUB 1]
 cid:16 - Client connection closed: Client Closed
 ==============================================================================
 
-2025-03-03T12:00:09.228336718Z [1] 2025/03/03 12:00:09.228252 [DBG] 172.18.0.1:50884 - cid:8 - Client connection created
-2025-03-03T12:00:09.229911343Z [1] 2025/03/03 12:00:09.229810 [TRC] 172.18.0.1:50884 - cid:8 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-2025-03-03T12:00:10.270797422Z [1] 2025/03/03 12:00:10.270677 [DBG] 172.18.0.1:50884 - cid:8 - Client connection closed: Client Closed
-2025-03-03T12:00:10.272650116Z [1] 2025/03/03 12:00:10.272562 [DBG] 172.18.0.1:50892 - cid:9 - Client connection created
-2025-03-03T12:00:10.273807313Z [1] 2025/03/03 12:00:10.273656 [TRC] 172.18.0.1:50892 - cid:9 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-2025-03-03T12:00:10.274579923Z [1] 2025/03/03 12:00:10.274420 [TRC] 172.18.0.1:50892 - cid:9 - <<- [PING]
-2025-03-03T12:00:10.274636058Z [1] 2025/03/03 12:00:10.274453 [TRC] 172.18.0.1:50892 - cid:9 - ->> [PONG]
-2025-03-03T12:00:10.274645145Z [1] 2025/03/03 12:00:10.274465 [TRC] 172.18.0.1:50892 - cid:9 - <<- [PONG]
-2025-03-03T12:00:10.275049419Z [1] 2025/03/03 12:00:10.274966 [DBG] 172.18.0.1:50892 - cid:9 - Client connection closed: Client Closed
-2025-03-03T12:00:10.276282237Z [1] 2025/03/03 12:00:10.276209 [DBG] 172.18.0.1:50902 - cid:10 - Client connection created
-2025-03-03T12:00:10.277326354Z [1] 2025/03/03 12:00:10.277247 [TRC] 172.18.0.1:50902 - cid:10 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-2025-03-03T12:00:10.277603270Z [1] 2025/03/03 12:00:10.277557 [TRC] 172.18.0.1:50902 - cid:10 - <<- [SUB NOTIFY  NSID]
-2025-03-03T12:00:10.278366513Z [1] 2025/03/03 12:00:10.278310 [DBG] 172.18.0.1:50904 - cid:11 - Client connection created
-2025-03-03T12:00:10.279386575Z [1] 2025/03/03 12:00:10.279324 [TRC] 172.18.0.1:50904 - cid:11 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-2025-03-03T12:00:10.279681955Z [1] 2025/03/03 12:00:10.279637 [TRC] 172.18.0.1:50904 - cid:11 - <<- [PUB NOTIFY  0]
-2025-03-03T12:00:10.279700290Z [1] 2025/03/03 12:00:10.279655 [TRC] 172.18.0.1:50904 - cid:11 - <<- MSG_PAYLOAD: [""]
-2025-03-03T12:00:10.279734393Z [1] 2025/03/03 12:00:10.279672 [TRC] 172.18.0.1:50902 - cid:10 - ->> [MSG NOTIFY NSID 0]
-2025-03-03T12:00:10.280674827Z [1] 2025/03/03 12:00:10.280612 [TRC] 172.18.0.1:50902 - cid:10 - <<- [UNSUB NSID]
-2025-03-03T12:00:10.280701005Z [1] 2025/03/03 12:00:10.280625 [TRC] 172.18.0.1:50902 - cid:10 - <-> [DELSUB NSID]
-2025-03-03T12:00:11.295253367Z [1] 2025/03/03 12:00:11.295074 [DBG] 172.18.0.1:50904 - cid:11 - Client connection closed: Client Closed
-2025-03-03T12:00:12.319370562Z [1] 2025/03/03 12:00:12.319163 [DBG] 172.18.0.1:50902 - cid:10 - Client connection closed: Client Closed
-2025-03-03T12:00:12.321187880Z [1] 2025/03/03 12:00:12.321088 [DBG] 172.18.0.1:36002 - cid:12 - Client connection created
-2025-03-03T12:00:12.322219703Z [1] 2025/03/03 12:00:12.322142 [TRC] 172.18.0.1:36002 - cid:12 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-2025-03-03T12:00:12.322475420Z [1] 2025/03/03 12:00:12.322425 [TRC] 172.18.0.1:36002 - cid:12 - <<- [SUB NOTIFY  NSID]
-2025-03-03T12:00:12.322530773Z [1] 2025/03/03 12:00:12.322481 [TRC] 172.18.0.1:36002 - cid:12 - <<- [PUB NOTIFY  0]
-2025-03-03T12:00:12.322547595Z [1] 2025/03/03 12:00:12.322490 [TRC] 172.18.0.1:36002 - cid:12 - <<- MSG_PAYLOAD: [""]
-2025-03-03T12:00:12.322563765Z [1] 2025/03/03 12:00:12.322506 [TRC] 172.18.0.1:36002 - cid:12 - ->> [MSG NOTIFY NSID 0]
-2025-03-03T12:00:12.323146091Z [1] 2025/03/03 12:00:12.323108 [TRC] 172.18.0.1:36002 - cid:12 - <<- [UNSUB NSID]
-2025-03-03T12:00:12.323160658Z [1] 2025/03/03 12:00:12.323118 [TRC] 172.18.0.1:36002 - cid:12 - <-> [DELSUB NSID]
-2025-03-03T12:00:13.342893638Z [1] 2025/03/03 12:00:13.342713 [DBG] 172.18.0.1:36002 - cid:12 - Client connection closed: Client Closed
-2025-03-03T12:00:13.344289711Z [1] 2025/03/03 12:00:13.344204 [DBG] 172.18.0.1:36010 - cid:13 - Client connection created
-2025-03-03T12:00:13.345547075Z [1] 2025/03/03 12:00:13.345477 [TRC] 172.18.0.1:36010 - cid:13 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-2025-03-03T12:00:13.345856412Z [1] 2025/03/03 12:00:13.345803 [TRC] 172.18.0.1:36010 - cid:13 - <<- [SUB 9F290057-720C-4000-9D23-BDCA40AED183  9F290057-720C-4000-9D23-BDCA40AED183]
-2025-03-03T12:00:13.345881318Z [1] 2025/03/03 12:00:13.345835 [TRC] 172.18.0.1:36010 - cid:13 - <<- [PUB 9F290057-720C-4000-9D23-BDCA40AED183  0]
-2025-03-03T12:00:13.345897428Z [1] 2025/03/03 12:00:13.345857 [TRC] 172.18.0.1:36010 - cid:13 - <<- MSG_PAYLOAD: [""]
-2025-03-03T12:00:13.345965705Z [1] 2025/03/03 12:00:13.345884 [TRC] 172.18.0.1:36010 - cid:13 - ->> [MSG 9F290057-720C-4000-9D23-BDCA40AED183 9F290057-720C-4000-9D23-BDCA40AED183 0]
-2025-03-03T12:00:13.346926236Z [1] 2025/03/03 12:00:13.346879 [TRC] 172.18.0.1:36010 - cid:13 - <<- [UNSUB 9F290057-720C-4000-9D23-BDCA40AED183]
-2025-03-03T12:00:13.346949379Z [1] 2025/03/03 12:00:13.346913 [TRC] 172.18.0.1:36010 - cid:13 - <-> [DELSUB 9F290057-720C-4000-9D23-BDCA40AED183]
-2025-03-03T12:00:14.366904053Z [1] 2025/03/03 12:00:14.366798 [DBG] 172.18.0.1:36010 - cid:13 - Client connection closed: Client Closed
-2025-03-03T12:00:14.368371098Z [1] 2025/03/03 12:00:14.368278 [DBG] 172.18.0.1:36022 - cid:14 - Client connection created
-2025-03-03T12:00:14.369550958Z [1] 2025/03/03 12:00:14.369466 [TRC] 172.18.0.1:36022 - cid:14 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-2025-03-03T12:00:14.369944221Z [1] 2025/03/03 12:00:14.369882 [TRC] 172.18.0.1:36022 - cid:14 - <<- [SUB 7F85B69C-CA2F-4CC0-A8FD-24688EC45BB4.* 1 ]
-2025-03-03T12:00:14.369970069Z [1] 2025/03/03 12:00:14.369915 [TRC] 172.18.0.1:36022 - cid:14 - <<- [PUB $JS.API.INFO 7F85B69C-CA2F-4CC0-A8FD-24688EC45BB4.2 0]
-2025-03-03T12:00:14.369978665Z [1] 2025/03/03 12:00:14.369925 [TRC] 172.18.0.1:36022 - cid:14 - <<- MSG_PAYLOAD: [""]
-2025-03-03T12:00:14.370356891Z [1] 2025/03/03 12:00:14.370317 [TRC] 172.18.0.1:36022 - cid:14 - ->> [MSG 7F85B69C-CA2F-4CC0-A8FD-24688EC45BB4.2 1 384]
-2025-03-03T12:00:14.371185465Z [1] 2025/03/03 12:00:14.371141 [TRC] 172.18.0.1:36022 - cid:14 - <<- [UNSUB 1]
-2025-03-03T12:00:14.371206224Z [1] 2025/03/03 12:00:14.371152 [TRC] 172.18.0.1:36022 - cid:14 - <-> [DELSUB 1]
-2025-03-03T12:00:15.391494049Z [1] 2025/03/03 12:00:15.391267 [DBG] 172.18.0.1:36022 - cid:14 - Client connection closed: Client Closed
-2025-03-03T12:00:15.392983726Z [1] 2025/03/03 12:00:15.392926 [DBG] 172.18.0.1:36030 - cid:15 - Client connection created
-2025-03-03T12:00:15.393991926Z [1] 2025/03/03 12:00:15.393929 [TRC] 172.18.0.1:36030 - cid:15 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-2025-03-03T12:00:15.394278139Z [1] 2025/03/03 12:00:15.394231 [TRC] 172.18.0.1:36030 - cid:15 - <<- [SUB AFFDBB4E-3031-4E07-B568-0B7B8D767B42.* 1 ]
-2025-03-03T12:00:15.394301102Z [1] 2025/03/03 12:00:15.394249 [TRC] 172.18.0.1:36030 - cid:15 - <<- [PUB $JS.API.STREAM.DELETE.NONEXISTINGSTREAM AFFDBB4E-3031-4E07-B568-0B7B8D767B42.2 0]
-2025-03-03T12:00:15.394321951Z [1] 2025/03/03 12:00:15.394258 [TRC] 172.18.0.1:36030 - cid:15 - <<- MSG_PAYLOAD: [""]
-2025-03-03T12:00:15.394494743Z [1] 2025/03/03 12:00:15.394443 [TRC] 172.18.0.1:36030 - cid:15 - ->> [MSG AFFDBB4E-3031-4E07-B568-0B7B8D767B42.2 1 129]
-2025-03-03T12:00:15.395244381Z [1] 2025/03/03 12:00:15.395198 [TRC] 172.18.0.1:36030 - cid:15 - <<- [UNSUB 1]
-2025-03-03T12:00:15.395262404Z [1] 2025/03/03 12:00:15.395207 [TRC] 172.18.0.1:36030 - cid:15 - <-> [DELSUB 1]
-2025-03-03T12:00:16.415536363Z [1] 2025/03/03 12:00:16.415309 [DBG] 172.18.0.1:36030 - cid:15 - Client connection closed: Client Closed
-2025-03-03T12:00:16.417215414Z [1] 2025/03/03 12:00:16.417123 [DBG] 172.18.0.1:36036 - cid:16 - Client connection created
-2025-03-03T12:00:16.418277053Z [1] 2025/03/03 12:00:16.418200 [TRC] 172.18.0.1:36036 - cid:16 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-2025-03-03T12:00:16.418590297Z [1] 2025/03/03 12:00:16.418532 [TRC] 172.18.0.1:36036 - cid:16 - <<- [SUB 02D9A50E-49DC-4748-8594-7AA86872A0AF.* 1 ]
-2025-03-03T12:00:16.418610435Z [1] 2025/03/03 12:00:16.418552 [TRC] 172.18.0.1:36036 - cid:16 - <<- [PUB $JS.API.STREAM.DELETE.EXISTINGSTREAM 02D9A50E-49DC-4748-8594-7AA86872A0AF.2 0]
-2025-03-03T12:00:16.418619291Z [1] 2025/03/03 12:00:16.418559 [TRC] 172.18.0.1:36036 - cid:16 - <<- MSG_PAYLOAD: [""]
-2025-03-03T12:00:16.418731240Z [1] 2025/03/03 12:00:16.418694 [TRC] 172.18.0.1:36036 - cid:16 - ->> [MSG 02D9A50E-49DC-4748-8594-7AA86872A0AF.2 1 129]
-2025-03-03T12:00:16.419656375Z [1] 2025/03/03 12:00:16.419604 [TRC] 172.18.0.1:36036 - cid:16 - <<- [PUB $JS.API.STREAM.CREATE.EXISTINGSTREAM 02D9A50E-49DC-4748-8594-7AA86872A0AF.3 392]
-2025-03-03T12:00:16.461422191Z [1] 2025/03/03 12:00:16.461211 [TRC] 172.18.0.1:36036 - cid:16 - <<- MSG_PAYLOAD: ["{\"name\":\"EXISTINGSTREAM\",\"subjects\":null,\"retention\":\"limits\",\"max_consumers\":-1,\"max_msgs\":-1,\"max_bytes\":-1,\"max_age\":0,\"max_msgs_per_subject\":-1,\"max_msg_size\":-1,\"discard\":\"old\",\"storage\":\"file\",\"num_replicas\":1,\"duplicate_window\":120000000000,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"sealed\":false,\"deny_delete\":false,\"deny_purge\":false,\"allow_rollup_hdrs\":false}"]
-2025-03-03T12:00:16.462961401Z [1] 2025/03/03 12:00:16.462843 [TRC] 172.18.0.1:36036 - cid:16 - ->> [MSG 02D9A50E-49DC-4748-8594-7AA86872A0AF.3 1 739]
-2025-03-03T12:00:16.463388848Z [1] 2025/03/03 12:00:16.463340 [TRC] 172.18.0.1:36036 - cid:16 - <<- [PUB $JS.API.STREAM.DELETE.EXISTINGSTREAM 02D9A50E-49DC-4748-8594-7AA86872A0AF.4 0]
-2025-03-03T12:00:16.503902570Z [1] 2025/03/03 12:00:16.503735 [TRC] 172.18.0.1:36036 - cid:16 - <<- MSG_PAYLOAD: [""]
-2025-03-03T12:00:16.504014438Z [1] 2025/03/03 12:00:16.503914 [DBG] JETSTREAM - JetStream connection closed: Client Closed
-2025-03-03T12:00:16.504052730Z [1] 2025/03/03 12:00:16.503939 [TRC] JETSTREAM - <-> [DELSUB 1]
-2025-03-03T12:00:16.504071044Z [1] 2025/03/03 12:00:16.503959 [DBG] JETSTREAM - JetStream connection closed: Client Closed
-2025-03-03T12:00:16.504112241Z [1] 2025/03/03 12:00:16.503963 [DBG] JETSTREAM - JetStream connection closed: Client Closed
-2025-03-03T12:00:16.504764807Z [1] 2025/03/03 12:00:16.504661 [TRC] 172.18.0.1:36036 - cid:16 - ->> [MSG 02D9A50E-49DC-4748-8594-7AA86872A0AF.4 1 73]
-2025-03-03T12:00:16.505334319Z [1] 2025/03/03 12:00:16.505246 [TRC] 172.18.0.1:36036 - cid:16 - <<- [UNSUB 1]
-2025-03-03T12:00:16.505357402Z [1] 2025/03/03 12:00:16.505272 [TRC] 172.18.0.1:36036 - cid:16 - <-> [DELSUB 1]
-2025-03-03T12:00:17.566865788Z [1] 2025/03/03 12:00:17.566743 [DBG] 172.18.0.1:36036 - cid:16 - Client connection closed: Client Closed
-2025-03-03T12:00:17.569140389Z [1] 2025/03/03 12:00:17.569043 [DBG] 172.18.0.1:36048 - cid:20 - Client connection created
-2025-03-03T12:00:17.570299900Z [1] 2025/03/03 12:00:17.570156 [TRC] 172.18.0.1:36048 - cid:20 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-2025-03-03T12:00:17.570609267Z [1] 2025/03/03 12:00:17.570526 [TRC] 172.18.0.1:36048 - cid:20 - <<- [SUB 9526C796-4C96-4A45-BAF4-5C6E72112198.* 1 ]
-2025-03-03T12:00:17.570652558Z [1] 2025/03/03 12:00:17.570549 [TRC] 172.18.0.1:36048 - cid:20 - <<- [PUB $JS.API.STREAM.DELETE.ORDERS 9526C796-4C96-4A45-BAF4-5C6E72112198.2 0]
-2025-03-03T12:00:17.570669980Z [1] 2025/03/03 12:00:17.570566 [TRC] 172.18.0.1:36048 - cid:20 - <<- MSG_PAYLOAD: [""]
-2025-03-03T12:00:17.570762633Z [1] 2025/03/03 12:00:17.570728 [TRC] 172.18.0.1:36048 - cid:20 - ->> [MSG 9526C796-4C96-4A45-BAF4-5C6E72112198.2 1 129]
-2025-03-03T12:00:17.571721411Z [1] 2025/03/03 12:00:17.571673 [TRC] 172.18.0.1:36048 - cid:20 - <<- [PUB $JS.API.STREAM.CREATE.ORDERS 9526C796-4C96-4A45-BAF4-5C6E72112198.3 392]
-2025-03-03T12:00:17.613522102Z [1] 2025/03/03 12:00:17.613341 [TRC] 172.18.0.1:36048 - cid:20 - <<- MSG_PAYLOAD: ["{\"name\":\"ORDERS\",\"subjects\":[\"orders.>\"],\"retention\":\"limits\",\"max_consumers\":-1,\"max_msgs\":-1,\"max_bytes\":-1,\"max_age\":0,\"max_msgs_per_subject\":-1,\"max_msg_size\":-1,\"discard\":\"old\",\"storage\":\"file\",\"num_replicas\":1,\"duplicate_window\":120000000000,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"sealed\":false,\"deny_delete\":false,\"deny_purge\":false,\"allow_rollup_hdrs\":false}"]
-2025-03-03T12:00:17.613714470Z [1] 2025/03/03 12:00:17.613649 [TRC] 172.18.0.1:36048 - cid:20 - ->> [MSG 9526C796-4C96-4A45-BAF4-5C6E72112198.3 1 153]
-2025-03-03T12:00:17.614088267Z [1] 2025/03/03 12:00:17.614041 [TRC] 172.18.0.1:36048 - cid:20 - <<- [UNSUB 1]
-2025-03-03T12:00:17.614104538Z [1] 2025/03/03 12:00:17.614050 [TRC] 172.18.0.1:36048 - cid:20 - <-> [DELSUB 1]
-2025-03-03T12:00:18.655341769Z [1] 2025/03/03 12:00:18.655158 [DBG] 172.18.0.1:36048 - cid:20 - Client connection closed: Client Closed
+
+// Set Ping Interval to 20 seconds and Max Pings Outstanding to 5
+nc, err := nats.Connect("demo.nats.io", nats.Name("API Ping Example"), nats.PingInterval(20*time.Second), nats.MaxPingsOutstanding(5))

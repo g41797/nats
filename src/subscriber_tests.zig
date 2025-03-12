@@ -36,24 +36,7 @@ test "base requests" {
 
     try js.PUBLISH("orders.1", null, "First Order");
 
-    // const name = try Conn.newInbox();
-    // const deliver_subject = try Conn.newInbox();
-
-    const PUSHCONF: protocol.ConsumerConfig = .{
-        // .name = &name,
-        // .deliver_subject = &deliver_subject,
-        // .filter_subject = "events.1",
-        .ack_policy = protocol.ACKPOLICY_NONE,
-        .max_deliver = 1,
-        .ack_wait = protocol.SECNS * 3600 * 22,
-        .num_replicas = 1,
-        .mem_storage = true,
-        // .flow_control = true,
-        // .idle_heartbeat = protocol.SECNS * 3600 * 24,
-        .inactive_threshold = 300000000000,
-    };
-
-    var pcons: Subscriber = try Subscriber.SUBSCRIBE(std.testing.allocator, .{}, STREAM, PUSHCONF);
+    var pcons: Subscriber = try Subscriber.SUBSCRIBE(std.testing.allocator, .{}, STREAM, ">");
 
     const pmsg = try pcons.NEXT(protocol.SECNS * 360);
 
