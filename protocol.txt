@@ -323,337 +323,186 @@ SUB <subject> [queue group] <sid>␍␊
 UNSUB <sid> [max_msgs]␍␊
 
 ------------------------------------------------------------------------------
+Go:
+10:28:10 cid:5 - Client connection created
+10:28:10 cid:5 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+10:28:10 cid:5 - <<- [PING]
+10:28:10 cid:5 - ->> [PONG]
+10:28:10 cid:5 - <<- [SUB _INBOX.sqLNnLHBOk5GBwplPCOftp.*  1]
+10:28:10 cid:5 - <<- [PUB $JS.API.STREAM.CREATE.ORDERS _INBOX.sqLNnLHBOk5GBwplPCOftp.cvmIort2 289]
+10:28:10 cid:5 - <<- MSG_PAYLOAD: ["{\"name\":\"ORDERS\",\"subjects\":[\"orders.*\",\"items.*\"],\"retention\":\"limits\",\"max_consumers\":0,\"max_msgs\":0,\"max_bytes\":0,\"discard\":\"old\",\"max_age\":0,\"max_msgs_per_subject\":0,\"storage\":\"file\",\"num_replicas\":0,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"consumer_limits\":{}}"]
+10:28:10 cid:5 - ->> [MSG _INBOX.sqLNnLHBOk5GBwplPCOftp.cvmIort2 1 736]
+10:28:11 cid:5 - <<- [UNSUB 1 ]
+10:28:11 cid:5 - <-> [DELSUB 1]
+10:28:11 cid:5 - <<- [PING]
+10:28:11 cid:5 - ->> [PONG]
+10:28:11 cid:9 - Client connection created
+10:28:11 cid:9 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+10:28:11 cid:9 - <<- [PING]
+10:28:11 cid:9 - ->> [PONG]
+10:28:11 cid:9 - <<- [SUB SUB1.*  1]
+10:28:11 cid:9 - <<- [PUB $JS.API.STREAM.NAMES SUB1.SUFF1 22]
+10:28:11 cid:9 - <<- MSG_PAYLOAD: ["{\"subject\":\"orders.*\"}"]
+10:28:11 cid:9 - ->> [MSG SUB1.SUFF1 1 112]
+10:28:11 cid:9 - <<- [SUB DLVSBJ  2]
+10:28:11 cid:9 - <<- [PUB $JS.API.CONSUMER.CREATE.ORDERS.CNSNME.orders.* SUB1.SUFF3 200]
+10:28:11 cid:9 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"ORDERS\",\"config\":{\"ack_policy\":\"none\",,\"deliver_subject\":\"DLVSBJ\",\"num_replicas\":0}}"]
 
-snc := natsConn(t)
-defer snc.Drain()
-sjsc := jetStreamClient(t, snc)
+10:28:11.260743 [TRC] JETSTREAM - <<- [SUB $JSC.CI.$G.ORDERS.CNSNME  55]
 
-var err error
+10:28:11 cid:9 - ->> [MSG SUB1.SUFF3 1 590]
 
-const StreamName = "ORDERS"
+10:28:11 cid:12 - Client connection created
+10:28:11 cid:12 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+10:28:11 cid:12 - <<- [PING]
+10:28:11 cid:12 - ->> [PONG]
+10:28:11 cid:12 - <<- [SUB _INBOX.sqLNnLHBOk5GBwplPCOfvZ.*  1]
+10:28:11 cid:12 - <<- [PUB orders.1 _INBOX.sqLNnLHBOk5GBwplPCOfvZ.hvX71xMv 11]
+10:28:11 cid:12 - <<- MSG_PAYLOAD: ["First Order"]
+10:28:11 cid:12 - ->> [MSG _INBOX.sqLNnLHBOk5GBwplPCOfvZ.hvX71xMv 1 28]
 
-// Create a stream using the server directly.
-_, err = sjsc.AddStream(&nats.StreamConfig{Name: StreamName, Subjects: []string{"orders.*", "items.*"}})
-if err != nil {
-    t.Fatalf("stream create failed: %v", err)
-}
+10:28:11 cid:9 - ->> [MSG orders.1 2 $JS.ACK.ORDERS.CNSNME.1.1.1.1742812091263125117.0 11]
 
-cid:5 - Client connection created - Create stream
+10:28:11 cid:12 - <<- [UNSUB 1 ]
+10:28:11 cid:12 - <-> [DELSUB 1]
+10:28:11 cid:12 - <<- [PING]
+10:28:11 cid:12 - ->> [PONG]
+10:28:12 cid:5 - Client Ping Timer
+10:28:12 cid:5 - ->> [PING]
+10:28:13 cid:9 - Client Ping Timer
+10:28:13 cid:9 - ->> [PING]
+10:28:13 cid:12 - Client Ping Timer
+10:28:13 cid:12 - ->> [PING]
+10:28:13 cid:12 - <<- [PONG]
+10:28:13 cid:5 - <<- [PING]
+10:28:13 cid:5 - ->> [PONG]
+10:28:13 cid:5 - <<- [PONG]
+10:28:14 cid:12 - <<- [PING]
+10:28:14 cid:12 - ->> [PONG]
+10:28:14 cid:9 - <<- [PONG]
+10:28:14 cid:5 - Client connection closed: Client Closed
+10:28:14 cid:12 - Client connection closed: Client Closed
+10:28:15 cid:9 - <<- [UNSUB 2 ]
+10:28:15 cid:9 - <-> [DELSUB 2]
+10:28:15 cid:9 - <<- [PING]
+10:28:15 cid:9 - ->> [PONG]
+10:28:20 cid:9 - <<- [PUB $JS.API.CONSUMER.DELETE.ORDERS.CNSNME SUB1.NhEfmA36 0]
+10:28:20 cid:9 - <<- MSG_PAYLOAD: [""]
 
-cid:5 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+10:28:20.837270 [TRC] JETSTREAM - <-> [DELSUB 1]
+10:28:20.837287 [TRC] JETSTREAM - <-> [DELSUB 55]
+10:28:20.837300 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+10:28:20.837309 [DBG] JETSTREAM - JetStream connection closed: Client Closed
 
-cid:5 - <<- [SUB _INBOX.SaQpMP6jbM0CWptwoGiVJD.*  1]
-cid:5 - <<- [PUB $JS.API.STREAM.CREATE.ORDERS _INBOX.SaQpMP6jbM0CWptwoGiVJD.chlsFjHx 289]
-cid:5 - <<- MSG_PAYLOAD: ["{\"name\":\"ORDERS\",\"subjects\":[\"orders.*\",\"items.*\"],\"retention\":\"limits\",\"max_consumers\":0,\"max_msgs\":0,\"max_bytes\":0,\"discard\":\"old\",\"max_age\":0,\"max_msgs_per_subject\":0,\"storage\":\"file\",\"num_replicas\":0,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"consumer_limits\":{}}"]
-cid:5 - ->> [MSG _INBOX.SaQpMP6jbM0CWptwoGiVJD.chlsFjHx 1 736]
+10:28:20 cid:9 - ->> [MSG SUB1.NhEfmA36 1 75]
+10:28:26 cid:9 - <<- [UNSUB 1 ]
+10:28:26 cid:9 - <-> [DELSUB 1]
+10:28:26 cid:9 - <<- [PING]
+10:28:26 cid:9 - ->> [PONG]
+10:28:26 cid:9 - <<- [PING]
+10:28:26 cid:9 - ->> [PONG]
+10:28:26 cid:9 - Client connection closed: Client Closed
 
-cid:5 - <<- [UNSUB 1 ]
-cid:5 - <-> [DELSUB 1]
-cid:5 - Client connection closed: Client Closed
+
+==================================================================================
+Zig:
+
+2025-03-24T10:54:49.419386530Z [1] 2025/03/24 10:54:49.418963 [DBG] 172.18.0.1:36462 - cid:6 - Client connection created
+2025-03-24T10:54:49.420237356Z [1] 2025/03/24 10:54:49.420086 [TRC] 172.18.0.1:36462 - cid:6 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true, "no_responders":true, "headers":true}]
+2025-03-24T10:54:49.420313438Z [1] 2025/03/24 10:54:49.420275 [TRC] 172.18.0.1:36462 - cid:6 - <<- [SUB 344D980E-A6A1-4DC3-942D-27BFE9AFE650.* 1 ]
+2025-03-24T10:54:49.420333765Z [1] 2025/03/24 10:54:49.420314 [TRC] 172.18.0.1:36462 - cid:6 - <<- [PUB $JS.API.STREAM.CREATE.ORDERS 344D980E-A6A1-4DC3-942D-27BFE9AFE650.2 402]
+2025-03-24T10:54:49.420363250Z [1] 2025/03/24 10:54:49.420327 [TRC] 172.18.0.1:36462 - cid:6 - <<- MSG_PAYLOAD: ["{\"name\":\"ORDERS\",\"subjects\":[\"orders.*\",\"items.*\"],\"retention\":\"limits\",\"max_consumers\":-1,\"max_msgs\":-1,\"max_bytes\":-1,\"max_age\":0,\"max_msgs_per_subject\":-1,\"max_msg_size\":-1,\"discard\":\"old\",\"storage\":\"file\",\"num_replicas\":1,\"duplicate_window\":120000000000,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"sealed\":false,\"deny_delete\":false,\"deny_purge\":false,\"allow_rollup_hdrs\":false}"]
+2025-03-24T10:54:49.422375081Z [1] 2025/03/24 10:54:49.422287 [TRC] 172.18.0.1:36462 - cid:6 - ->> [MSG 344D980E-A6A1-4DC3-942D-27BFE9AFE650.2 1 736]
+2025-03-24T10:54:49.423606026Z [1] 2025/03/24 10:54:49.423534 [TRC] 172.18.0.1:36462 - cid:6 - <<- [UNSUB 1]
+2025-03-24T10:54:49.423636673Z [1] 2025/03/24 10:54:49.423553 [TRC] 172.18.0.1:36462 - cid:6 - <-> [DELSUB 1]
+2025-03-24T10:54:50.480462930Z [1] 2025/03/24 10:54:50.480337 [DBG] 172.18.0.1:36462 - cid:6 - Client connection closed: Client Closed
+2025-03-24T10:54:50.481893376Z [1] 2025/03/24 10:54:50.481782 [DBG] 172.18.0.1:36472 - cid:10 - Client connection created
+2025-03-24T10:54:50.483279250Z [1] 2025/03/24 10:54:50.483176 [TRC] 172.18.0.1:36472 - cid:10 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true, "no_responders":true, "headers":true}]
+2025-03-24T10:54:50.483442063Z [1] 2025/03/24 10:54:50.483408 [TRC] 172.18.0.1:36472 - cid:10 - <<- [SUB SUB1.* 1 ]
+2025-03-24T10:54:50.483618743Z [1] 2025/03/24 10:54:50.483564 [TRC] 172.18.0.1:36472 - cid:10 - <<- [SUB DLVSBJ.* 2 ]
+2025-03-24T10:54:50.483641215Z [1] 2025/03/24 10:54:50.483580 [TRC] 172.18.0.1:36472 - cid:10 - <<- [PUB $JS.API.CONSUMER.CREATE.ORDERS.CNSNME.orders.* DLVSBJ.3 322]
+2025-03-24T10:54:50.483652696Z [1] 2025/03/24 10:54:50.483589 [TRC] 172.18.0.1:36472 - cid:10 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"ORDERS\",\"config\":{\"ack_policy\":\"none\",\"ack_wait\":79200000000000,\"deliver_subject\":\"SUB1\",,\"headers_only\":false,\"num_replicas\":1,\"mem_storage\":true,\"inactive_threshold\":300000000000}}"]
+2025-03-24T10:54:50.483992880Z [1] 2025/03/24 10:54:50.483953 [TRC] JETSTREAM - <<- [SUB $JSC.CI.$G.ORDERS.CNSNME  55]
+2025-03-24T10:54:50.484196079Z [1] 2025/03/24 10:54:50.484149 [TRC] 172.18.0.1:36472 - cid:10 - ->> [MSG DLVSBJ.3 2 696]
+2025-03-24T10:54:50.486349664Z [1] 2025/03/24 10:54:50.486257 [DBG] 172.18.0.1:36486 - cid:13 - Client connection created
+2025-03-24T10:54:50.487804316Z [1] 2025/03/24 10:54:50.487714 [TRC] 172.18.0.1:36486 - cid:13 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true, "no_responders":true, "headers":true}]
+2025-03-24T10:54:50.487975815Z [1] 2025/03/24 10:54:50.487923 [TRC] 172.18.0.1:36486 - cid:13 - <<- [SUB 93AADBFA-65F3-4FB3-BA01-529A52F4F908.* 1 ]
+2025-03-24T10:54:50.488013085Z [1] 2025/03/24 10:54:50.487963 [TRC] 172.18.0.1:36486 - cid:13 - <<- [PUB orders.1 93AADBFA-65F3-4FB3-BA01-529A52F4F908.2 11]
+2025-03-24T10:54:50.488025007Z [1] 2025/03/24 10:54:50.487974 [TRC] 172.18.0.1:36486 - cid:13 - <<- MSG_PAYLOAD: ["First Order"]
+2025-03-24T10:54:50.488224459Z [1] 2025/03/24 10:54:50.488175 [TRC] 172.18.0.1:36486 - cid:13 - ->> [MSG 93AADBFA-65F3-4FB3-BA01-529A52F4F908.2 1 28]
+2025-03-24T10:54:50.489286328Z [1] 2025/03/24 10:54:50.489168 [TRC] 172.18.0.1:36486 - cid:13 - <<- [UNSUB 1]
+2025-03-24T10:54:50.489317667Z [1] 2025/03/24 10:54:50.489205 [TRC] 172.18.0.1:36486 - cid:13 - <-> [DELSUB 1]
+2025-03-24T10:54:51.504783059Z [1] 2025/03/24 10:54:51.504589 [DBG] 172.18.0.1:36486 - cid:13 - Client connection closed: Client Closed
+2025-03-24T10:54:52.502514051Z [1] 2025/03/24 10:54:52.502243 [DBG] 172.18.0.1:36472 - cid:10 - Client Ping Timer
+2025-03-24T10:54:52.502653902Z [1] 2025/03/24 10:54:52.502292 [TRC] 172.18.0.1:36472 - cid:10 - ->> [PING]
+2025-03-24T10:54:52.503154455Z [1] 2025/03/24 10:54:52.503043 [TRC] 172.18.0.1:36472 - cid:10 - <<- [PONG]
+2025-03-24T10:54:56.505758967Z [1] 2025/03/24 10:54:56.505601 [TRC] 172.18.0.1:36472 - cid:10 - <<- [PUB $JS.API.CONSUMER.DELETE.ORDERS.CNSNME DLVSBJ.4 0]
+2025-03-24T10:54:56.505804542Z [1] 2025/03/24 10:54:56.505638 [TRC] 172.18.0.1:36472 - cid:10 - <<- MSG_PAYLOAD: [""]
+2025-03-24T10:54:56.505912303Z [1] 2025/03/24 10:54:56.505840 [TRC] JETSTREAM - <-> [DELSUB 1]
+2025-03-24T10:54:56.505946546Z [1] 2025/03/24 10:54:56.505866 [TRC] JETSTREAM - <-> [DELSUB 55]
+2025-03-24T10:54:56.505965832Z [1] 2025/03/24 10:54:56.505889 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+2025-03-24T10:54:56.505989607Z [1] 2025/03/24 10:54:56.505904 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+2025-03-24T10:54:56.506077891Z [1] 2025/03/24 10:54:56.506024 [TRC] 172.18.0.1:36472 - cid:10 - ->> [MSG DLVSBJ.4 2 75]
+2025-03-24T10:54:56.506556814Z [1] 2025/03/24 10:54:56.506471 [TRC] 172.18.0.1:36472 - cid:10 - <<- [UNSUB 1]
+2025-03-24T10:54:56.506579206Z [1] 2025/03/24 10:54:56.506493 [TRC] 172.18.0.1:36472 - cid:10 - <-> [DELSUB 1]
+2025-03-24T10:54:56.547571393Z [1] 2025/03/24 10:54:56.547432 [TRC] 172.18.0.1:36472 - cid:10 - <<- [UNSUB 2]
+2025-03-24T10:54:56.547617138Z [1] 2025/03/24 10:54:56.547453 [TRC] 172.18.0.1:36472 - cid:10 - <-> [DELSUB 2]
+2025-03-24T10:54:57.520498736Z [1] 2025/03/24 10:54:57.520350 [DBG] 172.18.0.1:36472 - cid:10 - Client connection closed: Client Closed
 
 
-pnc := natsConn(t)
-defer pnc.Drain()
-pjs := jetStreamClient(t, pnc)
 
-// Now make sure we can send to the stream from another account.
-toSend := 2
-for i := 0; i < toSend; i++ {
-    if _, err := pjs.Publish("orders.2", []byte(fmt.Sprintf("ORDER-%d", i+1))); err != nil {
-        t.Fatalf("Unexpected error publishing message %d: %v", i+1, err)
-    }
-}
+Go vs Zig
 
-cid:9 - Client connection created - Publish 2 messages
-cid:9 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
-cid:9 - <<- [PING]
-cid:9 - ->> [PONG]
-cid:9 - <<- [SUB _INBOX.SaQpMP6jbM0CWptwoGiVLw.*  1]
-cid:9 - <<- [PUB orders.2 _INBOX.SaQpMP6jbM0CWptwoGiVLw.xQqV5ORO 7]
-cid:9 - <<- MSG_PAYLOAD: ["ORDER-1"]
-cid:9 - ->> [MSG _INBOX.SaQpMP6jbM0CWptwoGiVLw.xQqV5ORO 1 28]
-cid:9 - <<- [PUB orders.2 _INBOX.SaQpMP6jbM0CWptwoGiVLw.PNYL8ZzG 7]
-cid:9 - <<- MSG_PAYLOAD: ["ORDER-2"]
-cid:9 - ->> [MSG _INBOX.SaQpMP6jbM0CWptwoGiVLw.PNYL8ZzG 1 28]
+ <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+ <<- [SUB SUB1.*  1]
+                     <<- [PUB $JS.API.STREAM.NAMES SUB1.SUFF1 22]
+                     <<- MSG_PAYLOAD: ["{\"subject\":\"orders.*\"}"]
+                     ->> [MSG SUB1.SUFF1 1 112]
+ <<- [SUB DLVSBJ  2]
+ <<- [PUB $JS.API.CONSUMER.CREATE.ORDERS.CNSNME.orders.* SUB1.SUFF3 200]
+ <<- MSG_PAYLOAD: ["{\"stream_name\":\"ORDERS\",\"config\":{\"ack_policy\":\"none\",,\"deliver_subject\":\"DLVSBJ\",\"num_replicas\":0}}"]
 
-cid:9 - <<- [UNSUB 1 ]
-cid:9 - <-> [DELSUB 1]
+JETSTREAM - <<- [SUB $JSC.CI.$G.ORDERS.CNSNME  55]
 
-cid:9 - Client connection closed: Client Closed
+->> [MSG SUB1.SUFF3 1 590]
+->> [MSG orders.1 2 $JS.ACK.ORDERS.CNSNME.1.1.1.1742812091263125117.0 11]
 
-cnc := natsConn(t)
-defer cnc.Drain()
-cjsc := jetStreamClient(t, cnc)
 
-var deliver_subject = "DeliverSubject"
 
-var sub *nats.Subscription
+<<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true, "no_responders":true, "headers":true}]
+<<- [SUB SUB1.* 1 ]
+<<- [SUB DLVSBJ.* 2 ]
+<<- [PUB $JS.API.CONSUMER.CREATE.ORDERS.CNSNME.orders.* DLVSBJ.3 322]
+<<- MSG_PAYLOAD: ["{\"stream_name\":\"ORDERS\",\"config\":{\"ack_policy\":\"none\",\"ack_wait\":79200000000000,\"deliver_subject\":\"SUB1\",,\"headers_only\":false,\"num_replicas\":1,\"mem_storage\":true,\"inactive_threshold\":300000000000}}"]
 
-// Do push based consumer using a regular NATS subscription on the import subject.
-sub, err = cjsc.SubscribeSync("orders.*", nats.AckNone(), nats.MaxDeliver(1), nats.BindStream(StreamName), nats.DeliverSubject(deliver_subject))
-if err != nil {
-    t.Fatalf("Unexpected error: %v", err)
-}
+JETSTREAM - <<- [SUB $JSC.CI.$G.ORDERS.CNSNME  55]
 
-cid:10 - Client connection created - Subscribe
-cid:10 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
-cid:10 - <<- [PING]
-cid:10 - ->> [PONG]
-cid:10 - <<- [SUB DeliverSubject  1]
-cid:10 - <<- [SUB _INBOX.SaQpMP6jbM0CWptwoGiVRO.*  2]
-cid:10 - <<- [PUB $JS.API.CONSUMER.CREATE.ORDERS.TxkAk7FS.orders.* _INBOX.SaQpMP6jbM0CWptwoGiVRO.JV79QhEa 200]
-cid:10 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"ORDERS\",\"config\":{\"deliver_policy\":\"all\",\"ack_policy\":\"none\",\"max_deliver\":1,\"filter_subject\":\"orders.*\",\"replay_policy\":\"instant\",\"deliver_subject\":\"DeliverSubject\",\"num_replicas\":0}}"]
-[TRC] JETSTREAM - <<- [SUB $JSC.CI.$G.ORDERS.TxkAk7FS  55]
-cid:10 - ->> [MSG _INBOX.SaQpMP6jbM0CWptwoGiVRO.JV79QhEa 2 588]
+->> [MSG DLVSBJ.3 2 696]
 
-for i := 0; i < toSend; i++ {
-    var msg *nats.Msg
-    msg, err := sub.NextMsg(100 * time.Millisecond)
-    if err != nil {
-        t.Fatalf("Unexpected error: %v", err)
-    }
-    _ = msg
-}
-
-cid:10 - ->> [MSG orders.2 1 $JS.ACK.ORDERS.TxkAk7FS.1.1.1.1740631994598944196.1 7]
-cid:10 - ->> [MSG orders.2 1 $JS.ACK.ORDERS.TxkAk7FS.1.2.2.1740631994599265134.0 7]
-
-cid:10 - <<- [UNSUB 1 ]
-cid:10 - <-> [DELSUB 1]
-
-cid:10 - <<- [PUB $JS.API.CONSUMER.DELETE.ORDERS.TxkAk7FS _INBOX.SaQpMP6jbM0CWptwoGiVRO.C2ZWfoWF 0]
-cid:10 - <<- MSG_PAYLOAD: [""]
-cid:10 - ->> [MSG _INBOX.SaQpMP6jbM0CWptwoGiVRO.C2ZWfoWF 2 75]
-
-cid:10 - <<- [UNSUB 2 ]
-cid:10 - <-> [DELSUB 2]
-
-cid:10 - Client connection closed: Client Closed
-
-=================================================================
-
-cid:5 - Client connection created
-cid:5 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
-cid:5 - <<- [PING]
-cid:5 - ->> [PONG]
-cid:5 - <<- [SUB _INBOX.RWjw2bH9r1p2u8uXbwQoBm.*  1]
-cid:5 - <<- [PUB $JS.API.STREAM.CREATE.EVENTS _INBOX.RWjw2bH9r1p2u8uXbwQoBm.qm3IPwLY 289]
-cid:5 - <<- MSG_PAYLOAD: ["{\"name\":\"EVENTS\",\"subjects\":[\"orders.*\",\"items.*\"],\"retention\":\"limits\",\"max_consumers\":0,\"max_msgs\":0,\"max_bytes\":0,\"discard\":\"old\",\"max_age\":0,\"max_msgs_per_subject\":0,\"storage\":\"file\",\"num_replicas\":0,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"consumer_limits\":{}}"]
-cid:5 - ->> [MSG _INBOX.RWjw2bH9r1p2u8uXbwQoBm.qm3IPwLY 1 736]
-cid:9 - Client connection created
-cid:9 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
-cid:9 - <<- [PING]
-cid:9 - ->> [PONG]
-cid:9 - <<- [SUB _INBOX.RWjw2bH9r1p2u8uXbwQoGN.*  1]
-cid:9 - <<- [PUB orders.2 _INBOX.RWjw2bH9r1p2u8uXbwQoGN.AbpZaLY7 7]
-cid:9 - <<- MSG_PAYLOAD: ["ORDER-1"]
-cid:9 - ->> [MSG _INBOX.RWjw2bH9r1p2u8uXbwQoGN.AbpZaLY7 1 28]
-cid:9 - <<- [PUB orders.2 _INBOX.RWjw2bH9r1p2u8uXbwQoGN.V4T0p0tW 7]
-cid:9 - <<- MSG_PAYLOAD: ["ORDER-2"]
-cid:9 - ->> [MSG _INBOX.RWjw2bH9r1p2u8uXbwQoGN.V4T0p0tW 1 28]
-cid:9 - <<- [PUB items.3 _INBOX.RWjw2bH9r1p2u8uXbwQoGN.FvxiZ52k 6]
-cid:9 - <<- MSG_PAYLOAD: ["ITEM-1"]
-cid:9 - ->> [MSG _INBOX.RWjw2bH9r1p2u8uXbwQoGN.FvxiZ52k 1 28]
-cid:9 - <<- [PUB items.3 _INBOX.RWjw2bH9r1p2u8uXbwQoGN.rO2niH3I 6]
-cid:9 - <<- MSG_PAYLOAD: ["ITEM-2"]
-cid:9 - ->> [MSG _INBOX.RWjw2bH9r1p2u8uXbwQoGN.rO2niH3I 1 28]
-cid:10 - Client connection created
-cid:10 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
-cid:10 - <<- [PING]
-cid:10 - ->> [PONG]
-cid:9 - Client Ping Timer
-cid:9 - ->> [PING]
-cid:10 - Client Ping Timer
-cid:10 - ->> [PING]
-cid:5 - Client Ping Timer
-cid:5 - ->> [PING]
-cid:9 - <<- [PONG]
-cid:10 - <<- [PONG]
-cid:5 - <<- [PONG]
-cid:10 - <<- [SUB DeliverOrders  1]
-cid:10 - <<- [SUB _INBOX.RWjw2bH9r1p2u8uXbwQoPZ.*  2]
-
-sub, err = cjsc.SubscribeSync("orders.*", nats.AckNone(), nats.MaxDeliver(1), nats.DeliverSubject(deliver_subject))
-
-cid:10 - <<- [PUB $JS.API.CONSUMER.CREATE.EVENTS.mFM8KFYQ.orders.* _INBOX.RWjw2bH9r1p2u8uXbwQoPZ.F9D4D1BB 199]
-cid:10 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"EVENTS\",\"config\":{\"deliver_policy\":\"all\",\"ack_policy\":\"none\",\"max_deliver\":1,\"filter_subject\":\"orders.*\",\"replay_policy\":\"instant\",\"deliver_subject\":\"DeliverOrders\",\"num_replicas\":0}}"]
-2025-02-28T06:33:39.363414113Z [1] 2025/02/28 06:33:39.363323 [TRC] JETSTREAM - <<- [SUB $JSC.CI.$G.EVENTS.mFM8KFYQ  55]
-cid:10 - ->> [MSG orders.2 1 $JS.ACK.EVENTS.mFM8KFYQ.1.1.1.1740724412918304846.1 7]
-cid:10 - ->> [MSG orders.2 1 $JS.ACK.EVENTS.mFM8KFYQ.1.2.2.1740724412918762759.0 7]
-cid:10 - ->> [MSG _INBOX.RWjw2bH9r1p2u8uXbwQoPZ.F9D4D1BB 2 589]
-cid:10 - <<- [SUB DeliverItems  3]
-cid:10 - <<- [PUB $JS.API.CONSUMER.CREATE.EVENTS.a99Icv4S.items.* _INBOX.RWjw2bH9r1p2u8uXbwQoPZ.GsNL1MrC 197]
-cid:10 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"EVENTS\",\"config\":{\"deliver_policy\":\"all\",\"ack_policy\":\"none\",\"max_deliver\":1,\"filter_subject\":\"items.*\",\"replay_policy\":\"instant\",\"deliver_subject\":\"DeliverItems\",\"num_replicas\":0}}"]
-2025-02-28T06:33:39.365141504Z [1] 2025/02/28 06:33:39.365077 [TRC] JETSTREAM - <<- [SUB $JSC.CI.$G.EVENTS.a99Icv4S  56]
-cid:10 - ->> [MSG _INBOX.RWjw2bH9r1p2u8uXbwQoPZ.GsNL1MrC 2 587]
-cid:10 - ->> [MSG items.3 3 $JS.ACK.EVENTS.a99Icv4S.1.3.1.1740724412919130475.1 6]
-cid:10 - ->> [MSG items.3 3 $JS.ACK.EVENTS.a99Icv4S.1.4.2.1740724412919451954.0 6]
-cid:10 - <<- [UNSUB 1 ]
-cid:10 - <-> [DELSUB 1]
-cid:10 - <<- [UNSUB 3 ]
-cid:10 - <-> [DELSUB 3]
-cid:10 - <<- [PING]
-cid:10 - ->> [PONG]
-cid:10 - <<- [PING]
-cid:10 - ->> [PONG]
-cid:9 - <<- [UNSUB 1 ]
-cid:9 - <-> [DELSUB 1]
-cid:9 - <<- [PING]
-cid:9 - ->> [PONG]
-cid:5 - <<- [UNSUB 1 ]
-cid:5 - <-> [DELSUB 1]
-cid:5 - <<- [PING]
-cid:5 - ->> [PONG]
-cid:10 - <<- [PUB $JS.API.CONSUMER.DELETE.EVENTS.mFM8KFYQ _INBOX.RWjw2bH9r1p2u8uXbwQoPZ.cKvFPwso 0]
-cid:10 - <<- MSG_PAYLOAD: [""]
-2025-02-28T06:33:39.366550341Z [1] 2025/02/28 06:33:39.366407 [TRC] JETSTREAM - <-> [DELSUB 1]
-2025-02-28T06:33:39.366584554Z [1] 2025/02/28 06:33:39.366419 [TRC] JETSTREAM - <-> [DELSUB 55]
-2025-02-28T06:33:39.366591998Z [1] 2025/02/28 06:33:39.366432 [DBG] JETSTREAM - JetStream connection closed: Client Closed
-2025-02-28T06:33:39.366598440Z [1] 2025/02/28 06:33:39.366457 [DBG] JETSTREAM - JetStream connection closed: Client Closed
-cid:10 - <<- [PUB $JS.API.CONSUMER.DELETE.EVENTS.a99Icv4S _INBOX.RWjw2bH9r1p2u8uXbwQoPZ.VjaWBn6t 0]
-cid:10 - <<- MSG_PAYLOAD: [""]
-2025-02-28T06:33:39.367080649Z [1] 2025/02/28 06:33:39.367022 [TRC] JETSTREAM - <-> [DELSUB 1]
-2025-02-28T06:33:39.367104614Z [1] 2025/02/28 06:33:39.367048 [TRC] JETSTREAM - <-> [DELSUB 56]
-2025-02-28T06:33:39.367114202Z [1] 2025/02/28 06:33:39.367072 [DBG] JETSTREAM - JetStream connection closed: Client Closed
-2025-02-28T06:33:39.367122167Z [1] 2025/02/28 06:33:39.367082 [DBG] JETSTREAM - JetStream connection closed: Client Closed
-cid:10 - ->> [MSG _INBOX.RWjw2bH9r1p2u8uXbwQoPZ.cKvFPwso 2 75]
-cid:10 - ->> [MSG _INBOX.RWjw2bH9r1p2u8uXbwQoPZ.VjaWBn6t 2 75]
-cid:9 - <<- [PING]
-cid:9 - ->> [PONG]
-cid:10 - <<- [UNSUB 2 ]
-cid:5 - <<- [PING]
-cid:10 - <-> [DELSUB 2]
-cid:5 - ->> [PONG]
-cid:10 - <<- [PING]
-cid:10 - ->> [PONG]
-cid:9 - Client connection closed: Client Closed
-cid:5 - Client connection closed: Client Closed
-cid:10 - <<- [PING]
-cid:10 - ->> [PONG]
-cid:10 - Client connection closed: Client Closed
 =========================================================
 
-cid:5 - Client connection created
-cid:5 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
-cid:5 - <<- [PING]
-cid:5 - ->> [PONG]
-
-            SUB <subject>=SUBJ-A.*  <sid>=sid-1
-cid:5 - <<- [SUB _INBOX.36RrU2QcsBPOaeR3FhO17z.*  1]
-
-            PUB <subject>=STREAM.CREATE.EVENTS reply-to=SUBJ-A.<id-1>
-cid:5 - <<- [PUB $JS.API.STREAM.CREATE.EVENTS _INBOX.36RrU2QcsBPOaeR3FhO17z.pP38HWRi 289]
-cid:5 - <<- MSG_PAYLOAD: ["{\"name\":\"EVENTS\",\"subjects\":[\"orders.*\",\"items.*\"],\"retention\":\"limits\",\"max_consumers\":0,\"max_msgs\":0,\"max_bytes\":0,\"discard\":\"old\",\"max_age\":0,\"max_msgs_per_subject\":0,\"storage\":\"file\",\"num_replicas\":0,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"consumer_limits\":{}}"]
-
-            MSG <subject>=SUBJ-A.<id-1> <sid>=sid-1
-cid:5 - ->> [MSG _INBOX.36RrU2QcsBPOaeR3FhO17z.pP38HWRi 1 736]
-
-cid:9 - Client connection created
-cid:9 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
-cid:9 - <<- [PING]
-cid:9 - ->> [PONG]
-cid:9 - <<- [SUB _INBOX.36RrU2QcsBPOaeR3FhO1AY.*  1]
-cid:9 - <<- [PUB orders.2 _INBOX.36RrU2QcsBPOaeR3FhO1AY.hwC1xfvP 7]
-cid:9 - <<- MSG_PAYLOAD: ["ORDER-1"]
-cid:9 - ->> [MSG _INBOX.36RrU2QcsBPOaeR3FhO1AY.hwC1xfvP 1 28]
-cid:9 - <<- [PUB orders.2 _INBOX.36RrU2QcsBPOaeR3FhO1AY.Mpd3zKnh 7]
-cid:9 - <<- MSG_PAYLOAD: ["ORDER-2"]
-cid:9 - ->> [MSG _INBOX.36RrU2QcsBPOaeR3FhO1AY.Mpd3zKnh 1 28]
-cid:9 - <<- [PUB items.3 _INBOX.36RrU2QcsBPOaeR3FhO1AY.FujM9S1E 6]
-cid:9 - <<- MSG_PAYLOAD: ["ITEM-1"]
-cid:9 - ->> [MSG _INBOX.36RrU2QcsBPOaeR3FhO1AY.FujM9S1E 1 28]
-cid:9 - <<- [PUB items.3 _INBOX.36RrU2QcsBPOaeR3FhO1AY.M5a4rxTB 6]
-cid:9 - <<- MSG_PAYLOAD: ["ITEM-2"]
-cid:9 - ->> [MSG _INBOX.36RrU2QcsBPOaeR3FhO1AY.M5a4rxTB 1 28]
-cid:10 - Client connection created
-cid:10 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
-cid:10 - <<- [PING]
-cid:10 - ->> [PONG]
+G<<- [CONNECT {"name":"","protocol":1}]
+Z<<- [CONNECT {"protocol":0}]
 
 
-suball, err = cjsc.SubscribeSync(">", nats.AckNone(), nats.MaxDeliver(1), nats.BindStream(StreamName), nats.DeliverSubject(deliver_subject))
+G<<- [SUB SUB1.*  1]
+Z<<- [SUB SUB1.* 1 ]
 
-cid:10 - <<- [SUB DeliverAll  1]
-cid:10 - <<- [SUB _INBOX.36RrU2QcsBPOaeR3FhO1Fg.*  2]
-cid:10 - <<- [PUB $JS.API.CONSUMER.CREATE.EVENTS.6BJg5kX0 _INBOX.36RrU2QcsBPOaeR3FhO1Fg.1B29ffM0 194]
-cid:10 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"EVENTS\",\"config\":{\"deliver_policy\":\"all\",\"ack_policy\":\"none\",\"max_deliver\":1,\"filter_subject\":\"\\u003e\",\"replay_policy\":\"instant\",\"deliver_subject\":\"DeliverAll\",\"num_replicas\":0}}"]
+G<<- [SUB DLVSBJ  2]
+Z<<- [SUB DLVSBJ.* 2 ]
 
-2025-02-28T07:21:24.415255349Z [1] 2025/02/28 07:21:24.415207 [TRC] JETSTREAM - <<- [SUB $JSC.CI.$G.EVENTS.6BJg5kX0  55]
-cid:10 - ->> [MSG orders.2 1 $JS.ACK.EVENTS.6BJg5kX0.1.1.1.1740727284411371256.3 7]
-cid:10 - ->> [MSG orders.2 1 $JS.ACK.EVENTS.6BJg5kX0.1.2.2.1740727284411902507.2 7]
-cid:10 - ->> [MSG items.3 1 $JS.ACK.EVENTS.6BJg5kX0.1.3.3.1740727284412220891.1 6]
-cid:10 - ->> [MSG items.3 1 $JS.ACK.EVENTS.6BJg5kX0.1.4.4.1740727284412449597.0 6]
-cid:10 - ->> [MSG _INBOX.36RrU2QcsBPOaeR3FhO1Fg.1B29ffM0 2 584]
-cid:10 - <<- [UNSUB 1 ]
-cid:10 - <-> [DELSUB 1]
-cid:10 - <<- [PING]
-cid:10 - ->> [PONG]
-cid:9 - <<- [UNSUB 1 ]
-cid:9 - <-> [DELSUB 1]
-cid:9 - <<- [PING]
-cid:9 - ->> [PONG]
-cid:5 - <<- [UNSUB 1 ]
-cid:10 - <<- [PUB $JS.API.CONSUMER.DELETE.EVENTS.6BJg5kX0 _INBOX.36RrU2QcsBPOaeR3FhO1Fg.u5DiKHNf 0]
-cid:5 - <-> [DELSUB 1]
-cid:10 - <<- MSG_PAYLOAD: [""]
-cid:5 - <<- [PING]
-cid:5 - ->> [PONG]
-2025-02-28T07:21:24.417559255Z [1] 2025/02/28 07:21:24.417525 [TRC] JETSTREAM - <-> [DELSUB 1]
-2025-02-28T07:21:24.417566709Z [1] 2025/02/28 07:21:24.417535 [TRC] JETSTREAM - <-> [DELSUB 55]
-2025-02-28T07:21:24.417582068Z [1] 2025/02/28 07:21:24.417544 [DBG] JETSTREAM - JetStream connection closed: Client Closed
-2025-02-28T07:21:24.417595373Z [1] 2025/02/28 07:21:24.417559 [DBG] JETSTREAM - JetStream connection closed: Client Closed
-cid:10 - ->> [MSG _INBOX.36RrU2QcsBPOaeR3FhO1Fg.u5DiKHNf 2 75]
-cid:9 - <<- [PING]
-cid:9 - ->> [PONG]
-cid:10 - <<- [UNSUB 2 ]
-cid:10 - <-> [DELSUB 2]
-cid:10 - <<- [PING]
-cid:10 - ->> [PONG]
-cid:5 - <<- [PING]
-cid:5 - ->> [PONG]
-cid:9 - Client connection closed: Client Closed
-cid:5 - Client connection closed: Client Closed
-cid:10 - <<- [PING]
-cid:10 - ->> [PONG]
-cid:10 - Client connection closed: Client Closed
+G<<- [PUB $JS.API.CONSUMER.CREATE.ORDERS.CNSNME.orders.* SUB1.SUFF3 200]
+Z<<- [PUB $JS.API.CONSUMER.CREATE.ORDERS.CNSNME.orders.* DLVSBJ.3 322]
 
-================================================================================
-
-cid:14 - Client connection created
-cid:14 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-cid:14 - <<- [SUB B162DE16-8AAD-4565-BFE1-5B13C231F903.* 1 ]
-cid:14 - <<- [PUB $JS.API.INFO B162DE16-8AAD-4565-BFE1-5B13C231F903.2 0]
-cid:14 - <<- MSG_PAYLOAD: [""]
-cid:14 - ->> [MSG B162DE16-8AAD-4565-BFE1-5B13C231F903.2 1 384]
-cid:14 - <<- [UNSUB 1]
-cid:14 - <-> [DELSUB 1]
-cid:14 - Client connection closed: Client Closed
-cid:15 - Client connection created
-cid:15 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-cid:15 - <<- [SUB 33452691-9AB9-42E7-BEB5-2568F094EB2E.* 1 ]
-cid:15 - <<- [PUB $JS.API.STREAM.DELETE.NONEXISTINGSTREAM 33452691-9AB9-42E7-BEB5-2568F094EB2E.2 0]
-cid:15 - <<- MSG_PAYLOAD: [""]
-cid:15 - ->> [MSG 33452691-9AB9-42E7-BEB5-2568F094EB2E.2 1 129]
-cid:15 - <<- [UNSUB 1]
-cid:15 - <-> [DELSUB 1]
-cid:15 - Client connection closed: Client Closed
-cid:16 - Client connection created
-cid:16 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":0,"echo":true}]
-cid:16 - <<- [SUB AA8DDB7B-0B5F-4E92-9A94-DD65CDB5D6B7.* 1 ]
-cid:16 - <<- [PUB $JS.API.STREAM.DELETE.EXISTINGSTREAM AA8DDB7B-0B5F-4E92-9A94-DD65CDB5D6B7.2 0]
-cid:16 - <<- MSG_PAYLOAD: [""]
-cid:16 - ->> [MSG AA8DDB7B-0B5F-4E92-9A94-DD65CDB5D6B7.2 1 129]
-cid:16 - <<- [PUB $JS.API.STREAM.CREATE.EXISTINGSTREAM AA8DDB7B-0B5F-4E92-9A94-DD65CDB5D6B7.3 392]
-cid:16 - <<- MSG_PAYLOAD: ["{\"name\":\"EXISTINGSTREAM\",\"subjects\":null,\"retention\":\"limits\",\"max_consumers\":-1,\"max_msgs\":-1,\"max_bytes\":-1,\"max_age\":0,\"max_msgs_per_subject\":-1,\"max_msg_size\":-1,\"discard\":\"old\",\"storage\":\"file\",\"num_replicas\":1,\"duplicate_window\":120000000000,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"sealed\":false,\"deny_delete\":false,\"deny_purge\":false,\"allow_rollup_hdrs\":false}"]
-cid:16 - ->> [MSG AA8DDB7B-0B5F-4E92-9A94-DD65CDB5D6B7.3 1 740]
-cid:16 - <<- [PUB $JS.API.STREAM.DELETE.EXISTINGSTREAM AA8DDB7B-0B5F-4E92-9A94-DD65CDB5D6B7.4 0]
-cid:16 - <<- MSG_PAYLOAD: [""]
-cid:16 - ->> [MSG AA8DDB7B-0B5F-4E92-9A94-DD65CDB5D6B7.4 1 73]
-cid:16 - <<- [UNSUB 1]
-cid:16 - <-> [DELSUB 1]
-cid:16 - Client connection closed: Client Closed
-==============================================================================
+G["{\"config\":{\"num_replicas\":0, \"deliver_subject\":\"DLVSBJ\"}}"]
+Z["{\"config\":{\"num_replicas\":1, \"deliver_subject\":\"SUB1\",      \"ack_wait\":79200000000000,\"headers_only\":false,\"mem_storage\":true,\"inactive_threshold\":300000000000}}"]
 
 
-// Set Ping Interval to 20 seconds and Max Pings Outstanding to 5
-nc, err := nats.Connect("demo.nats.io", nats.Name("API Ping Example"), nats.PingInterval(20*time.Second), nats.MaxPingsOutstanding(5))
+G JETSTREAM - <<- [SUB $JSC.CI.$G.ORDERS.CNSNME  55]
+Z JETSTREAM - <<- [SUB $JSC.CI.$G.ORDERS.CNSNME  55]
+
+G->> [MSG SUB1.SUFF3 1 590]
+Z->> [MSG DLVSBJ.3 2 696]
+
+G->> [MSG orders.1 2 $JS.ACK.ORDERS.CNSNME.1.1.1.1742812091263125117.0 11]
+Z --------

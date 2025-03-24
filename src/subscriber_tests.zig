@@ -24,26 +24,39 @@ const StreamConfig = protocol.StreamConfig;
 const SubscriberConfig = protocol.ConsumerConfig;
 
 test "base requests" {
-    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
-    defer js.DISCONNECT();
-
     const STREAM: []const u8 = "ORDERS";
-    var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{ "orders.*", "items.*" } };
 
-    js.DELETE(STREAM) catch {};
+    {
+        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+        defer js.DISCONNECT();
 
-    try js.CREATE(&CONF);
+        js.DELETE(STREAM) catch {};
+    }
 
-    try js.PUBLISH("orders.1", null, "First Order");
+    {
+        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+        defer js.DISCONNECT();
 
-    var pcons: Subscriber = try Subscriber.SUBSCRIBE(std.testing.allocator, .{}, STREAM, ">");
+        var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{ "orders.*", "items.*" } };
 
-    const pmsg = try pcons.NEXT(protocol.SECNS * 360);
+        try js.CREATE(&CONF);
+    }
 
-    pcons.REUSE(pmsg);
+    {
+        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+        defer js.DISCONNECT();
 
-    pcons.UNSUBSCRIBE();
+        try js.PUBLISH("orders.1", null, "First Order");
+    }
 
-    try js.DELETE(STREAM);
+    {
+        var pcons: Subscriber = try Subscriber.SUBSCRIBE(std.testing.allocator, .{}, STREAM, "orders.*");
+        defer pcons.UNSUBSCRIBE();
+
+        const pmsg = try pcons.NEXT(protocol.SECNS * 5);
+
+        pcons.REUSE(pmsg);
+    }
+
     return;
 }

@@ -23,7 +23,6 @@ const SubscriberConfig = protocol.ConsumerConfig;
 // $JS.API.CONSUMER.DURABLE.CREATE.<stream>.<consumer>
 // $JS.API.CONSUMER.DELETE.<stream>.<consumer>
 
-// const CREATE_EPHEMERAL_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.CREATE.{s}";
 const CREATE_SUBJECT_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.CREATE.{s}.{s}.{s}";
 const CREATE_ALL_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.CREATE.{s}.{s}";
 const DELETE_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.DELETE.{s}.{s}";
@@ -101,7 +100,7 @@ fn subscribe(sb: *Subscriber, subject: []const u8) !void {
     sb.subscr_sid = sb.connection.?.nextSid();
     sb.name = try Conn.newInbox();
 
-    try sb.connection.?.print("SUB {0s}.* {1d} \r\n", .{ sb.deliver_subject[0..36], sb.subscr_sid });
+    try sb.connection.?.print("SUB {0s} {1d} \r\n", .{ sb.deliver_subject[0..36], sb.subscr_sid });
 
     const subscrAll = ((subject[0] == '>') and (subject.len == 1));
 
@@ -144,8 +143,8 @@ fn subscribe(sb: *Subscriber, subject: []const u8) !void {
         return error.UnexpectedSubscribeErrorEmptyName;
     }
 
-    _ = try sb.connection.?.ping();
-    
+    // _ = try sb.connection.?.ping();
+
     sb.subscribed = true;
     return;
 }

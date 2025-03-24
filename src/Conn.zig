@@ -12,6 +12,7 @@ const Socket = posix.socket_t;
 const Allocator = std.mem.Allocator;
 const Thread = std.Thread;
 const Sema = std.Thread.Semaphore;
+const Mutex = std.Thread.Mutex;
 
 const parse = @import("parse.zig");
 const protocol = @import("protocol.zig");
@@ -27,6 +28,7 @@ pub const alloc = messages.alloc;
 pub const Messages = messages.Messages;
 pub const AllocatedMSG = messages.AllocatedMSG;
 
+mutex: Mutex = .{},
 allocator: Allocator = undefined,
 connection: ?*Stream = null,
 line: Appendable = .{},
@@ -41,8 +43,23 @@ subscribed: bool = false,
 next: u64 = 0,
 req_sid: u64 = 0,
 req_reply2: Formatter = .{},
+timeout_timer: std.time.Timer = undefined,
+allow_heartBit: bool = false,
 
 pub fn connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
+    {
+        cn.mutex.lock();
+        defer cn.mutex.unlock();
+
+        try cn._connect(allocator, co);
+    }
+
+    cn.thread = std.Thread.spawn(.{}, run, .{cn}) catch unreachable;
+
+    return;
+}
+
+fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
     if (cn.connection != null) {
         return error.AlreadyConnected;
     }
@@ -84,18 +101,21 @@ pub fn connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void 
 
     try cn.connection.?.writer().writeAll(protocol.ConnectString);
 
-    cn.thread = std.Thread.spawn(.{}, run, .{cn}) catch unreachable;
+    cn.timeout_timer = std.time.Timer.start() catch unreachable;
 
     return;
 }
 
 pub fn disconnect(cn: *Conn) void {
+    cn.mutex.lock();
+    defer cn.mutex.unlock();
+
     if (cn.connection == null) {
         return;
     }
 
     if (cn.subscribed) {
-        cn.print("UNSUB {0d}\r\n", .{cn.req_sid}) catch {};
+        cn._print("UNSUB {0d}\r\n", .{cn.req_sid}) catch {};
     }
 
     cn.raiseAttention();
@@ -147,6 +167,9 @@ pub fn reuse(cn: *Conn, msg: *AllocatedMSG) void {
 }
 
 pub fn @"pub"(cn: *Conn, subject: []const u8, reply2: ?[]const u8, payload: ?[]const u8) !void {
+    cn.mutex.lock();
+    defer cn.mutex.unlock();
+
     var repl: []const u8 = undefined;
 
     if (reply2 == null) {
@@ -163,19 +186,22 @@ pub fn @"pub"(cn: *Conn, subject: []const u8, reply2: ?[]const u8, payload: ?[]c
         body = payload.?;
     }
 
-    try cn.print("PUB {0s} {1s} {2d}\r\n", .{ subject, repl, body.len });
+    try cn._print("PUB {0s} {1s} {2d}\r\n", .{ subject, repl, body.len });
 
     var buffers: [2]std.posix.iovec_const = .{
         .{ .base = body.ptr, .len = body.len },
         .{ .base = protocol.CRLF.ptr, .len = protocol.CRLF.len },
     };
 
-    try cn.writev(&buffers);
+    try cn._writev(&buffers);
 
     return;
 }
 
 pub fn hpub(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: *Headers, payload: ?[]const u8) !void {
+    cn.mutex.lock();
+    defer cn.mutex.unlock();
+
     var repl: []const u8 = undefined;
 
     if (reply2 == null) {
@@ -195,7 +221,7 @@ pub fn hpub(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: *Heade
     const HDR_LEN = headers.buffer.body().?.len + 1; // +1 for ␍␊
     const TOT_LEN = HDR_LEN + body.len;
 
-    try cn.print("HPUB {0s} {1s} {2d} {3d}\r\n", .{ subject, repl, HDR_LEN, TOT_LEN });
+    try cn._print("HPUB {0s} {1s} {2d} {3d}\r\n", .{ subject, repl, HDR_LEN, TOT_LEN });
 
     var buffers: [4]posix.iovec_const = .{
         .{ .base = headers.buffer.body().?.ptr, .len = headers.buffer.body().?.len },
@@ -204,7 +230,7 @@ pub fn hpub(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: *Heade
         .{ .base = protocol.CRLF.ptr, .len = protocol.CRLF.len },
     };
 
-    try cn.writev(&buffers);
+    try cn._writev(&buffers);
 
     return;
 }
@@ -267,39 +293,30 @@ pub fn pong(cn: *Conn) !void {
 
 // Writes the formatted output to underlying stream.
 pub fn print(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
-    // try cn._format(fmt, args, &cn.printbuf);
-    if (cn.printbuf.sprintf(fmt, args)) |fstr| {
-        if (fstr == null) {
-            return;
-        }
-        try cn.connection.?.writeAll(fstr.?);
-    } else |serr| {
-        return serr;
-    }
+    cn.mutex.lock();
+    defer cn.mutex.unlock();
+
+    try cn._print(fmt, args);
 
     return;
 }
 
 // Writes the buffer to underlying stream.
 pub fn write(cn: *Conn, buffer: []const u8) !void {
-    if (cn.connection == null) {
-        return error.CommunicationFailure;
-    }
-    if (buffer.len == 0) {
-        return;
-    }
-    try cn.connection.?.writeAll(buffer);
+    cn.mutex.lock();
+    defer cn.mutex.unlock();
+
+    try cn._write(buffer);
+    return;
 }
 
 // Writes the buffers to underlying stream.
 pub fn writev(cn: *Conn, iovecs: []posix.iovec_const) !void {
-    if (cn.connection == null) {
-        return error.CommunicationFailure;
-    }
-    if (iovecs.len == 0) {
-        return;
-    }
-    try cn.connection.?.writevAll(iovecs);
+    cn.mutex.lock();
+    defer cn.mutex.unlock();
+
+    try cn._writev(iovecs);
+    return;
 }
 
 fn read_msg(cn: *Conn) !?*AllocatedMSG {
@@ -480,6 +497,7 @@ fn read_line(cn: *Conn) !void {
     try cn.setTimeOut();
 
     while (!cn.wasRaised()) {
+        cn.sendHeartBit();
         var str: [1]u8 = undefined;
         if (cn.connection.?.read(&str)) |rcount| {
             if (rcount == 0) {
@@ -548,25 +566,6 @@ fn connectTcp(client: *Conn, host: []const u8, port: u16) !*Stream {
     return conn;
 }
 
-fn run(cn: *Conn) void {
-    while (!cn.wasRaised()) {
-        if (cn.read_msg()) |almsg| {
-            if (almsg == null) {
-                continue;
-            }
-            if (cn.received.send(almsg.?)) |_| {
-                continue;
-            } else |_| {
-                break;
-            }
-        } else |_| {
-            break;
-        }
-    }
-
-    return;
-}
-
 pub fn raiseAttention(cn: *Conn) void {
     _ = cn.attention.post();
 }
@@ -618,6 +617,8 @@ pub fn nextSid(cn: *Conn) u64 {
 }
 
 pub fn waitMessage(cn: *Conn, timeout_ns: u64, subject: ?[]const u8) error{ CommunicationFailure, Interrupted, Closed, NotConnected, Timeout }!*AllocatedMSG {
+    _ = subject;
+
     var timeout_timer = std.time.Timer.start() catch unreachable;
 
     var local_timeout_ns = timeout_ns;
@@ -627,15 +628,16 @@ pub fn waitMessage(cn: *Conn, timeout_ns: u64, subject: ?[]const u8) error{ Comm
         const rmt = recv.letter.mt;
 
         if ((recv.*.letter.mt == .MSG) or (recv.*.letter.mt == .HMSG)) {
-            if (subject == null) {
-                return recv;
-            }
-
-            if (std.mem.eql(u8, subject.?, recv.letter.Subject().?)) {
-                return recv;
-            }
-            cn.reuse(recv);
-            continue;
+            // if (subject == null) {
+            //     return recv;
+            // }
+            //
+            // if (std.mem.eql(u8, subject.?, recv.letter.Subject().?)) {
+            //     return recv;
+            // }
+            // cn.reuse(recv);
+            // continue;
+            return recv;
         }
 
         cn.reuse(recv);
@@ -684,4 +686,75 @@ pub const UUID = zul.UUID;
 pub fn newInbox() ![36]u8 {
     const uuid4 = UUID.v4();
     return UUID.binToHex(&uuid4.bin, .upper);
+}
+
+pub fn _print(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
+    // try cn._format(fmt, args, &cn.printbuf);
+    if (cn.printbuf.sprintf(fmt, args)) |fstr| {
+        if (fstr == null) {
+            return;
+        }
+        try cn.connection.?.writeAll(fstr.?);
+    } else |serr| {
+        return serr;
+    }
+
+    return;
+}
+
+// Writes the buffer to underlying stream.
+pub fn _write(cn: *Conn, buffer: []const u8) !void {
+    if (cn.connection == null) {
+        return error.CommunicationFailure;
+    }
+    if (buffer.len == 0) {
+        return;
+    }
+    try cn.connection.?.writeAll(buffer);
+}
+
+// Writes the buffers to underlying stream.
+pub fn _writev(cn: *Conn, iovecs: []posix.iovec_const) !void {
+    if (cn.connection == null) {
+        return error.CommunicationFailure;
+    }
+    if (iovecs.len == 0) {
+        return;
+    }
+    try cn.connection.?.writevAll(iovecs);
+}
+
+fn run(cn: *Conn) void {
+    cn.allow_heartBit = true;
+
+    while (!cn.wasRaised()) {
+        cn.sendHeartBit();
+
+        if (cn.read_msg()) |almsg| {
+            if (almsg == null) {
+                continue;
+            }
+            if (cn.received.send(almsg.?)) |_| {
+                continue;
+            } else |_| {
+                break;
+            }
+        } else |_| {
+            break;
+        }
+    }
+
+    return;
+}
+
+const DefaultHeartBitTimeOut = 1 * protocol.SECNS;
+
+fn sendHeartBit(cn: *Conn) void {
+    const elapsed = cn.timeout_timer.read();
+    if (elapsed > DefaultHeartBitTimeOut) {
+        if (cn.allow_heartBit) {
+            cn.ping() catch {};
+        }
+        cn.timeout_timer.reset();
+    }
 }
