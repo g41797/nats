@@ -242,7 +242,7 @@ pub const Messages = struct {
 
     pub fn deinit(msgs: *Messages) void {
         var allocated = msgs.pool.close();
-        if (allocated != null) {
+        while (allocated != null) {
             const next = allocated.?.next;
             free(allocated.?);
             allocated = next;

@@ -105,10 +105,11 @@ pub const ConsumerConfig = struct {
 
     // With a deliver subject, the server will PUSH messages
     // to clients subscribed to this subject.
-    // !!! MUST for Subscriber !!!
+    // !!!  FOR INTERNAL USAGE  !!!
     deliver_subject: ?String = null,
 
     deliver_group: ?String = null,
+
     name: ?String = null,
     filter_subject: ?String = null,
     filter_subjects: ?Strings = null,
