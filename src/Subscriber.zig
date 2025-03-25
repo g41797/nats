@@ -137,12 +137,6 @@ fn subscribe(sb: *Subscriber, subject: []const u8) !void {
 
     defer sb.connection.?.reuse(crresp.?);
 
-    // const consName = parse.responseNameText(crresp.?.letter.getPayload().?);
-    // 
-    // if (consName == null) {
-    //     return error.UnexpectedSubscribeErrorEmptyName;
-    // }
-
     sb.subscribed = true;
     return;
 }

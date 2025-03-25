@@ -4,7 +4,7 @@
 test {
     _ = @import("parse_tests.zig");
     _ = @import("misc_tests.zig");
-    // _ = @import("core_tests.zig");
+    _ = @import("core_tests.zig");
     _ = @import("jetstream_tests.zig");
     _ = @import("subscriber_tests.zig");
     @import("std").testing.refAllDecls(@This());

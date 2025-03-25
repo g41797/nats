@@ -138,7 +138,7 @@ pub fn disconnect(cn: *Conn) void {
 
 pub fn fetch(cn: *Conn, timeout_ns: u64) error{ Interrupted, Timeout, Closed }!*AllocatedMSG {
     if (cn.received.receive(timeout_ns)) |recvd| {
-        if (recvd.letter.mt == .INTERRUPT) {
+        if (recvd.*.letter.mt == .INTERRUPT) {
             cn.pool.put(recvd);
             return error.Interrupted;
         }
@@ -625,7 +625,7 @@ pub fn waitMessage(cn: *Conn, timeout_ns: u64, subject: ?[]const u8) error{ Comm
 
     while (true) {
         const recv = try cn.fetch(local_timeout_ns);
-        const rmt = recv.letter.mt;
+        const rmt = recv.*.letter.mt;
 
         if ((recv.*.letter.mt == .MSG) or (recv.*.letter.mt == .HMSG)) {
             // if (subject == null) {

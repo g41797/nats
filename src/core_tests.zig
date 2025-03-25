@@ -79,7 +79,7 @@ fn wait(cl: *Core, mt: MT) !*AllocatedMSG {
             return recv;
         }
 
-        const rmt = recv.letter.mt;
+        const rmt = recv.*.letter.mt;
 
         cl.REUSE(recv);
 
