@@ -6,8 +6,10 @@
     //
     // It is redundant to include "zig" in this name because it is already
     // within the Zig package namespace.
-    .name = "nats",
+    .name = .nats,
 
+    .fingerprint = 0x31f7624f839e6231,
+    
     // This is a [Semantic Version](https://semver.org/).
     // In a future version of Zig it will be used for package deduplication.
     .version = "0.0.0",
@@ -28,8 +30,8 @@
             .hash = "12208d8777b69f62cccf70b4372d8c31a22bb022881279713d424689d6555532d389",
         },
         .zul = .{
-            .url = "git+https://github.com/karlseguin/zul#e48d01c578b95c1a15957ba819e4094bff982277",
-            .hash = "122033def62ec92564cc4936cb870f44d9e6e8aece152bf72be564b1cac542638c76",
+            .url = "git+https://github.com/karlseguin/zul#d9142c73aedc5698beba58b3fbf2bcfe69864778",
+            .hash = "zul-0.0.0-1oDot0BCBwA9cUo5OOrPs5NGmvoM7sk1ztfbdfL7mh4P",
         },
     },
     .paths = .{
