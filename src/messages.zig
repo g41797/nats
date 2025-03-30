@@ -1,20 +1,6 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
-const std = @import("std");
-const mailbox = @import("mailbox");
-
-pub const Header = std.http.Header;
-pub const HeaderIterator = std.http.HeaderIterator;
-const EnumMap = std.enums.EnumMap;
-const Allocator = std.mem.Allocator;
-
-pub const Appendable = @import("Appendable.zig");
-pub const protocol = @import("protocol.zig");
-
-pub const MSGMailBox = mailbox.MailBox(MSG);
-pub const AllocatedMSG = MSGMailBox.Envelope;
-
 pub const MessageType = enum {
     UNKNOWN,
     INFO,
@@ -285,3 +271,17 @@ pub const Messages = struct {
         };
     }
 };
+
+const std = @import("std");
+const mailbox = @import("mailbox");
+
+pub const Header = std.http.Header;
+pub const HeaderIterator = std.http.HeaderIterator;
+const EnumMap = std.enums.EnumMap;
+const Allocator = std.mem.Allocator;
+
+pub const Appendable = @import("Appendable.zig");
+pub const protocol = @import("protocol.zig");
+
+pub const MSGMailBox = mailbox.MailBox(MSG);
+pub const AllocatedMSG = MSGMailBox.Envelope;

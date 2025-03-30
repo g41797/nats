@@ -3,9 +3,6 @@
 
 pub const Appendable = @This();
 
-const std = @import("std");
-const Allocator = std.mem.Allocator;
-
 buffer: ?[]u8 = null,
 actual_len: usize = 0,
 allocator: Allocator = undefined,
@@ -125,3 +122,6 @@ inline fn roundlen(apndbl: *Appendable, len: usize) usize {
     }
     return (((len - 1) / apndbl.round) + 1) * apndbl.round;
 }
+
+const std = @import("std");
+const Allocator = std.mem.Allocator;

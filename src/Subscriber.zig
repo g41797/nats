@@ -3,26 +3,6 @@
 
 pub const Subscriber = @This();
 
-const std = @import("std");
-const Conn = @import("Conn.zig");
-const protocol = @import("protocol.zig");
-const messages = @import("messages.zig");
-const parse = @import("parse.zig");
-const JetStream = @import("JetStream.zig");
-const Appendable = @import("Appendable.zig");
-
-const Allocator = std.mem.Allocator;
-const Mutex = std.Thread.Mutex;
-
-const Headers = messages.Headers;
-pub const AllocatedMSG = messages.AllocatedMSG;
-const Formatter = @import("Formatter.zig");
-const SubscriberConfig = protocol.ConsumerConfig;
-
-// $JS.API.CONSUMER.CREATE.<stream>
-// $JS.API.CONSUMER.DURABLE.CREATE.<stream>.<consumer>
-// $JS.API.CONSUMER.DELETE.<stream>.<consumer>
-
 const CREATE_SUBJECT_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.CREATE.{s}.{s}.{s}";
 const CREATE_ALL_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.CREATE.{s}.{s}";
 const DELETE_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.DELETE.{s}.{s}";
@@ -104,7 +84,7 @@ fn subscribe(sb: *Subscriber, subject: []const u8) !void {
 
     const subscrAll = ((subject[0] == '>') and (subject.len == 1));
 
-    const PUSHCONF: protocol.ConsumerConfig = .{
+    const PUSHCONF: SubscriberConfig = .{
         .deliver_subject = sb.deliver_subject[0..36],
         .filter_subject = subject,
         .ack_policy = protocol.ACKPOLICY_NONE,
@@ -121,9 +101,9 @@ fn subscribe(sb: *Subscriber, subject: []const u8) !void {
         _ = try sb.cmd.sprintf(CREATE_SUBJECT_SUBSCRIBER, .{ sb.stream.body().?, sb.name[0..36], subject });
     }
 
-    const ccr: protocol.CreateConsumerRequest = .{ .stream_name = sb.stream.body().?, .config = PUSHCONF };
+    const csr: CreateSubscriberRequest = .{ .stream_name = sb.stream.body().?, .config = PUSHCONF };
 
-    _ = try sb.jsn.stringify(ccr, .{
+    _ = try sb.jsn.stringify(csr, .{
         .emit_strings_as_arrays = false,
         .whitespace = .minified,
         .emit_null_optional_fields = false,
@@ -195,3 +175,54 @@ fn process(sb: *Subscriber, timeout_ns: u64) !?*AllocatedMSG {
         return null;
     }
 }
+
+pub const SubscriberConfig = struct {
+    description: ?String = null,
+    ack_policy: String = protocol.ACKPOLICY_EXPLICIT,
+    ack_wait: u64 = 30 * protocol.SECNS,
+    deliver_policy: String = protocol.DELIVERPOLICY_ALL,
+
+    // With a deliver subject, the server will PUSH messages
+    // to clients subscribed to this subject.
+    // !!!  FOR INTERNAL USAGE  !!!
+    deliver_subject: ?String = null,
+
+    deliver_group: ?String = null,
+
+    name: ?String = null,
+    filter_subject: ?String = null,
+    filter_subjects: ?Strings = null,
+    flow_control: ?bool = null,
+    idle_heartbeat: ?u64 = null,
+    max_ack_pending: ?i32 = null,
+    max_deliver: ?i32 = null,
+    max_waiting: ?i32 = null,
+    replay_policy: String = protocol.REPLAYPOLICY_INSTANT,
+    headers_only: ?bool = false,
+    num_replicas: i32 = 1,
+    mem_storage: ?bool = null,
+    inactive_threshold: ?u64 = null,
+};
+
+const CreateSubscriberRequest = struct {
+    stream_name: []const u8 = undefined,
+    config: SubscriberConfig = undefined,
+};
+
+const std = @import("std");
+const Conn = @import("Conn.zig");
+const protocol = @import("protocol.zig");
+const messages = @import("messages.zig");
+const parse = @import("parse.zig");
+const JetStream = @import("JetStream.zig");
+const Appendable = @import("Appendable.zig");
+
+const Allocator = std.mem.Allocator;
+const Mutex = std.Thread.Mutex;
+
+const Headers = messages.Headers;
+pub const AllocatedMSG = messages.AllocatedMSG;
+const Formatter = @import("Formatter.zig");
+
+const String = protocol.String;
+const Strings = protocol.Strings;

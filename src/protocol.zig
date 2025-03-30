@@ -1,9 +1,6 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
-const std = @import("std");
-const messages = @import("messages.zig");
-
 // String representation of the default CONNECT
 pub const ConnectString = "CONNECT {\"verbose\":false,\"pedantic\":false,\"tls_required\":false,\"lang\":\"Zig\",\"version\":\"T.B.D\",\"protocol\":1,\"echo\":true, \"no_responders\":true, \"headers\":true}\r\n";
 
@@ -52,8 +49,8 @@ pub const DISCARD_NEW = "new";
 pub const STORAGE_FILE = "file";
 pub const STORAGE_MEMORY = "memory";
 
-const String = []const u8;
-const Strings = []const String;
+pub const String = []const u8;
+pub const Strings = []const String;
 
 pub const StreamConfig = struct {
     name: String = undefined,
@@ -78,7 +75,6 @@ pub const StreamConfig = struct {
     allow_rollup_hdrs: bool = false,
 };
 
-pub const CREATE_EPHEMERAL_T: []const u8 = "$JS.API.CONSUMER.CREATE.{s}";
 pub const CREATE_CONSUMER_T: []const u8 = "$JS.API.CONSUMER.CREATE.{s}.{s}";
 pub const CREATE_CONSUMER_FLT_T: []const u8 = "$JS.API.CONSUMER.CREATE.{s}.{s}.{s}";
 pub const DELETE_CONSUMER_T: []const u8 = "$JS.API.CONSUMER.DELETE.{s}.{s}";
@@ -103,18 +99,9 @@ pub const ConsumerConfig = struct {
     ack_wait: u64 = 30 * SECNS,
     deliver_policy: String = DELIVERPOLICY_ALL,
 
-    // With a deliver subject, the server will PUSH messages
-    // to clients subscribed to this subject.
-    // !!!  FOR INTERNAL USAGE  !!!
-    deliver_subject: ?String = null,
-
-    deliver_group: ?String = null,
-
     name: ?String = null,
     filter_subject: ?String = null,
     filter_subjects: ?Strings = null,
-    flow_control: ?bool = null,
-    idle_heartbeat: ?u64 = null,
     max_ack_pending: ?i32 = null,
     max_deliver: ?i32 = null,
     max_waiting: ?i32 = null,
@@ -125,12 +112,10 @@ pub const ConsumerConfig = struct {
     inactive_threshold: ?u64 = null,
 };
 
-// type createConsumerRequest struct {
-// Stream string          `json:"stream_name"`
-// Config *ConsumerConfig `json:"config"`
-// }
-
 pub const CreateConsumerRequest = struct {
     stream_name: []const u8 = undefined,
     config: ConsumerConfig = undefined,
 };
+
+const std = @import("std");
+const messages = @import("messages.zig");

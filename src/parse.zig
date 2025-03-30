@@ -1,9 +1,6 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
-const std = @import("std");
-const ascii = std.ascii;
-
 // Server messages:
 // INFO {"option_name":option_value,...}␍␊
 // PING␍␊
@@ -126,3 +123,6 @@ pub fn responseNameText(resp: []const u8) ?[]const u8 {
     }
     return null;
 }
+
+const std = @import("std");
+const ascii = std.ascii;

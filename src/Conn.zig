@@ -3,31 +3,6 @@
 
 pub const Conn = @This();
 
-const std = @import("std");
-
-const net = std.net;
-const posix = std.posix;
-const Stream = net.Stream;
-const Socket = posix.socket_t;
-const Allocator = std.mem.Allocator;
-const Thread = std.Thread;
-const Sema = std.Thread.Semaphore;
-const Mutex = std.Thread.Mutex;
-
-const parse = @import("parse.zig");
-const protocol = @import("protocol.zig");
-const messages = @import("messages.zig");
-const Appendable = @import("Appendable.zig");
-const Formatter = @import("Formatter.zig");
-
-const MT = messages.MessageType;
-const Header = messages.Header;
-const Headers = messages.Headers;
-const HeaderIterator = messages.HeaderIterator;
-pub const alloc = messages.alloc;
-pub const Messages = messages.Messages;
-pub const AllocatedMSG = messages.AllocatedMSG;
-
 mutex: Mutex = .{},
 allocator: Allocator = undefined,
 connection: ?*Stream = null,
@@ -758,3 +733,28 @@ fn sendHeartBit(cn: *Conn) void {
         cn.timeout_timer.reset();
     }
 }
+
+const std = @import("std");
+
+const net = std.net;
+const posix = std.posix;
+const Stream = net.Stream;
+const Socket = posix.socket_t;
+const Allocator = std.mem.Allocator;
+const Thread = std.Thread;
+const Sema = std.Thread.Semaphore;
+const Mutex = std.Thread.Mutex;
+
+const parse = @import("parse.zig");
+const protocol = @import("protocol.zig");
+const messages = @import("messages.zig");
+const Appendable = @import("Appendable.zig");
+const Formatter = @import("Formatter.zig");
+
+const MT = messages.MessageType;
+const Header = messages.Header;
+const Headers = messages.Headers;
+const HeaderIterator = messages.HeaderIterator;
+pub const alloc = messages.alloc;
+pub const Messages = messages.Messages;
+pub const AllocatedMSG = messages.AllocatedMSG;

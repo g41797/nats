@@ -3,17 +3,6 @@
 
 pub const Core = @This();
 
-const std = @import("std");
-const Conn = @import("Conn.zig");
-const protocol = @import("protocol.zig");
-const messages = @import("messages.zig");
-
-const Allocator = std.mem.Allocator;
-const Mutex = std.Thread.Mutex;
-
-const Headers = messages.Headers;
-pub const AllocatedMSG = messages.AllocatedMSG;
-
 mutex: Mutex = .{},
 allocator: Allocator = undefined,
 connection: ?*Conn = null,
@@ -202,3 +191,14 @@ fn createConn(core: *Core, allocator: Allocator, co: protocol.ConnectOpts) !void
 
     return;
 }
+
+const std = @import("std");
+const Conn = @import("Conn.zig");
+const protocol = @import("protocol.zig");
+const messages = @import("messages.zig");
+
+const Allocator = std.mem.Allocator;
+const Mutex = std.Thread.Mutex;
+
+const Headers = messages.Headers;
+pub const AllocatedMSG = messages.AllocatedMSG;

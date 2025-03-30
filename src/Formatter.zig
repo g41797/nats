@@ -3,14 +3,6 @@
 
 pub const Formatter = @This();
 
-const std = @import("std");
-const json = std.json;
-const StringifyOptions = json.StringifyOptions;
-
-const Appendable = @import("Appendable.zig");
-
-const Allocator = std.mem.Allocator;
-
 formatbuf: Appendable = .{},
 fbs: std.io.FixedBufferStream([]u8) = undefined,
 
@@ -78,3 +70,11 @@ fn trystringify(frmtr: *Formatter, value: anytype, options: StringifyOptions) !v
     _ = try json.stringify(value, options, frmtr.*.fbs.writer());
     try frmtr.*.formatbuf.change(frmtr.*.fbs.getWritten().len);
 }
+
+const std = @import("std");
+const json = std.json;
+const StringifyOptions = json.StringifyOptions;
+
+const Appendable = @import("Appendable.zig");
+
+const Allocator = std.mem.Allocator;

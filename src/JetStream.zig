@@ -3,19 +3,6 @@
 
 pub const JetStream = @This();
 
-const std = @import("std");
-const Conn = @import("Conn.zig");
-const protocol = @import("protocol.zig");
-const messages = @import("messages.zig");
-const parse = @import("parse.zig");
-
-const Allocator = std.mem.Allocator;
-const Mutex = std.Thread.Mutex;
-
-const Headers = messages.Headers;
-pub const AllocatedMSG = messages.AllocatedMSG;
-const Formatter = @import("Formatter.zig");
-
 const CREATE_STREAM_T: []const u8 = "$JS.API.STREAM.CREATE.{s}";
 const UPDATE_STREAM_T: []const u8 = "$JS.API.STREAM.UPDATE.{s}";
 const PURGE_STREAM_T: []const u8 = "$JS.API.STREAM.PURGE.{s}";
@@ -181,3 +168,16 @@ pub fn createConn(allocator: Allocator, co: protocol.ConnectOpts) !*Conn {
 
     return conn;
 }
+
+const std = @import("std");
+const Conn = @import("Conn.zig");
+const protocol = @import("protocol.zig");
+const messages = @import("messages.zig");
+const parse = @import("parse.zig");
+
+const Allocator = std.mem.Allocator;
+const Mutex = std.Thread.Mutex;
+
+const Headers = messages.Headers;
+pub const AllocatedMSG = messages.AllocatedMSG;
+const Formatter = @import("Formatter.zig");
