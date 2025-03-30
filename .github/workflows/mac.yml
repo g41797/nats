@@ -15,8 +15,10 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
-  
-      - run: ./builds/macOS-amd64/nats-server -js -m 8222 & 
+      
+      - run: brew install nats-server
+        
+      - run: nats-server -js -m 8222 & 
 
       - uses: mlugg/setup-zig@v1
         with:

@@ -2,6 +2,12 @@ NATS
     https://github.com/nats-io
     https://nats.io/
 
+Binary releases
+    https://github.com/nats-io/nats-server/releases/
+
+Installing a NATS Server
+    https://docs.nats.io/running-a-nats-service/introduction/installation
+
 JetStream    
     https://docs.nats.io/nats-concepts/jetstream
 
