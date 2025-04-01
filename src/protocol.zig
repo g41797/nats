@@ -84,8 +84,8 @@ pub const ACKPOLICY_EXPLICIT = "explicit";
 pub const ACKPOLICY_NONE = "none";
 
 pub const DELIVERPOLICY_ALL = "all";
-pub const DELIVERPOLICY_BY_START_SEQUENCE = "by_start_sequence";
-pub const DELIVERPOLICY_BY_START_TIME = "by_start_time";
+// pub const DELIVERPOLICY_BY_START_SEQUENCE = "by_start_sequence";
+// pub const DELIVERPOLICY_BY_START_TIME = "by_start_time";
 pub const DELIVERPOLICY_LAST = "last";
 pub const DELIVERPOLICY_LAST_PER_SUBJECT = "last_per_subject";
 pub const DELIVERPOLICY_NEW = "new";
@@ -94,27 +94,22 @@ pub const REPLAYPOLICY_INSTANT = "instant";
 pub const REPLAYPOLICY_ORIGINAL = "original";
 
 pub const ConsumerConfig = struct {
+    durable_name: ?String = null,
+
     description: ?String = null,
     ack_policy: String = ACKPOLICY_EXPLICIT,
     ack_wait: u64 = 30 * SECNS,
     deliver_policy: String = DELIVERPOLICY_ALL,
 
-    name: ?String = null,
     filter_subject: ?String = null,
-    filter_subjects: ?Strings = null,
     max_ack_pending: ?i32 = null,
     max_deliver: ?i32 = null,
     max_waiting: ?i32 = null,
     replay_policy: String = REPLAYPOLICY_INSTANT,
     headers_only: ?bool = false,
-    num_replicas: i32 = 1,
+    num_replicas: i32 = 0,
     mem_storage: ?bool = null,
     inactive_threshold: ?u64 = null,
-};
-
-pub const CreateConsumerRequest = struct {
-    stream_name: []const u8 = undefined,
-    config: ConsumerConfig = undefined,
 };
 
 const std = @import("std");

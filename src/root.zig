@@ -10,3 +10,5 @@ const Appendable = @import("Appendable.zig");
 const Formatter = @import("Formatter.zig");
 const pool = @import("messages.zig");
 const Subscriber = @import("Subscriber.zig");
+const Consumer = @import("Consumer.zig");
+const utils = @import("utils.zig");

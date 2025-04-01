@@ -184,7 +184,6 @@ pub const SubscriberConfig = struct {
 
     // With a deliver subject, the server will PUSH messages
     // to clients subscribed to this subject.
-    // !!!  FOR INTERNAL USAGE  !!!
     deliver_subject: ?String = null,
 
     deliver_group: ?String = null,
@@ -199,7 +198,7 @@ pub const SubscriberConfig = struct {
     max_waiting: ?i32 = null,
     replay_policy: String = protocol.REPLAYPOLICY_INSTANT,
     headers_only: ?bool = false,
-    num_replicas: i32 = 1,
+    num_replicas: i32 = 0,
     mem_storage: ?bool = null,
     inactive_threshold: ?u64 = null,
 };

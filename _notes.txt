@@ -11,6 +11,9 @@ Installing a NATS Server
 JetStream    
     https://docs.nats.io/nats-concepts/jetstream
 
+JetStream mixed push pull orders processing architecture
+    https://docs.nats.io/nats-concepts/jetstream/consumers/example_configuration
+    
 Developing With NATS
     https://docs.nats.io/using-nats/developer
     
@@ -157,9 +160,10 @@ Example of create consumer response
 Delivery Policy with OrderedConsumer
     https://github.com/nats-io/nats.net/discussions/425
 
-Example
+Examples
     https://docs.nats.io/nats-concepts/jetstream/consumers/example_configuration
-
+    https://natsbyexample.com/examples/jetstream/pull-consumer/go/
+    
 Order processing architecture(description)
     https://github.com/nats-io/nats.docs/blob/master/nats-concepts/jetstream/example_configuration.md
 
@@ -172,3 +176,13 @@ Generate short unique IDs from numbers.
     
 Comprehensive Guide to Defer and Errdefer in Zig
     https://gencmurat.com/en/posts/defer-and-errdefer-in-zig/    
+    
+JetStream examples
+    https://natsbyexample.com/examples/jetstream/
+    
+    Pull Consumers in JetStream
+        https://natsbyexample.com/examples/jetstream/pull-consumer/go
+        
+    Pull Consumer - Applying Limits in JetStream
+        https://natsbyexample.com/examples/jetstream/pull-consumer-limits/go
+    
