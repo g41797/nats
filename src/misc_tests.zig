@@ -12,6 +12,8 @@ const MT = messages.MessageType;
 const Header = messages.Header;
 const Headers = messages.Headers;
 const HeaderIterator = protocol.HeaderIterator;
+const Consumer = @import("Consumer.zig");
+const utils = @import("utils.zig");
 
 test "new inbox" {
     const inbox = try Conn.newInbox();
@@ -80,4 +82,14 @@ test "headers" {
     try testing.expectEqual(std.mem.eql(u8, hdr.value, h4.value), true);
 
     try testing.expect(hit.next() == null);
+}
+
+test "copy fields" {
+    const src: protocol.ConsumerConfig = .{};
+
+    const count = comptime @typeInfo(protocol.ConsumerConfig).@"struct".fields.len;
+
+    var dst: Consumer.InternalConsumerConfig = .{};
+
+    try testing.expectEqual(count, utils.copyFields(src, &dst));
 }

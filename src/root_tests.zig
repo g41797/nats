@@ -7,6 +7,5 @@ test {
     _ = @import("core_tests.zig");
     _ = @import("jetstream_tests.zig");
     _ = @import("subscriber_tests.zig");
-    _ = @import("utils_tests.zig");
     @import("std").testing.refAllDecls(@This());
 }
