@@ -3,13 +3,15 @@
 
 pub const Consumer = @This();
 
-const CREATE_SUBJECT_CONSUMER: []const u8 = protocol.CREATE_CONSUMER_FLT_T;
-const CREATE_ALL_CONSUMER: []const u8 = protocol.CREATE_CONSUMER_T;
-const DELETE_CONSUMER: []const u8 = protocol.DELETE_CONSUMER_T;
-
 const ACTION_CREATE_CONSUMER: []const u8 = "create";
 const ACTION_UPDATE_CONSUMER: []const u8 = "update";
 const ACTION_CREATE_OR_UPDATE_CONSUMER: []const u8 = "";
+
+const CreateConsumerRequest = struct {
+    stream_name: []const u8 = undefined,
+    config: InternalConsumerConfig = undefined,
+    action: String = undefined,
+};
 
 //------------------
 // Go ConsumerConfig
@@ -62,31 +64,192 @@ const ACTION_CREATE_OR_UPDATE_CONSUMER: []const u8 = "";
 pub const InternalConsumerConfig = struct {
     durable_name: ?String = null,
     name: ?String = null,
-
     description: ?String = null,
-    ack_policy: String = undefined,
-    ack_wait: u64 = undefined,
     deliver_policy: String = undefined,
 
+    ack_policy: String = undefined,
+    ack_wait: u64 = undefined,
+
+    max_ack_pending: ?i32 = 1,
+    max_waiting: ?i32 = 1,
+    max_deliver: ?i32 = 1,
+
     filter_subject: ?String = null,
-    max_ack_pending: ?i32 = null,
-    max_deliver: ?i32 = null,
-    max_waiting: ?i32 = null,
     replay_policy: String = undefined,
+
     headers_only: ?bool = null,
+
     num_replicas: i32 = undefined,
     mem_storage: ?bool = null,
-    inactive_threshold: ?u64 = null,
 
-    flow_control: ?bool = null,
+    flow_control: ?bool = false,
     idle_heartbeat: ?u64 = null,
 };
 
-const CreateConsumerRequest = struct {
-    stream_name: []const u8 = undefined,
-    config: ConsumerConfig = undefined,
-    action: String = undefined,
-};
+mutex: Mutex = .{},
+allocator: Allocator = undefined,
+co: protocol.ConnectOpts = undefined,
+connection: ?*Conn = null,
+stream: Appendable = .{},
+consumer: Appendable = .{},
+cmd: Formatter = .{},
+jsn: Formatter = .{},
+durable: bool = false,
+created: bool = false,
+
+pub fn START(allocator: Allocator, co: protocol.ConnectOpts, stream: []const u8, cscnf: *ConsumerConfig) !Consumer {
+    var cs: Consumer = .{ .allocator = allocator };
+
+    cs.connection = try JetStream.createConn(allocator, co);
+    errdefer cs.deinit();
+
+    _ = try cs.stream.init(cs.allocator, stream.len, null);
+    try cs.stream.copy(stream);
+
+    _ = try cs.consumer.init(cs.allocator, 256, null);
+
+    cs.cmd = try Formatter.init(cs.allocator, 128);
+    cs.jsn = try Formatter.init(cs.allocator, 256);
+
+    try cs.start(cscnf);
+
+    return cs;
+}
+
+pub fn STOP(cs: *Consumer, delete: ?bool) void {
+    cs.mutex.lock();
+    defer cs.mutex.unlock();
+
+    if (cs.connection == null) {
+        return;
+    }
+
+    cs.stop(delete) catch {};
+    cs.deinit();
+
+    return;
+}
+
+pub fn REUSE(cs: *Consumer, msg: *AllocatedMSG) void {
+    cs.mutex.lock();
+    defer cs.mutex.unlock();
+
+    if (cs.connection == null) {
+        messages.free(msg);
+    }
+    cs.connection.?.reuse(msg);
+}
+
+fn start(cs: *Consumer, cscnf: *ConsumerConfig) !void {
+    var icc: InternalConsumerConfig = .{};
+
+    _ = utils.copyFields(cscnf.*, &icc);
+
+    cs.durable = ((icc.durable_name != null) and (icc.durable_name.?.len > 0));
+
+    if (cs.durable) {
+        _ = try cs.cmd.sprintf(protocol.CREATE_DURABLE_CONSUMER_T, .{ cs.stream.body().?, icc.durable_name.? });
+    } else {
+        _ = try cs.cmd.sprintf(protocol.CREATE_EPHEMERAL_CONSUMER_T, .{cs.stream.body().?});
+    }
+
+    var ccr: CreateConsumerRequest = .{ .stream_name = cs.stream.body().?, .config = icc, .action = ACTION_CREATE_OR_UPDATE_CONSUMER };
+
+    if (!cs.durable) {
+        ccr.action = ACTION_CREATE_CONSUMER;
+    }
+
+    _ = try cs.jsn.stringify(ccr, .{
+        .emit_strings_as_arrays = false,
+        .whitespace = .minified,
+        .emit_null_optional_fields = false,
+    });
+
+    const crresp = try cs.process(protocol.SECNS * 10);
+
+    if (crresp == null) {
+        return error.UnexpectedConsumeErrorEmptyResponse;
+    }
+
+    if (parse.responseNameText(crresp.?.letter.getPayload().?)) |name| {
+        try cs.consumer.copy(name);
+    } else {
+        return error.ConsumerNameDoesNotExistInResponse;
+    }
+
+    defer cs.connection.?.reuse(crresp.?);
+
+    cs.created = true;
+    return;
+}
+
+fn process(cs: *Consumer, timeout_ns: u64) !?*AllocatedMSG {
+    const response = try cs.connection.?.request(cs.cmd.formatbuf.body().?, null, cs.jsn.formatbuf.body(), timeout_ns);
+    errdefer cs.connection.?.reuse(response);
+    if (response.letter.getPayload()) |payload| {
+        if (parse.isFailed(payload)) {
+            return error.JetStreamsRequestFailed;
+        } else {
+            return response;
+        }
+    } else {
+        cs.connection.?.reuse(response);
+        return null;
+    }
+}
+
+fn stop(cs: *Consumer, delete: ?bool) !void {
+    if (!cs.created) {
+        return;
+    }
+
+    if (cs.connection == null) {
+        return;
+    }
+
+    if (!cs.durable) {
+        return;
+    }
+
+    if (delete == null) {
+        return;
+    }
+
+    if (!delete.?) {
+        return;
+    }
+
+    _ = try cs.cmd.sprintf(protocol.DELETE_CONSUMER_T, .{
+        cs.stream.body().?,
+        cs.consumer.body().?,
+    });
+    cs.jsn.reset();
+
+    const delresp = try cs.process(protocol.SECNS * 10);
+    if (delresp != null) {
+        cs.connection.?.reuse(delresp.?);
+    }
+
+    return;
+}
+
+fn deinit(cs: *Consumer) void {
+    if (cs.connection == null) {
+        return;
+    }
+
+    cs.connection.?.interrupt() catch {};
+    cs.connection.?.disconnect();
+    cs.allocator.destroy(cs.connection.?);
+    cs.connection = null;
+
+    cs.stream.deinit();
+    cs.consumer.deinit();
+    cs.cmd.deinit();
+    cs.jsn.deinit();
+
+    return;
+}
 
 const std = @import("std");
 const Conn = @import("Conn.zig");
@@ -95,6 +258,7 @@ const messages = @import("messages.zig");
 const parse = @import("parse.zig");
 const JetStream = @import("JetStream.zig");
 const Appendable = @import("Appendable.zig");
+const utils = @import("utils.zig");
 
 const Allocator = std.mem.Allocator;
 const Mutex = std.Thread.Mutex;

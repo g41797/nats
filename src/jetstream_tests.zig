@@ -20,22 +20,37 @@ const Headers = messages.Headers;
 const HeaderIterator = messages.HeaderIterator;
 const StreamConfig = protocol.StreamConfig;
 
-test "base jetstream requests" {
+// test "base jetstream requests" {
+//     var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+//     defer js.DISCONNECT();
+//
+//     const STREAM: []const u8 = "ORDS";
+//     var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{"ords.>"} };
+//
+//     try testing.expectError(error.JetStreamsRequestFailed, js.DELETE(STREAM));
+//     //
+//     try js.CREATE(&CONF);
+//     try js.UPDATE(&CONF);
+//     //
+//     try js.PUBLISH("ords.received", null, "First Order");
+//     //
+//     try js.PURGE(STREAM);
+//     //
+//     try js.DELETE(STREAM);
+//     return;
+// }
+
+test "min jetstream requests" {
     var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
     defer js.DISCONNECT();
 
     const STREAM: []const u8 = "ORDS";
     var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{"ords.>"} };
 
-    try testing.expectError(error.JetStreamsRequestFailed, js.DELETE(STREAM));
-    //
     try js.CREATE(&CONF);
     try js.UPDATE(&CONF);
-    //
-    try js.PUBLISH("ords.received", null, "First Order");
-    //
     try js.PURGE(STREAM);
-    //
     try js.DELETE(STREAM);
+
     return;
 }

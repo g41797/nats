@@ -506,3 +506,508 @@ Z->> [MSG DLVSBJ.3 2 696]
 
 G->> [MSG orders.1 2 $JS.ACK.ORDERS.CNSNME.1.1.1.1742812091263125117.0 11]
 Z --------
+
+=================================
+
+    public function testConsumer1()
+    {
+        $api = $this->getClient()
+            ->skipInvalidMessages(true)
+            ->getApi();
+
+        $this->assertSame($api->getInfo()->streams, 0);
+
+        $stream = $api->getStream('my_stream');
+
+        $stream->getConfiguration()
+            ->setRetentionPolicy(RetentionPolicy::WORK_QUEUE)
+            ->setSubjects(['tester.greet', 'tester.bye']);
+
+        $stream->create();
+
+        $this->called = null;
+        $consumer = $stream->getConsumer('greet_consumer');
+        $consumer->getConfiguration()->setSubjectFilter('tester.greet');
+        $consumer->create();
+
+        $this->assertNull($this->called);
+        $consumer->setIterations(1);
+        $consumer->handle($this->persistMessage(...));
+
+        $this->assertNull($this->called);
+        $stream->put('tester.greet', [ 'name' => 'nekufa' ]);
+        $consumer->setIterations(1)->setExpires(1);
+        $consumer->handle($this->persistMessage(...));
+
+        $this->assertNotNull($this->called);
+        $this->assertSame($this->called->name, 'nekufa');
+        $this->assertNotNull($this->called->timestampNanos);
+
+        $this->called = null;
+    }
+
+
+cid:26 - Client connection created
+cid:26 - <<- [CONNECT {"headers":true,"pedantic":false,"verbose":false,"lang":"php","version":"dev"}]
+
+            $api->getInfo()
+cid:26 - <<- [SUB _INBOX.19913cc3e45dd2b422003630bba6e189 aab65afe]
+cid:26 - <<- [PUB $JS.API.INFO _INBOX.19913cc3e45dd2b422003630bba6e189 2]
+cid:26 - <<- MSG_PAYLOAD: ["{}"]
+cid:26 - ->> [MSG _INBOX.19913cc3e45dd2b422003630bba6e189 aab65afe 364]
+cid:26 - <<- [UNSUB aab65afe]
+cid:26 - <-> [DELSUB aab65afe]
+
+            $stream->create()
+cid:26 - <<- [SUB _INBOX.ed10c4d94c6fdabfd55b16181d58454b 967499d8]
+cid:26 - <<- [PUB $JS.API.STREAM.CREATE.my_stream _INBOX.ed10c4d94c6fdabfd55b16181d58454b 231]
+cid:26 - <<- MSG_PAYLOAD: ["{\"allow_rollup_hdrs\":true,\"deny_delete\":true,\"discard\":\"old\",\"duplicate_window\":0,\"max_age\":0,\"max_consumers\":-1,\"name\":\"my_stream\",\"num_replicas\":1,\"retention\":\"workqueue\",\"storage\":\"file\",\"subjects\":[\"tester.greet\",\"tester.bye\"]}"]
+cid:26 - ->> [MSG _INBOX.ed10c4d94c6fdabfd55b16181d58454b 967499d8 746]
+cid:26 - <<- [UNSUB 967499d8]
+cid:26 - <-> [DELSUB 967499d8]
+
+cid:26 - <<- [SUB _INBOX.81f151234cd5719f2e5f8abc92e246ef 1c3da0a6]
+cid:26 - <<- [PUB $JS.API.CONSUMER.NAMES.my_stream _INBOX.81f151234cd5719f2e5f8abc92e246ef 2]
+cid:26 - <<- MSG_PAYLOAD: ["{}"]
+cid:26 - ->> [MSG _INBOX.81f151234cd5719f2e5f8abc92e246ef 1c3da0a6 108]
+cid:26 - <<- [UNSUB 1c3da0a6]
+cid:26 - <-> [DELSUB 1c3da0a6]
+
+cid:26 - <<- [SUB _INBOX.64ca8fda84a748bc82de6e2d54ef1e99 107a8a1b]
+cid:26 - <<- [PUB $JS.API.CONSUMER.DURABLE.CREATE.my_stream.greet_consumer _INBOX.64ca8fda84a748bc82de6e2d54ef1e99 175]
+cid:26 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"my_stream\",\"config\":{\"ack_policy\":\"explicit\",\"deliver_policy\":\"all\",\"durable_name\":\"greet_consumer\",\"replay_policy\":\"instant\",\"filter_subject\":\"tester.greet\"}}"]
+cid:26 - ->> [MSG _INBOX.64ca8fda84a748bc82de6e2d54ef1e99 107a8a1b 600]
+cid:26 - <<- [UNSUB 107a8a1b]
+cid:26 - <-> [DELSUB 107a8a1b]
+
+cid:26 - <<- [SUB handler.df1e02d1 e29abbca]
+cid:26 - <<- [PUB $JS.API.CONSUMER.MSG.NEXT.my_stream.greet_consumer handler.df1e02d1 31]
+cid:26 - <<- MSG_PAYLOAD: ["{\"batch\":1,\"expires\":100000000}"]
+cid:26 - ->> [HMSG handler.df1e02d1 e29abbca 81 81]
+cid:26 - <<- [UNSUB e29abbca]
+cid:26 - <-> [DELSUB e29abbca]
+
+cid:26 - <<- [PUB tester.greet 17]
+cid:26 - <<- MSG_PAYLOAD: ["{\"name\":\"nekufa\"}"]
+cid:26 - <<- [SUB handler.c16d486a dc912530]
+cid:26 - <<- [PUB $JS.API.CONSUMER.MSG.NEXT.my_stream.greet_consumer handler.c16d486a 32]
+cid:26 - <<- MSG_PAYLOAD: ["{\"batch\":1,\"expires\":1000000000}"]
+cid:26 - ->> [MSG tester.greet dc912530 $JS.ACK.my_stream.greet_consumer.1.1.1.1743924180520632081.0 17]
+cid:26 - <<- [PUB $JS.ACK.my_stream.greet_consumer.1.1.1.1743924180520632081.0  0]
+cid:26 - <<- MSG_PAYLOAD: [""]
+cid:26 - <<- [UNSUB dc912530]
+cid:26 - <-> [DELSUB dc912530]
+
+cid:26 - <<- [SUB _INBOX.cefb61258c6c273a460e107db5ce6e4f c715812a]
+cid:26 - <<- [PUB $JS.API.STREAM.NAMES _INBOX.cefb61258c6c273a460e107db5ce6e4f 2]
+cid:26 - <<- MSG_PAYLOAD: ["{}"]
+cid:26 - ->> [MSG _INBOX.cefb61258c6c273a460e107db5ce6e4f c715812a 115]
+cid:26 - <<- [UNSUB c715812a]
+cid:26 - <-> [DELSUB c715812a]
+
+cid:26 - <<- [SUB _INBOX.eb2327b56c9c28733371756e68d1f092 0ffbf000]
+cid:26 - <<- [PUB $JS.API.STREAM.NAMES _INBOX.eb2327b56c9c28733371756e68d1f092 2]
+cid:26 - <<- MSG_PAYLOAD: ["{}"]
+cid:26 - ->> [MSG _INBOX.eb2327b56c9c28733371756e68d1f092 0ffbf000 115]
+cid:26 - <<- [UNSUB 0ffbf000]
+cid:26 - <-> [DELSUB 0ffbf000]
+
+cid:26 - <<- [SUB _INBOX.1cd960ad4512151bad820c35e358c52f 5b285a98]
+cid:26 - <<- [PUB $JS.API.STREAM.DELETE.my_stream _INBOX.1cd960ad4512151bad820c35e358c52f 2]
+cid:26 - <<- MSG_PAYLOAD: ["{}"]
+cid:26 - ->> [MSG _INBOX.1cd960ad4512151bad820c35e358c52f 5b285a98 73]
+cid:26 - <<- [UNSUB 5b285a98]
+cid:26 - <-> [DELSUB 5b285a98]
+
+cid:26 - Client connection closed: Client Closed
+
+===============================================
+cid:36 - Client connection created
+cid:36 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":1,"echo":true, "no_responders":true, "headers":true}]
+
+cid:36 - <<- [SUB UNIQUEID.* 1 ]
+
+            js.DELETE(STREAM)
+cid:36 - <<- [PUB $JS.API.STREAM.DELETE.ORDS UNIQUEID.2 0]
+cid:36 - <<- MSG_PAYLOAD: [""]
+cid:36 - ->> [MSG UNIQUEID.2 1 129]
+
+            js.CREATE(&CONF)
+cid:36 - <<- [PUB $JS.API.STREAM.CREATE.ORDS UNIQUEID.3 388]
+cid:36 - <<- MSG_PAYLOAD: ["{\"name\":\"ORDS\",\"subjects\":[\"ords.>\"],\"retention\":\"limits\",\"max_consumers\":-1,\"max_msgs\":-1,\"max_bytes\":-1,\"max_age\":0,\"max_msgs_per_subject\":-1,\"max_msg_size\":-1,\"discard\":\"old\",\"storage\":\"file\",\"num_replicas\":1,\"duplicate_window\":120000000000,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"sealed\":false,\"deny_delete\":false,\"deny_purge\":false,\"allow_rollup_hdrs\":false}"]
+cid:36 - ->> [MSG UNIQUEID.3 1 727]
+
+            js.UPDATE(&CONF)
+cid:36 - <<- [PUB $JS.API.STREAM.UPDATE.ORDS UNIQUEID.4 388]
+cid:36 - <<- MSG_PAYLOAD: ["{\"name\":\"ORDS\",\"subjects\":[\"ords.>\"],\"retention\":\"limits\",\"max_consumers\":-1,\"max_msgs\":-1,\"max_bytes\":-1,\"max_age\":0,\"max_msgs_per_subject\":-1,\"max_msg_size\":-1,\"discard\":\"old\",\"storage\":\"file\",\"num_replicas\":1,\"duplicate_window\":120000000000,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"sealed\":false,\"deny_delete\":false,\"deny_purge\":false,\"allow_rollup_hdrs\":false}"]
+cid:36 - ->> [MSG UNIQUEID.4 1 709]
+
+            js.PUBLISH("ords.received", null, "First Order")
+cid:36 - <<- [PUB ords.received UNIQUEID.5 11]
+cid:36 - <<- MSG_PAYLOAD: ["First Order"]
+cid:36 - ->> [MSG UNIQUEID.5 1 26]
+
+            js.PURGE(STREAM)
+cid:36 - <<- [PUB $JS.API.STREAM.PURGE.ORDS UNIQUEID.6 0]
+cid:36 - <<- MSG_PAYLOAD: [""]
+cid:36 - ->> [MSG UNIQUEID.6 1 83]
+
+            js.DELETE(STREAM)
+cid:36 - <<- [PUB $JS.API.STREAM.DELETE.ORDS UNIQUEID.7 0]
+cid:36 - <<- MSG_PAYLOAD: [""]
+cid:36 - ->> [MSG UNIQUEID.7 1 73]
+
+cid:36 - <<- [UNSUB 1]
+cid:36 - <-> [DELSUB 1]
+cid:36 - Client connection closed: Client Closed
+===================================================================
+
+cid:40 - Client connection created
+cid:40 - <<- [CONNECT {"headers":true,"pedantic":false,"verbose":false,"lang":"php","version":"dev"}]
+
+cid:40 - <<- [SUB _INBOX.ff6202eba4a33041be0fc0bf98e5f463 7c600220]
+cid:40 - <<- [PUB $JS.API.STREAM.CREATE.ORDS _INBOX.ff6202eba4a33041be0fc0bf98e5f463 228]
+cid:40 - <<- MSG_PAYLOAD: ["{\"allow_rollup_hdrs\":true,\"deny_delete\":true,\"discard\":\"old\",\"duplicate_window\":0,\"max_age\":0,\"max_consumers\":-1,\"name\":\"ORDS\",\"num_replicas\":1,\"retention\":\"workqueue\",\"storage\":\"memory\",\"subjects\":[\"tester.greet\",\"tester.bye\"]}"]
+cid:40 - ->> [MSG _INBOX.ff6202eba4a33041be0fc0bf98e5f463 7c600220 744]
+cid:40 - <<- [UNSUB 7c600220]
+cid:40 - <-> [DELSUB 7c600220]
+
+cid:40 - <<- [SUB _INBOX.f871f02a0895b65046cae28d2c6be869 7770f413]
+cid:40 - <<- [PUB $JS.API.STREAM.INFO.ORDS _INBOX.f871f02a0895b65046cae28d2c6be869 2]
+cid:40 - <<- MSG_PAYLOAD: ["{}"]
+cid:40 - ->> [MSG _INBOX.f871f02a0895b65046cae28d2c6be869 7770f413 835]
+cid:40 - <<- [UNSUB 7770f413]
+cid:40 - <-> [DELSUB 7770f413]
+
+cid:40 - <<- [SUB _INBOX.6571821b70838b8595c27492f6c8c479 3bc17250]
+cid:40 - <<- [PUB $JS.API.STREAM.UPDATE.ORDS _INBOX.6571821b70838b8595c27492f6c8c479 215]
+cid:40 - <<- MSG_PAYLOAD: ["{\"allow_rollup_hdrs\":true,\"deny_delete\":true,\"discard\":\"old\",\"duplicate_window\":0,\"max_age\":0,\"max_consumers\":-1,\"name\":\"ORDS\",\"num_replicas\":1,\"retention\":\"workqueue\",\"storage\":\"memory\",\"subjects\":[\"tester.greet\"]}"]
+cid:40 - ->> [MSG _INBOX.6571821b70838b8595c27492f6c8c479 3bc17250 713]
+cid:40 - <<- [UNSUB 3bc17250]
+cid:40 - <-> [DELSUB 3bc17250]
+
+cid:40 - <<- [SUB _INBOX.f743a44ce711cc79b9b02f4c75794093 4daa1a79]
+cid:40 - <<- [PUB $JS.API.STREAM.NAMES _INBOX.f743a44ce711cc79b9b02f4c75794093 2]
+cid:40 - <<- MSG_PAYLOAD: ["{}"]
+cid:40 - ->> [MSG _INBOX.f743a44ce711cc79b9b02f4c75794093 4daa1a79 110]
+cid:40 - <<- [UNSUB 4daa1a79]
+cid:40 - <-> [DELSUB 4daa1a79]
+
+cid:40 - <<- [SUB _INBOX.2f55c4b6faf9d87b2bf506086a3b0760 c8c21298]
+cid:40 - <<- [PUB $JS.API.STREAM.PURGE.ORDS _INBOX.2f55c4b6faf9d87b2bf506086a3b0760 2]
+cid:40 - <<- MSG_PAYLOAD: ["{}"]
+cid:40 - ->> [MSG _INBOX.2f55c4b6faf9d87b2bf506086a3b0760 c8c21298 83]
+cid:40 - <<- [UNSUB c8c21298]
+cid:40 - <-> [DELSUB c8c21298]
+
+cid:40 - <<- [SUB _INBOX.5d9957f7b53c924ce5a33a66b74bee30 11ab983c]
+cid:40 - <<- [PUB $JS.API.STREAM.NAMES _INBOX.5d9957f7b53c924ce5a33a66b74bee30 2]
+cid:40 - <<- MSG_PAYLOAD: ["{}"]
+cid:40 - ->> [MSG _INBOX.5d9957f7b53c924ce5a33a66b74bee30 11ab983c 110]
+cid:40 - <<- [UNSUB 11ab983c]
+cid:40 - <-> [DELSUB 11ab983c]
+
+cid:40 - <<- [SUB _INBOX.0d8c3f111a204b031c2a1345fd32cd6d 9c9ad39d]
+cid:40 - <<- [PUB $JS.API.STREAM.DELETE.ORDS _INBOX.0d8c3f111a204b031c2a1345fd32cd6d 2]
+cid:40 - <<- MSG_PAYLOAD: ["{}"]
+cid:40 - ->> [MSG _INBOX.0d8c3f111a204b031c2a1345fd32cd6d 9c9ad39d 73]
+cid:40 - <<- [UNSUB 9c9ad39d]
+cid:40 - <-> [DELSUB 9c9ad39d]
+
+cid:44 - Client connection created
+cid:44 - <<- [CONNECT {"headers":true,"pedantic":false,"verbose":false,"lang":"php","version":"dev"}]
+cid:44 - <<- [SUB _INBOX.fbab9dfe7a41accc7858128e8de782e9 40552175]
+cid:44 - <<- [PUB $JS.API.STREAM.NAMES _INBOX.fbab9dfe7a41accc7858128e8de782e9 2]
+cid:44 - <<- MSG_PAYLOAD: ["{}"]
+cid:44 - ->> [MSG _INBOX.fbab9dfe7a41accc7858128e8de782e9 40552175 106]
+cid:44 - <<- [UNSUB 40552175]
+cid:44 - <-> [DELSUB 40552175]
+cid:44 - Client connection closed: Client Closed
+cid:40 - Client connection closed: Client Closed
+
+
+=================================== public function testBaseApi()
+PUB <subject> [reply-to] <#bytes>␍␊[payload]␍␊
+
+MSG <subject> <sid> [reply-to] <#bytes>␍␊
+[payload]␍␊
+
+SUB <subject> [queue group] <sid>␍␊
+UNSUB <sid> [max_msgs]␍␊
+
+
+cid:45 - Client connection created
+cid:45 - <<- [CONNECT {"headers":true,"pedantic":false,"verbose":false,"lang":"php","version":"dev"}]
+
+                STREAM.CREATE
+cid:45 - <<- [SUB UNIQUEID-1 sid-1]
+cid:45 - <<- [PUB $JS.API.STREAM.CREATE.ORDS UNIQUEID-1 228]
+cid:45 - <<- MSG_PAYLOAD: ["{\"allow_rollup_hdrs\":true,\"deny_delete\":true,\"discard\":\"old\",\"duplicate_window\":0,\"max_age\":0,\"max_consumers\":-1,\"name\":\"ORDS\",\"num_replicas\":1,\"retention\":\"workqueue\",\"storage\":\"memory\",\"subjects\":[\"tester.greet\",\"tester.bye\"]}"]
+cid:45 - ->> [MSG UNIQUEID-1 sid-1 742]
+cid:45 - <<- [UNSUB sid-1]
+cid:45 - <-> [DELSUB sid-1]
+
+                STREAM.UPDATE
+cid:45 - <<- [SUB _INBOX.e90d54b82914761e521c002345fe8562 778d29eb]
+cid:45 - <<- [PUB $JS.API.STREAM.UPDATE.ORDS _INBOX.e90d54b82914761e521c002345fe8562 215]
+cid:45 - <<- MSG_PAYLOAD: ["{\"allow_rollup_hdrs\":true,\"deny_delete\":true,\"discard\":\"old\",\"duplicate_window\":0,\"max_age\":0,\"max_consumers\":-1,\"name\":\"ORDS\",\"num_replicas\":1,\"retention\":\"workqueue\",\"storage\":\"memory\",\"subjects\":[\"tester.greet\"]}"]
+LSUB 2]
+cid:45 - ->> [MSG _INBOX.e90d54b82914761e521c002345fe8562 778d29eb 712]
+cid:45 - <<- [UNSUB 778d29eb]
+cid:45 - <-> [DELSUB 778d29eb]
+
+                STREAM.PURGE
+cid:45 - <<- [SUB _INBOX.ef60f2ccd9b5dda2563eb13faa801af2 41cfc40c]
+cid:45 - <<- [PUB $JS.API.STREAM.PURGE.ORDS _INBOX.ef60f2ccd9b5dda2563eb13faa801af2 2]
+cid:45 - <<- MSG_PAYLOAD: ["{}"]
+cid:45 - ->> [MSG _INBOX.ef60f2ccd9b5dda2563eb13faa801af2 41cfc40c 83]
+cid:45 - <<- [UNSUB 41cfc40c]
+cid:45 - <-> [DELSUB 41cfc40c]
+
+                STREAM.DELETE
+cid:45 - <<- [SUB UNIQUEID-2 sid-2]
+cid:45 - <<- [PUB $JS.API.STREAM.DELETE.ORDS UNIQUEID-2 2]
+cid:45 - <<- MSG_PAYLOAD: ["{}"]
+id:45 - ->> [MSG UNIQUEID-2 sid-2 73]
+id:45 - <<- [UNSUB sid-2]
+id:45 - <-> [DELSUB sid-2]
+
+===============================================================
+
+
+=============================================================== test "min jetstream requests"
+
+cid:50 - Client connection created
+cid:50 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":1,"echo":true, "no_responders":true, "headers":true}]
+
+cid:50 - <<- [SUB UNIQUEID-1.* 1 ]
+
+cid:50 - <<- [PUB $JS.API.STREAM.CREATE.ORDS UNIQUEID-1.2 388]
+cid:50 - <<- MSG_PAYLOAD: ["{\"name\":\"ORDS\",\"subjects\":[\"ords.>\"],\"retention\":\"limits\",\"max_consumers\":-1,\"max_msgs\":-1,\"max_bytes\":-1,\"max_age\":0,\"max_msgs_per_subject\":-1,\"max_msg_size\":-1,\"discard\":\"old\",\"storage\":\"file\",\"num_replicas\":1,\"duplicate_window\":120000000000,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"sealed\":false,\"deny_delete\":false,\"deny_purge\":false,\"allow_rollup_hdrs\":false}"]
+cid:50 - ->> [MSG UNIQUEID-1.2 1 727]
+
+cid:50 - <<- [PUB $JS.API.STREAM.UPDATE.ORDS UNIQUEID-1.3 388]
+cid:50 - <<- MSG_PAYLOAD: ["{\"name\":\"ORDS\",\"subjects\":[\"ords.>\"],\"retention\":\"limits\",\"max_consumers\":-1,\"max_msgs\":-1,\"max_bytes\":-1,\"max_age\":0,\"max_msgs_per_subject\":-1,\"max_msg_size\":-1,\"discard\":\"old\",\"storage\":\"file\",\"num_replicas\":1,\"duplicate_window\":120000000000,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"sealed\":false,\"deny_delete\":false,\"deny_purge\":false,\"allow_rollup_hdrs\":false}"]
+cid:50 - ->> [MSG UNIQUEID-1.3 1 709]
+
+cid:50 - <<- [PUB $JS.API.STREAM.PURGE.ORDS UNIQUEID-1.4 0]
+cid:50 - <<- MSG_PAYLOAD: [""]
+cid:50 - ->> [MSG UNIQUEID-1.4 1 83]
+
+cid:50 - <<- [PUB $JS.API.STREAM.DELETE.ORDS UNIQUEID-1.5 0]
+cid:50 - <<- MSG_PAYLOAD: [""]
+cid:50 - ->> [MSG UNIQUEID-1.5 1 73]
+
+cid:50 - <<- [UNSUB 1]
+cid:50 - <-> [DELSUB 1]
+
+cid:50 - Client connection closed: Client Closed
+======================
+
+======================
+                STREAM.CREATE
+<<- [SUB UNIQUEID-1 sub-1]
+<<- [PUB $JS.API.STREAM.CREATE.ORDS UNIQUEID-1 228]
+<<- MSG_PAYLOAD: ["{\"allow_rollup_hdrs\":true,\"deny_delete\":true,\"discard\":\"old\",\"duplicate_window\":0,\"max_age\":0,\"max_consumers\":-1,\"name\":\"ORDS\",\"num_replicas\":1,\"retention\":\"workqueue\",\"storage\":\"memory\",\"subjects\":[\"tester.greet\",\"tester.bye\"]}"]
+->> [MSG UNIQUEID-1 sub-1 742]
+<<- [UNSUB sub-1]
+<-> [DELSUB sub-1]
+
+                STREAM.DELETE
+<<- [SUB UNIQUEID-2 sub-2]
+<<- [PUB $JS.API.STREAM.DELETE.ORDS UNIQUEID-2 2]
+<<- MSG_PAYLOAD: ["{}"]
+->> [MSG UNIQUEID-2 sub-2 73]
+<<- [UNSUB sub-2]
+<-> [DELSUB sub-2]
+======================
+
+======================
+                SUBSCRIBE
+<<- [SUB UNIQUEID-1.* sub-# ]
+
+                STREAM.CREATE
+<<- [PUB $JS.API.STREAM.CREATE.ORDS UNIQUEID-1.1 388]
+<<- MSG_PAYLOAD: ["{\"name\":\"ORDS\",\"subjects\":[\"ords.>\"],\"retention\":\"limits\",\"max_consumers\":-1,\"max_msgs\":-1,\"max_bytes\":-1,\"max_age\":0,\"max_msgs_per_subject\":-1,\"max_msg_size\":-1,\"discard\":\"old\",\"storage\":\"file\",\"num_replicas\":1,\"duplicate_window\":120000000000,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"sealed\":false,\"deny_delete\":false,\"deny_purge\":false,\"allow_rollup_hdrs\":false}"]
+->> [MSG UNIQUEID-1.1 sub-# 727]
+
+                STREAM.DELETE
+<<- [PUB $JS.API.STREAM.DELETE.ORDS UNIQUEID-1.2 0]
+<<- MSG_PAYLOAD: [""]
+->> [MSG UNIQUEID-1.2 sub-# 73]
+
+                UNSUBSCRIBE
+<<- [UNSUB sub-#]
+<-> [DELSUB sub-#]
+======================
+
+
+=================================
+<<- SUB <subject>  <sid>␍␊
+
+    REQUEST
+<<- PUB <subject> [reply-to] <#bytes>␍␊[payload]␍␊
+
+    RESPONSE
+->> MSG <subject> <sid> [reply-to] <#bytes>␍␊[payload]␍␊
+
+
+<<- UNSUB <sid> [max_msgs]␍␊
+
+
+<<- SUB subject                                 sid
+    SUB MAINSUBJ.*                              RSID
+    SUB D505141D-39EB-46F2-A54C-A374AF894D36.*  1
+
+    REQUEST
+            PUB subject                     reply-to ...
+        <<- PUB subject                     MAINSUBJ.NEXTSID ...
+            PUB $JS.API.STREAM.CREATE.ORDS  D505141D-39EB-46F2-A54C-A374AF894D36.2
+    
+    RESPONSE
+            MSG subject                                 sid
+        ->> MSG reply-to                                RSID
+            MSG D505141D-39EB-46F2-A54C-A374AF894D36.2  1
+        
+  
+<<- UNSUB sid
+    UNSUB RSID
+    UNSUB 1
+
+
+cid:15399 - Client connection created
+cid:15399 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":1,"echo":true, "no_responders":true, "headers":true}]
+
+cid:15399 - <<- [SUB D505141D-39EB-46F2-A54C-A374AF894D36.* 1 ]
+cid:15399 - <<- [PUB $JS.API.STREAM.CREATE.ORDS D505141D-39EB-46F2-A54C-A374AF894D36.2 388]
+cid:15399 - <<- MSG_PAYLOAD: ["{\"name\":\"ORDS\",\"subjects\":[\"ords.>\"],\"retention\":\"limits\",\"max_consumers\":-1,\"max_msgs\":-1,\"max_bytes\":-1,\"max_age\":0,\"max_msgs_per_subject\":-1,\"max_msg_size\":-1,\"discard\":\"old\",\"storage\":\"file\",\"num_replicas\":1,\"duplicate_window\":120000000000,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"sealed\":false,\"deny_delete\":false,\"deny_purge\":false,\"allow_rollup_hdrs\":false}"]
+cid:15399 - ->> [MSG D505141D-39EB-46F2-A54C-A374AF894D36.2 1 726]
+cid:15399 - <<- [PUB $JS.API.STREAM.UPDATE.ORDS D505141D-39EB-46F2-A54C-A374AF894D36.3 388]
+cid:15399 - <<- MSG_PAYLOAD: ["{\"name\":\"ORDS\",\"subjects\":[\"ords.>\"],\"retention\":\"limits\",\"max_consumers\":-1,\"max_msgs\":-1,\"max_bytes\":-1,\"max_age\":0,\"max_msgs_per_subject\":-1,\"max_msg_size\":-1,\"discard\":\"old\",\"storage\":\"file\",\"num_replicas\":1,\"duplicate_window\":120000000000,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"sealed\":false,\"deny_delete\":false,\"deny_purge\":false,\"allow_rollup_hdrs\":false}"]
+cid:15399 - ->> [MSG D505141D-39EB-46F2-A54C-A374AF894D36.3 1 709]
+cid:15399 - <<- [PUB $JS.API.STREAM.PURGE.ORDS D505141D-39EB-46F2-A54C-A374AF894D36.4 0]
+cid:15399 - <<- MSG_PAYLOAD: [""]
+cid:15399 - ->> [MSG D505141D-39EB-46F2-A54C-A374AF894D36.4 1 83]
+cid:15399 - <<- [PUB $JS.API.STREAM.DELETE.ORDS D505141D-39EB-46F2-A54C-A374AF894D36.5 0]
+cid:15399 - <<- MSG_PAYLOAD: [""]
+cid:15399 - ->> [MSG D505141D-39EB-46F2-A54C-A374AF894D36.5 1 73]
+cid:15399 - <<- [UNSUB 1]
+cid:15399 - <-> [DELSUB 1]
+cid:15399 - Client connection closed: Client Closed
+
+
+=========================
+
+Zig:
+<<- SUB subject                                 sid
+    SUB D505141D-39EB-46F2-A54C-A374AF894D36.*  1
+
+    REQUEST
+            PUB subject                     reply-to ...
+            PUB $JS.API.STREAM.PURGE.ORDS  D505141D-39EB-46F2-A54C-A374AF894D36.2   ...
+    
+    RESPONSE
+            MSG subject                                 sid
+            MSG D505141D-39EB-46F2-A54C-A374AF894D36.2  1
+        
+  
+<<- UNSUB sid
+    UNSUB 1
+
+PHP:
+    SUB subject                                 sid
+    SUB _INBOX.ef60f2ccd9b5dda2563eb13faa801af2 41cfc40c
+    
+        PUB subject                   reply-to ...
+        PUB $JS.API.STREAM.PURGE.ORDS _INBOX.ef60f2ccd9b5dda2563eb13faa801af2 ...
+        
+        MSG subject                                 sid
+        MSG _INBOX.ef60f2ccd9b5dda2563eb13faa801af2 41cfc40c    ...
+        
+    UNSUB 41cfc40c
+
+
+=======================
+cid:21 - Client connection created
+cid:21 - <<- [CONNECT {"headers":true,"pedantic":false,"verbose":false,"lang":"php","version":"dev"}]
+
+cid:21 - <<- [SUB _REQS9e29134298cc789d2f9114cf79719c04.* _REQS1]
+
+cid:21 - <<- [PUB $JS.API.STREAM.CREATE.purge _REQS9e29134298cc789d2f9114cf79719c04.3 207]
+cid:21 - <<- MSG_PAYLOAD: ["{\"allow_rollup_hdrs\":true,\"deny_delete\":true,\"discard\":\"old\",\"duplicate_window\":0,\"max_age\":0,\"max_consumers\":-1,\"name\":\"purge\",\"num_replicas\":1,\"retention\":\"workqueue\",\"storage\":\"file\",\"subjects\":[\"purge\"]}"]
+cid:21 - ->> [MSG _REQS9e29134298cc789d2f9114cf79719c04.3 _REQS1 722]
+
+cid:21 - <<- [PUB $JS.API.CONSUMER.NAMES.purge _REQS9e29134298cc789d2f9114cf79719c04.5 2]
+cid:21 - <<- MSG_PAYLOAD: ["{}"]
+cid:21 - ->> [MSG _REQS9e29134298cc789d2f9114cf79719c04.5 _REQS1 108]
+cid:21 - <<- [PUB $JS.API.CONSUMER.DURABLE.CREATE.purge.purge _REQS9e29134298cc789d2f9114cf79719c04.7 155]
+cid:21 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"purge\",\"config\":{\"ack_policy\":\"explicit\",\"deliver_policy\":\"all\",\"durable_name\":\"purge\",\"replay_policy\":\"instant\",\"filter_subject\":\"purge\"}}"]
+2025-04-13T05:41:33.729945291Z [1] 2025/04/13 05:41:33.729885 [TRC] JETSTREAM - <<- [SUB $JSC.CI.$G.purge.purge  57]
+cid:21 - ->> [MSG _REQS9e29134298cc789d2f9114cf79719c04.7 _REQS1 572]
+cid:21 - <<- [PUB purge _REQS9e29134298cc789d2f9114cf79719c04.9 5]
+cid:21 - <<- MSG_PAYLOAD: ["first"]
+cid:21 - ->> [MSG _REQS9e29134298cc789d2f9114cf79719c04.9 _REQS1 27]
+cid:21 - <<- [PUB purge _REQS9e29134298cc789d2f9114cf79719c04.11 6]
+cid:21 - <<- MSG_PAYLOAD: ["second"]
+cid:21 - ->> [MSG _REQS9e29134298cc789d2f9114cf79719c04.11 _REQS1 27]
+cid:21 - <<- [PUB $JS.API.CONSUMER.INFO.purge.purge _REQS9e29134298cc789d2f9114cf79719c04.13 2]
+cid:21 - <<- MSG_PAYLOAD: ["{}"]
+cid:21 - ->> [MSG _REQS9e29134298cc789d2f9114cf79719c04.13 _REQS1 570]
+cid:21 - <<- [PUB $JS.API.STREAM.NAMES _REQS9e29134298cc789d2f9114cf79719c04.15 2]
+cid:21 - <<- MSG_PAYLOAD: ["{}"]
+cid:21 - ->> [MSG _REQS9e29134298cc789d2f9114cf79719c04.15 _REQS1 111]
+cid:21 - <<- [PUB $JS.API.STREAM.PURGE.purge _REQS9e29134298cc789d2f9114cf79719c04.17 2]
+cid:21 - <<- MSG_PAYLOAD: ["{}"]
+cid:21 - ->> [MSG _REQS9e29134298cc789d2f9114cf79719c04.17 _REQS1 83]
+cid:21 - <<- [PUB $JS.API.CONSUMER.INFO.purge.purge _REQS9e29134298cc789d2f9114cf79719c04.19 2]
+cid:21 - <<- MSG_PAYLOAD: ["{}"]
+cid:21 - ->> [MSG _REQS9e29134298cc789d2f9114cf79719c04.19 _REQS1 570]
+cid:27 - Client connection created
+cid:27 - <<- [CONNECT {"headers":true,"pedantic":false,"verbose":false,"lang":"php","version":"dev"}]
+cid:27 - <<- [SUB _REQS52ec455c263d99ba0800e300fd96c660.* _REQS1]
+cid:27 - <<- [PUB $JS.API.STREAM.NAMES _REQS52ec455c263d99ba0800e300fd96c660.3 2]
+cid:27 - <<- MSG_PAYLOAD: ["{}"]
+cid:27 - ->> [MSG _REQS52ec455c263d99ba0800e300fd96c660.3 _REQS1 111]
+cid:27 - <<- [PUB $JS.API.STREAM.NAMES _REQS52ec455c263d99ba0800e300fd96c660.5 2]
+cid:27 - <<- MSG_PAYLOAD: ["{}"]
+cid:27 - ->> [MSG _REQS52ec455c263d99ba0800e300fd96c660.5 _REQS1 111]
+cid:27 - <<- [PUB $JS.API.STREAM.DELETE.purge _REQS52ec455c263d99ba0800e300fd96c660.7 2]
+cid:27 - <<- MSG_PAYLOAD: ["{}"]
+cid:27 - ->> [MSG _REQS52ec455c263d99ba0800e300fd96c660.7 _REQS1 73]
+cid:21 - Client connection closed: Client Closed
+cid:21 - <-> [DELSUB _REQS1]
+cid:27 - Client connection closed: Client Closed
+cid:27 - <-> [DELSUB _REQS1]
+
+
+{
+  "type" : "io.nats.jetstream.api.v1.consumer_create_response",
+  "stream_name" : "ORDERS",
+  "name" : "3B84DA83-901A-4348-8527-C2DBB533F690",
+  "created" : "2025-04-19T08:23:24.417611931Z",
+  "config" : {
+    "name" : "3B84DA83-901A-4348-8527-C2DBB533F690",
+    "deliver_policy" : "all",
+    "ack_policy" : "explicit",
+    "ack_wait" : 30000000000,
+    "max_deliver" : 1,
+    "replay_policy" : "instant",
+    "max_waiting" : 1,
+    "max_ack_pending" : 1,
+    "inactive_threshold" : 5000000000,
+    "num_replicas" : 0
+  },
+  "delivered" : {
+    "consumer_seq" : 0,
+    "stream_seq" : 0
+  },
+  "ack_floor" : {
+    "consumer_seq" : 0,
+    "stream_seq" : 0
+  },
+  "num_ack_pending" : 0,
+  "num_redelivered" : 0,
+  "num_waiting" : 0,
+  "num_pending" : 0,
+  "ts" : "2025-04-19T08:23:24.418712944Z"
+}

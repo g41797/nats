@@ -23,4 +23,3 @@ pub fn copyFields(src: anytype, dest: anytype) usize {
 }
 
 const std = @import("std");
-const string = []const u8;

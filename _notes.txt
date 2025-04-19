@@ -186,3 +186,6 @@ JetStream examples
     Pull Consumer - Applying Limits in JetStream
         https://natsbyexample.com/examples/jetstream/pull-consumer-limits/go
     
+Code study: interface idioms/patterns in zig standard libraries
+    https://zig.news/yglcode/code-study-interface-idiomspatterns-in-zig-standard-libraries-4lkj
+    
