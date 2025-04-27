@@ -60,7 +60,7 @@ fn tryReadByte(stream: *Stream) !void {
 fn setTimeOut(stream: *Stream) !void {
     if (builtin.target.os.tag == .windows) {
         var timeout_ms: std.os.windows.DWORD = 1000 * 5; // 1 second = 1000 ms
-        try std.os.windows.setsockopt(
+        try std.os.windows.ws2_32.setsockopt(
             stream.*.handle,
             std.os.windows.SOL_SOCKET,
             std.os.windows.SO_RCVTIMEO,
