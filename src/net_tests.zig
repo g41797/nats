@@ -1,7 +1,7 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
-test "listen on a port, send bytes, receive bytes" {
+test "setsockopt RCVTIMEO" {
     if (builtin.single_threaded) return error.SkipZigTest;
     if (builtin.os.tag == .wasi) return error.SkipZigTest;
 
@@ -23,19 +23,14 @@ test "listen on a port, send bytes, receive bytes" {
 
     const S = struct {
         fn clientFn(server_address: net.Address) !void {
-            const stream = try net.tcpConnectToAddress(server_address);
+            var stream = try net.tcpConnectToAddress(server_address);
             defer stream.close();
 
+            try tryReadByte(&stream);
+
+            try tryReadByte(&stream);
+
             _ = try stream.writer().writeAll("Hello world!");
-
-            try setTimeOut(stream.handle.*);
-
-            var str: [1]u8 = undefined;
-            stream.read(&str) catch |er| {
-                if (er != error.WouldBlock) {
-                    return er;
-                }
-            };
         }
     };
 
@@ -51,19 +46,30 @@ test "listen on a port, send bytes, receive bytes" {
     try testing.expectEqualSlices(u8, "Hello world!", buf[0..n]);
 }
 
-fn setTimeOut(sock: *Socket) !void {
+fn tryReadByte(stream: *Stream) !void {
+    try setTimeOut(stream);
+    var str: [1]u8 = undefined;
+    _ = stream.read(&str) catch |er| {
+        if (er != error.WouldBlock) {
+            return er;
+        }
+    };
+    return;
+}
+
+fn setTimeOut(stream: *Stream) !void {
     if (builtin.target.os.tag == .windows) {
-        var timeout_ms: std.os.windows.DWORD = 1000 * 10; // 1 second = 1000 ms
+        var timeout_ms: std.os.windows.DWORD = 1000 * 5; // 1 second = 1000 ms
         try std.os.windows.setsockopt(
-            sock.*,
+            stream.*.handle,
             std.os.windows.SOL_SOCKET,
             std.os.windows.SO_RCVTIMEO,
             @ptrCast(&timeout_ms),
             @sizeOf(std.os.windows.DWORD),
         );
     } else {
-        const timeout = posix.timeval{ .sec = 1, .usec = 0 };
-        try posix.setsockopt(sock.*, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
+        const timeout = posix.timeval{ .sec = 5, .usec = 0 };
+        try posix.setsockopt(stream.*.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
     }
 }
 
