@@ -66,7 +66,7 @@ fn setTimeOut(stream: *Stream) !void {
             std.os.windows.ws2_32.SO.RCVTIMEO,
             @ptrCast(&timeout_ms),
             @sizeOf(std.os.windows.DWORD)
-        ) catch {};
+        ) catch {return;};
     } else {
         const timeout = posix.timeval{ .sec = 5, .usec = 0 };
         try posix.setsockopt(stream.*.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
