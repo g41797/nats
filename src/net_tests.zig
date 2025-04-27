@@ -23,10 +23,19 @@ test "listen on a port, send bytes, receive bytes" {
 
     const S = struct {
         fn clientFn(server_address: net.Address) !void {
-            const socket = try net.tcpConnectToAddress(server_address);
-            defer socket.close();
+            const stream = try net.tcpConnectToAddress(server_address);
+            defer stream.close();
 
-            _ = try socket.writer().writeAll("Hello world!");
+            _ = try stream.writer().writeAll("Hello world!");
+
+            try setTimeOut(stream.handle.*);
+
+            var str: [1]u8 = undefined;
+            stream.read(&str) catch |er| {
+                if (er != error.WouldBlock) {
+                    return er;
+                }
+            };
         }
     };
 
@@ -44,19 +53,19 @@ test "listen on a port, send bytes, receive bytes" {
 
 fn setTimeOut(sock: *Socket) !void {
     if (builtin.target.os.tag == .windows) {
-        var timeout_ms: std.os.windows.DWORD = 1000; // 1 second = 1000 ms
+        var timeout_ms: std.os.windows.DWORD = 1000 * 10; // 1 second = 1000 ms
         try std.os.windows.setsockopt(
             sock.*,
             std.os.windows.SOL_SOCKET,
             std.os.windows.SO_RCVTIMEO,
             @ptrCast(&timeout_ms),
             @sizeOf(std.os.windows.DWORD),
-        );    
+        );
     } else {
-    const timeout = posix.timeval{ .sec = 1, .usec = 0 };
-    try posix.setsockopt(sock.*, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));}
+        const timeout = posix.timeval{ .sec = 1, .usec = 0 };
+        try posix.setsockopt(sock.*, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
+    }
 }
-
 
 const std = @import("std");
 const testing = std.testing;
@@ -66,4 +75,3 @@ const mem = std.mem;
 const posix = std.posix;
 const Stream = net.Stream;
 const Socket = posix.socket_t;
-
