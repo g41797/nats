@@ -62,8 +62,8 @@ fn setTimeOut(stream: *Stream) !void {
         var timeout_ms: std.os.windows.DWORD = 1000 * 5; // 1 second = 1000 ms
         try std.os.windows.ws2_32.setsockopt(
             stream.*.handle,
-            std.os.windows.SOL_SOCKET,
-            std.os.windows.SO_RCVTIMEO,
+            std.os.windows.ws2_32.SOL.SOCKET,
+            std.os.windows.ws2_32.SO.RCVTIMEO,
             @ptrCast(&timeout_ms),
             @sizeOf(std.os.windows.DWORD),
         );
