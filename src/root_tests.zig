@@ -3,7 +3,7 @@
 
 test {
     if (builtin.target.os.tag == .windows) {
-        _ = @import("parse_tests.zig");
+        _ = @import("net_tests.zig");
         std.testing.refAllDecls(@This());
     } else {
         _ = @import("parse_tests.zig");
