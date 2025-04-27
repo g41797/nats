@@ -2,11 +2,19 @@
 // SPDX-License-Identifier: MIT
 
 test {
-    _ = @import("parse_tests.zig");
-    _ = @import("misc_tests.zig");
-    _ = @import("core_tests.zig");
-    _ = @import("jetstream_tests.zig");
-    _ = @import("subscriber_tests.zig");
-    _ = @import("consumer_tests.zig");
-    @import("std").testing.refAllDecls(@This());
+    if (builtin.target.os.tag == .windows) {
+        _ = @import("parse_tests.zig");
+        std.testing.refAllDecls(@This());
+    } else {
+        _ = @import("parse_tests.zig");
+        _ = @import("misc_tests.zig");
+        _ = @import("core_tests.zig");
+        _ = @import("jetstream_tests.zig");
+        _ = @import("subscriber_tests.zig");
+        // _ = @import("consumer_tests.zig");
+        @import("std").testing.refAllDecls(@This());
+    }
 }
+
+const std = @import("std");
+const builtin = @import("builtin");

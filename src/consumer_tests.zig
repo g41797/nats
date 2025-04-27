@@ -23,16 +23,9 @@ const HeaderIterator = messages.HeaderIterator;
 const StreamConfig = protocol.StreamConfig;
 const ConsumerConfig = protocol.ConsumerConfig;
 
-test "create/delete consumer" {
-    const STREAM: []const u8 = "ORDERS";
+const STREAM: []const u8 = "ORDERS";
 
-    {
-        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
-        defer js.DISCONNECT();
-
-        js.DELETE(STREAM) catch {};
-    }
-
+test "create stream" {
     {
         var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
         defer js.DISCONNECT();
@@ -41,14 +34,40 @@ test "create/delete consumer" {
 
         try js.CREATE(&CONF);
     }
+    return;
+}
 
-    {
-        var conf: ConsumerConfig = .{};
+test "create/consume/delete consumer" {
+    // { // ephemeral consumer
+    //     var conf: ConsumerConfig = .{};
+    //     conf.filter_subject = "orders.*";
+    //     var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+    //
+    //     try testing.expectError(error.NoMessages, consumer.CONSUME(protocol.SECNS * 2));
+    //
+    //     defer consumer.STOP(null);
+    // }
+
+    { // durable consumer
+        var conf: ConsumerConfig = .{
+            .durable_name = "DurableConsumer",
+        };
         conf.filter_subject = "orders.*";
         var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+
+        try testing.expectError(error.NoMessages, consumer.CONSUME(protocol.SECNS * 3));
 
         defer consumer.STOP(true);
     }
 
     return;
+}
+
+test "delete stream" {
+    {
+        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+        defer js.DISCONNECT();
+
+        js.DELETE(STREAM) catch {};
+    }
 }

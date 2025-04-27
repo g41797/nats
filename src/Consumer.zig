@@ -7,10 +7,29 @@ const ACTION_CREATE_CONSUMER: []const u8 = "create";
 const ACTION_UPDATE_CONSUMER: []const u8 = "update";
 const ACTION_CREATE_OR_UPDATE_CONSUMER: []const u8 = "";
 
+pub const ACK_CONSUME_T: []const u8 = "$JS.ACK.{s}.{s}";
+
+pub const CONSUME_NEXT_MSG_T: []const u8 = "$JS.API.CONSUMER.MSG.NEXT.{s}.{s}";
+
 const CreateConsumerRequest = struct {
     stream_name: []const u8 = undefined,
     config: InternalConsumerConfig = undefined,
     action: String = undefined,
+};
+
+// type JSApiConsumerGetNextRequest struct {
+//     Expires   time.Duration `json:"expires,omitempty"`
+//     Batch     int           `json:"batch,omitempty"`
+//     MaxBytes  int           `json:"max_bytes,omitempty"`
+//     NoWait    bool          `json:"no_wait,omitempty"`
+//     Heartbeat time.Duration `json:"idle_heartbeat,omitempty"`
+//     PriorityGroup
+// }
+
+const ConsumerGetNextMsgRequest = struct {
+    expires: ?u64 = null,
+    batch: ?i32 = null,
+    no_wait: ?bool = null,
 };
 
 //------------------
@@ -116,6 +135,46 @@ pub fn START(allocator: Allocator, co: protocol.ConnectOpts, stream: []const u8,
     return cs;
 }
 
+pub fn CONSUME(cs: *Consumer, timeout_ns: u64) !*AllocatedMSG {
+    cs.mutex.lock();
+    defer cs.mutex.unlock();
+
+    if (cs.connection == null) {
+        return error.NotConnected;
+    }
+
+    _ = try cs.cmd.sprintf(CONSUME_NEXT_MSG_T, .{
+        cs.stream.body().?,
+        cs.consumer.body().?,
+    });
+
+    const gnm: ConsumerGetNextMsgRequest = .{
+        // .expires = timeout_ns,
+        // .batch = 1,
+        .no_wait = true,
+    };
+
+    _ = try cs.jsn.stringify(gnm, .{
+        .emit_strings_as_arrays = false,
+        .whitespace = .minified,
+        .emit_null_optional_fields = false,
+    });
+
+    const gnmresp = try cs.process(timeout_ns + (protocol.SECNS * 2));
+
+    if (gnmresp == null) {
+        return error.UnexpectedConsumeEmptyResponse;
+    }
+
+    if (parse.responseErrorText(gnmresp.?.letter.getPayload().?)) |errorText| {
+        _ = errorText;
+        cs.reuse(gnmresp.?);
+        return error.NoMessages;
+    } else {
+        return gnmresp.?;
+    }
+}
+
 pub fn STOP(cs: *Consumer, delete: ?bool) void {
     cs.mutex.lock();
     defer cs.mutex.unlock();
@@ -130,14 +189,37 @@ pub fn STOP(cs: *Consumer, delete: ?bool) void {
     return;
 }
 
+pub fn ACK(cs: *Consumer, msg: *AllocatedMSG, reuseMsg: bool) void {
+    cs.mutex.lock();
+    defer cs.mutex.unlock();
+
+    if (cs.connection != null) {
+        cs.ack(msg) catch {};
+    }
+
+    if (reuseMsg) {
+        cs.reuse(msg);
+    }
+}
+
+pub fn NACK(cs: *Consumer, msg: *AllocatedMSG, reuseMsg: bool) void {
+    cs.mutex.lock();
+    defer cs.mutex.unlock();
+
+    if (cs.connection != null) {
+        cs.nack(msg) catch {};
+    }
+
+    if (reuseMsg) {
+        cs.reuse(msg);
+    }
+}
+
 pub fn REUSE(cs: *Consumer, msg: *AllocatedMSG) void {
     cs.mutex.lock();
     defer cs.mutex.unlock();
 
-    if (cs.connection == null) {
-        messages.free(msg);
-    }
-    cs.connection.?.reuse(msg);
+    cs.reuse(msg);
 }
 
 fn start(cs: *Consumer, cscnf: *ConsumerConfig) !void {
@@ -196,6 +278,21 @@ fn process(cs: *Consumer, timeout_ns: u64) !?*AllocatedMSG {
         cs.connection.?.reuse(response);
         return null;
     }
+}
+
+fn ack(cs: *Consumer, msg: *AllocatedMSG) !void {
+    _ = try cs.connection.?.@"pub"(msg.letter.ReplyTo().?, null, null);
+}
+
+fn nack(cs: *Consumer, msg: *AllocatedMSG) void {
+    _ = try cs.connection.?.@"pub"(msg.letter.ReplyTo().?, null, "-NAK");
+}
+
+fn reuse(cs: *Consumer, msg: *AllocatedMSG) void {
+    if (cs.connection == null) {
+        messages.free(msg);
+    }
+    cs.connection.?.reuse(msg);
 }
 
 fn stop(cs: *Consumer, delete: ?bool) !void {

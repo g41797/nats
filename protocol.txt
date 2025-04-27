@@ -1011,3 +1011,24 @@ cid:27 - <-> [DELSUB _REQS1]
   "num_pending" : 0,
   "ts" : "2025-04-19T08:23:24.418712944Z"
 }
+
+NACK    
+    subject = 'nacks'
+    replyTo = '$JS.ACK.nacks.nacks.1.1.1.1745132251897321925.1'
+    
+    PUB $JS.ACK.nacks.nacks.1.1.1.1745132251897321925.1  24
+    MSG_PAYLOAD: ["-NAK {\"delay\":500000000}"]
+    
+ACK
+    replyTo = '$JS.ACK.nacks.nacks.1.2.2.1745132251897699158.0'
+    
+    PUB $JS.ACK.nacks.nacks.1.2.2.1745132251897699158.0  0
+    MSG_PAYLOAD: [""]
+    
+         
+    
+ACK
+    PUB $JS.ACK.nacks.nacks.1.2.2.1745131479715802498.0  0    
+
+========================================================================
+

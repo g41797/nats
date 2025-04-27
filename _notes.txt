@@ -20,6 +20,9 @@ Developing With NATS
 NATS Protocols
     https://docs.nats.io/reference/reference-protocols/nats-protocol
 
+JetStream wire API Reference
+    https://docs.nats.io/reference/reference-protocols/nats_api_reference
+
 Client libraries
     https://github.com/nats-io/nats.zig
     
@@ -188,4 +191,14 @@ JetStream examples
     
 Code study: interface idioms/patterns in zig standard libraries
     https://zig.news/yglcode/code-study-interface-idiomspatterns-in-zig-standard-libraries-4lkj
-    
+
+Portable Sockets: Basics
+    https://etherealwake.com/2021/01/portable-sockets-basics/
+
+What's so wrong with POSIX sockets?
+    https://news.ycombinator.com/item?id=27795190
+
+Sockets with std.net in Zig 0.13.0 - !!!- NEED ANSWER - !!!
+    https://ziggit.dev/t/sockets-with-std-net-in-zig-0-13-0/8437
+   
+   
