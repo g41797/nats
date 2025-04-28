@@ -198,7 +198,8 @@ Portable Sockets: Basics
 What's so wrong with POSIX sockets?
     https://news.ycombinator.com/item?id=27795190
 
-Sockets with std.net in Zig 0.13.0 - !!!- NEED ANSWER - !!!
+Sockets with std.net in Zig 0.13.0
     https://ziggit.dev/t/sockets-with-std-net-in-zig-0-13-0/8437
    
-   
+do THINGS with NETWORKS in ZIG
+    https://git.robbyzambito.me/zaprus/tree/src/message.zig?id=c490d4eec682a78bd79922fdfa582d6369cdf0bc   
