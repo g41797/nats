@@ -25,11 +25,11 @@ test "setsockopt RCVTIMEO does not work on Windows" {
         fn clientFn(server_address: net.Address) !void {
             var stream = try net.tcpConnectToAddress(server_address);
             defer stream.close();
-            
-            if (builtin.os.tag != .windows) { 
+
+            if (builtin.os.tag != .windows) {
                 try tryReadByte(&stream);
             }
-            
+
             _ = try stream.writer().writeAll("Hello world!");
         }
     };
@@ -60,13 +60,7 @@ fn tryReadByte(stream: *Stream) !void {
 fn setTimeOut(stream: *Stream) !void {
     if (builtin.target.os.tag == .windows) {
         var timeout_ms: std.os.windows.DWORD = 1000 * 5; // 1 second = 1000 ms
-        _ = std.os.windows.ws2_32.setsockopt(
-            stream.*.handle,
-            std.os.windows.ws2_32.SOL.SOCKET,
-            std.os.windows.ws2_32.SO.RCVTIMEO,
-            @ptrCast(&timeout_ms),
-            @sizeOf(std.os.windows.DWORD)
-        );
+        _ = std.os.windows.ws2_32.setsockopt(stream.*.handle, std.os.windows.ws2_32.SOL.SOCKET, std.os.windows.ws2_32.SO.RCVTIMEO, @ptrCast(&timeout_ms), @sizeOf(std.os.windows.DWORD));
     } else {
         const timeout = posix.timeval{ .sec = 5, .usec = 0 };
         try posix.setsockopt(stream.*.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));

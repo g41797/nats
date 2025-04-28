@@ -1,28 +1,6 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
-const std = @import("std");
-const mailbox = @import("mailbox");
-
-const testing = std.testing;
-const Allocator = std.mem.Allocator;
-
-const protocol = @import("protocol.zig");
-const messages = @import("messages.zig");
-const Appendable = @import("Appendable.zig");
-const Formatter = @import("Formatter.zig");
-
-const Core = @import("Core.zig");
-const Conn = @import("Conn.zig");
-
-const Messages = messages.Messages;
-const AllocatedMSG = messages.AllocatedMSG;
-const MT = messages.MessageType;
-const Header = messages.Header;
-const Headers = messages.Headers;
-const HeaderIterator = messages.HeaderIterator;
-const StreamConfig = protocol.StreamConfig;
-
 const NOTIFY: []const u8 = "NOTIFY";
 
 const SECNS = protocol.SECNS;
@@ -259,3 +237,25 @@ test "stream config to json" {
 
     _ = try frmtr.stringify(config, .{ .emit_strings_as_arrays = false, .whitespace = .indent_tab });
 }
+
+const std = @import("std");
+const mailbox = @import("mailbox");
+
+const testing = std.testing;
+const Allocator = std.mem.Allocator;
+
+const protocol = @import("protocol.zig");
+const messages = @import("messages.zig");
+const Appendable = @import("Appendable.zig");
+const Formatter = @import("Formatter.zig");
+
+const Core = @import("Core.zig");
+const Conn = @import("Conn.zig");
+
+const Messages = messages.Messages;
+const AllocatedMSG = messages.AllocatedMSG;
+const MT = messages.MessageType;
+const Header = messages.Header;
+const Headers = messages.Headers;
+const HeaderIterator = messages.HeaderIterator;
+const StreamConfig = protocol.StreamConfig;

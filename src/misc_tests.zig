@@ -1,20 +1,6 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
-const std = @import("std");
-const testing = std.testing;
-
-const protocol = @import("protocol.zig");
-const messages = @import("messages.zig");
-const Appendable = @import("Appendable.zig");
-const Conn = @import("Conn.zig");
-const MT = messages.MessageType;
-const Header = messages.Header;
-const Headers = messages.Headers;
-const HeaderIterator = protocol.HeaderIterator;
-const Consumer = @import("Consumer.zig");
-const utils = @import("utils.zig");
-
 test "new inbox" {
     const inbox = try Conn.newInbox();
     _ = inbox;
@@ -93,3 +79,17 @@ test "copy fields" {
 
     try testing.expectEqual(count, utils.copyFields(src, &dst));
 }
+
+const std = @import("std");
+const testing = std.testing;
+
+const protocol = @import("protocol.zig");
+const messages = @import("messages.zig");
+const Appendable = @import("Appendable.zig");
+const Conn = @import("Conn.zig");
+const MT = messages.MessageType;
+const Header = messages.Header;
+const Headers = messages.Headers;
+const HeaderIterator = protocol.HeaderIterator;
+const Consumer = @import("Consumer.zig");
+const utils = @import("utils.zig");

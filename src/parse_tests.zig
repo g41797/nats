@@ -1,11 +1,6 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
-const std = @import("std");
-const testing = std.testing;
-
-const parse = @import("parse.zig");
-
 test "parse errors" {
     try testing.expectError(error.EmptyLine, parse.cut_tail_size(""));
     try testing.expectError(error.BadFormat, parse.cut_tail_size("TEXT"));
@@ -51,3 +46,8 @@ test "parse response error" {
 
     try testing.expect(parse.isFailed(resp));
 }
+
+const std = @import("std");
+const testing = std.testing;
+
+const parse = @import("parse.zig");
