@@ -170,9 +170,8 @@ fn process(sb: *Subscriber, timeout_ns: u64) !?*AllocatedMSG {
         } else {
             return response;
         }
-    } else {
-        sb.connection.?.reuse(response);
-        return null;
+    } else { // headers only message
+        return response;
     }
 }
 

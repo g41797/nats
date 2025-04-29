@@ -203,3 +203,7 @@ Sockets with std.net in Zig 0.13.0
    
 do THINGS with NETWORKS in ZIG
     https://git.robbyzambito.me/zaprus/tree/src/message.zig?id=c490d4eec682a78bd79922fdfa582d6369cdf0bc   
+    
+408 Request Timeout' instead of '404 No Messages' from $JS.API.CONSUMER.MSG.NEXT.<stream>.<consumer> [v2.10.14]
+    https://github.com/nats-io/nats-server/issues/5373
+    

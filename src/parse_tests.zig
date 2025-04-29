@@ -1,6 +1,30 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
+test "parse HMSG line without replyTo" {
+    // HMSG <subject> <sid> [reply-to] <#header bytes> <#total bytes>␍␊
+    const HMSG_line = "HMSG DB50B30E-266F-4F28-AF30-7F4B03ADB399.3 1 81 81\r\n";
+
+    const args = parse.count_substrings(HMSG_line);
+    try testing.expectEqual(5, args);
+
+    var parsed = try parse.cut_tail_size(HMSG_line);
+    const TOT_LEN = parsed.size;
+    try testing.expectEqual(81, TOT_LEN);
+
+    parsed = try parse.cut_tail_size(parsed.shrinked);
+    const HDR_LEN = parsed.size;
+    try testing.expectEqual(81, HDR_LEN);
+
+    // sid
+    var params = try parse.cut_tail(parsed.shrinked);
+    try testing.expectEqual(std.mem.eql(u8, "1", params.tail), true);
+
+    // subject
+    params = try parse.cut_tail(params.shrinked);
+    try testing.expectEqual(std.mem.eql(u8, "DB50B30E-266F-4F28-AF30-7F4B03ADB399.3", params.tail), true);
+}
+
 test "parse errors" {
     try testing.expectError(error.EmptyLine, parse.cut_tail_size(""));
     try testing.expectError(error.BadFormat, parse.cut_tail_size("TEXT"));

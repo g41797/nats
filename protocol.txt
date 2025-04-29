@@ -1032,3 +1032,68 @@ ACK
 
 ========================================================================
 
+HMSG <subject> <sid> [reply-to] <#header bytes> <#total bytes>␍␊
+[headers]␍␊␍␊
+[payload]␍␊
+
+HMSG FOO.BAR 34 45␍␊
+NATS/1.0␍␊
+FoodGroup: vegetable␍␊␍␊
+Hello World␍␊
+
+HMSG FOO.BAR 9 BAZ.69 34 45␍␊
+NATS/1.0␍␊
+FoodGroup: vegetable␍␊␍␊
+Hello World␍␊
+
+for .batch = 1:
+ 
+HMSG 9FFCFC76-34F1-4F7A-B0A1-9C2D8F684705.3 1 81 81
+NATS/1.0 408 Request Timeout  
+Nats-Pending-Messages: 1
+Nats-Pending-Bytes: 0
+
+
+
+
+408 Request Timeout' instead of '404 No Messages' from $JS.API.CONSUMER.MSG.NEXT.<stream>.<consumer> [v2.10.14]
+    https://github.com/nats-io/nats-server/issues/5373
+    
+    
+2025/04/28 10:51:45.489745 [TRC] 172.18.0.1:39200 - cid:54 - <<- MSG_PAYLOAD: ["{\"expires\":3000000000,\"no_wait\":true}"]
+2025/04/28 10:51:48.490425 [TRC] 172.18.0.1:39200 - cid:54 - ->> [HMSG FD97244F-27C6-4F68-B544-44A4EA789F39.3 1 81 81]
+
+wrong subject
+sid == 1
+empty payload
+
+headers:
+    NATS/1.0 408 Request Timeout
+    Nats-Pending-Messages: 0
+    Nats-Pending-Bytes: 0
+
+
+2025-04-29T08:25:36.013500766Z [1] 2025/04/29 08:25:36.012479 [DBG] 172.18.0.1:37836 - cid:12 - Client connection created
+2025-04-29T08:25:36.016315410Z [1] 2025/04/29 08:25:36.016176 [TRC] 172.18.0.1:37836 - cid:12 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"lang":"Zig","version":"T.B.D","protocol":1,"echo":true, "no_responders":true, "headers":true}]
+2025-04-29T08:25:36.016929238Z [1] 2025/04/29 08:25:36.016786 [TRC] 172.18.0.1:37836 - cid:12 - <<- [SUB 0047800B-1631-46CA-AB66-47FAE563A731.* 1 ]
+2025-04-29T08:25:36.016979314Z [1] 2025/04/29 08:25:36.016821 [TRC] 172.18.0.1:37836 - cid:12 - <<- [PUB $JS.API.CONSUMER.DURABLE.CREATE.ORDERS.DurableConsumer 0047800B-1631-46CA-AB66-47FAE563A731.2 315]
+2025-04-29T08:25:36.016988324Z [1] 2025/04/29 08:25:36.016831 [TRC] 172.18.0.1:37836 - cid:12 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"ORDERS\",\"config\":{\"durable_name\":\"DurableConsumer\",\"deliver_policy\":\"all\",\"ack_policy\":\"explicit\",\"ack_wait\":30000000000,\"max_ack_pending\":1,\"max_waiting\":1,\"max_deliver\":1,\"filter_subject\":\"orders.*\",\"replay_policy\":\"instant\",\"headers_only\":false,\"num_replicas\":0,\"flow_control\":false},\"action\":\"\"}"]
+2025-04-29T08:25:36.017706494Z [1] 2025/04/29 08:25:36.017589 [TRC] 172.18.0.1:37836 - cid:12 - ->> [MSG 0047800B-1631-46CA-AB66-47FAE563A731.2 1 590]
+2025-04-29T08:25:38.181848328Z [1] 2025/04/29 08:25:38.181538 [DBG] 172.18.0.1:37836 - cid:12 - Client Ping Timer
+2025-04-29T08:25:38.181915933Z [1] 2025/04/29 08:25:38.181624 [TRC] 172.18.0.1:37836 - cid:12 - ->> [PING]
+2025-04-29T08:25:38.293872911Z [1] 2025/04/29 08:25:38.293726 [TRC] 172.18.0.1:37836 - cid:12 - <<- [PING]
+2025-04-29T08:25:38.293917329Z [1] 2025/04/29 08:25:38.293745 [TRC] 172.18.0.1:37836 - cid:12 - ->> [PONG]
+2025-04-29T08:25:38.294038852Z [1] 2025/04/29 08:25:38.293945 [TRC] 172.18.0.1:37836 - cid:12 - <<- [PUB $JS.API.CONSUMER.MSG.NEXT.ORDERS.DurableConsumer 0047800B-1631-46CA-AB66-47FAE563A731.3 47]
+2025-04-29T08:25:38.294065112Z [1] 2025/04/29 08:25:38.293970 [TRC] 172.18.0.1:37836 - cid:12 - <<- MSG_PAYLOAD: ["{\"expires\":3000000000,\"batch\":1,\"no_wait\":true}"]
+2025-04-29T08:25:38.294078591Z [1] 2025/04/29 08:25:38.294015 [TRC] 172.18.0.1:37836 - cid:12 - <<- [PONG]
+2025-04-29T08:25:39.333332086Z [1] 2025/04/29 08:25:39.333123 [TRC] 172.18.0.1:37836 - cid:12 - <<- [PING]
+2025-04-29T08:25:39.333402136Z [1] 2025/04/29 08:25:39.333158 [TRC] 172.18.0.1:37836 - cid:12 - ->> [PONG]
+2025-04-29T08:25:40.357249435Z [1] 2025/04/29 08:25:40.357025 [TRC] 172.18.0.1:37836 - cid:12 - <<- [PING]
+2025-04-29T08:25:40.357306495Z [1] 2025/04/29 08:25:40.357063 [TRC] 172.18.0.1:37836 - cid:12 - ->> [PONG]
+2025-04-29T08:25:41.295370609Z [1] 2025/04/29 08:25:41.295025 [TRC] 172.18.0.1:37836 - cid:12 - ->> [HMSG 0047800B-1631-46CA-AB66-47FAE563A731.3 1 81 81]
+2025-04-29T08:26:10.573305097Z [1] 2025/04/29 08:26:10.573165 [TRC] 172.18.0.1:37836 - cid:12 - <<- [PING]
+2025-04-29T08:26:10.573346652Z [1] 2025/04/29 08:26:10.573187 [TRC] 172.18.0.1:37836 - cid:12 - ->> [PONG]
+2025-04-29T08:26:17.012454905Z [1] 2025/04/29 08:26:17.012318 [TRC] 172.18.0.1:37836 - cid:12 - <<- [PING]
+2025-04-29T08:26:17.012501768Z [1] 2025/04/29 08:26:17.012341 [TRC] 172.18.0.1:37836 - cid:12 - ->> [PONG]
+2025-04-29T08:26:18.342608166Z [1] 2025/04/29 08:26:18.342465 [DBG] 172.18.0.1:37836 - cid:12 - Client connection closed: Client Closed
+2025-04-29T08:26:18.342648255Z [1] 2025/04/29 08:26:18.342508 [TRC] 172.18.0.1:37836 - cid:12 - <-> [DELSUB 1]

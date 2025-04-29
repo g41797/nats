@@ -22,4 +22,24 @@ pub fn copyFields(src: anytype, dest: anytype) usize {
     return count;
 }
 
+pub fn startsWith(str: String, literal: String) bool {
+    var result: bool = false;
+
+    while (true) {
+        if (literal.len > str.len) {
+            break;
+        }
+
+        const index = std.mem.indexOf(u8, str[0..literal.len], literal);
+
+        result = index == 0;
+
+        break;
+    }
+
+    return result;
+}
+
 const std = @import("std");
+const protocol = @import("protocol.zig");
+const String = protocol.String;

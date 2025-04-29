@@ -372,7 +372,7 @@ fn read_MSG(cn: *Conn) !?*AllocatedMSG {
 
     if (repl2exists) {
         try alm.letter.reply_to.copy(procstrs.tail);
-        procstrs = try parse.cut_tail(parsed.shrinked);
+        procstrs = try parse.cut_tail(procstrs.shrinked);
     }
 
     try alm.letter.sid.copy(procstrs.tail);
@@ -399,6 +399,9 @@ fn read_MSG(cn: *Conn) !?*AllocatedMSG {
 // up to and including the ␍␊ before the payload
 //
 // TOT_LEN the payload length plus the HDR_LEN
+//
+// [My notes] if HDR_LEN == TOT_LEN => empty payload without ␍␊
+//
 fn read_HMSG(cn: *Conn) !?*AllocatedMSG {
     const recvd = cn.line.body().?;
 
@@ -431,19 +434,23 @@ fn read_HMSG(cn: *Conn) !?*AllocatedMSG {
     try cn.read_buffer(&alm.letter.headers.buffer, HDR_LEN);
     try alm.letter.headers.buffer.shrink(2); // remove ␍␊
 
-    try cn.read_buffer(&alm.letter.payload, TOT_LEN - HDR_LEN + 1);
-    try alm.letter.payload.shrink(2); // remove ␍␊
+    if (HDR_LEN == TOT_LEN) {
+        alm.letter.payload.reset();
+    } else {
+        try cn.read_buffer(&alm.letter.payload, TOT_LEN - HDR_LEN + 1);
+        try alm.letter.payload.shrink(2); // remove ␍␊
+    }
 
     var procstrs = try parse.cut_tail(parsed.shrinked);
 
     if (repl2exists) {
         try alm.letter.reply_to.copy(procstrs.tail);
-        procstrs = try parse.cut_tail(parsed.shrinked);
+        procstrs = try parse.cut_tail(procstrs.shrinked);
     }
 
     try alm.letter.sid.copy(procstrs.tail);
 
-    procstrs = try parse.cut_tail(parsed.shrinked);
+    procstrs = try parse.cut_tail(procstrs.shrinked);
     try alm.letter.subject.copy(procstrs.tail);
 
     return alm;
@@ -735,7 +742,7 @@ fn sendHeartBit(cn: *Conn) void {
 }
 
 const std = @import("std");
-
+const builtin = @import("builtin");
 const net = std.net;
 const posix = std.posix;
 const Stream = net.Stream;

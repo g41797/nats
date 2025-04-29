@@ -149,8 +149,8 @@ pub fn CONSUME(cs: *Consumer, timeout_ns: u64) !*AllocatedMSG {
     });
 
     const gnm: ConsumerGetNextMsgRequest = .{
-        // .expires = timeout_ns,
-        // .batch = 1,
+        .expires = timeout_ns,
+        .batch = 1,
         .no_wait = true,
     };
 
@@ -160,19 +160,23 @@ pub fn CONSUME(cs: *Consumer, timeout_ns: u64) !*AllocatedMSG {
         .emit_null_optional_fields = false,
     });
 
-    const gnmresp = try cs.process(timeout_ns + (protocol.SECNS * 2));
+    var delay: u64 = protocol.SECNS * 1;
+
+    if (builtin.mode == .Debug) {
+        delay *= 10;
+    }
+
+    const gnmresp = try cs.process(timeout_ns + delay);
 
     if (gnmresp == null) {
         return error.UnexpectedConsumeEmptyResponse;
     }
 
-    if (parse.responseErrorText(gnmresp.?.letter.getPayload().?)) |errorText| {
-        _ = errorText;
+    if (isNoMessages(gnmresp.?)) {
         cs.reuse(gnmresp.?);
         return error.NoMessages;
-    } else {
-        return gnmresp.?;
     }
+    return gnmresp.?;
 }
 
 pub fn STOP(cs: *Consumer, delete: ?bool) void {
@@ -253,6 +257,10 @@ fn start(cs: *Consumer, cscnf: *ConsumerConfig) !void {
         return error.UnexpectedConsumeErrorEmptyResponse;
     }
 
+    if (crresp.?.letter.getPayload() == null) {
+        return error.ConsumerEmptyResponse;
+    }
+
     if (parse.responseNameText(crresp.?.letter.getPayload().?)) |name| {
         try cs.consumer.copy(name);
     } else {
@@ -268,15 +276,15 @@ fn start(cs: *Consumer, cscnf: *ConsumerConfig) !void {
 fn process(cs: *Consumer, timeout_ns: u64) !?*AllocatedMSG {
     const response = try cs.connection.?.request(cs.cmd.formatbuf.body().?, null, cs.jsn.formatbuf.body(), timeout_ns);
     errdefer cs.connection.?.reuse(response);
+
     if (response.letter.getPayload()) |payload| {
         if (parse.isFailed(payload)) {
             return error.JetStreamsRequestFailed;
         } else {
             return response;
         }
-    } else {
-        cs.connection.?.reuse(response);
-        return null;
+    } else { // headers only
+        return response;
     }
 }
 
@@ -348,7 +356,32 @@ fn deinit(cs: *Consumer) void {
     return;
 }
 
+const RequestTimeout = "NATS/1.0 408";
+const NoMessages = "NATS/1.0 408";
+
+fn isNoMessages(msg: *AllocatedMSG) bool {
+    var result: bool = false;
+
+    while (true) {
+        if (msg.letter.mt != .HMSG) {
+            break;
+        }
+
+        if (msg.letter.getPayload() != null) {
+            break;
+        }
+
+        const startOfHeaders = msg.letter.headers.buffer.body().?;
+
+        result = utils.startsWith(startOfHeaders, RequestTimeout) or utils.startsWith(startOfHeaders, NoMessages);
+        break;
+    }
+
+    return result;
+}
+
 const std = @import("std");
+const builtin = @import("builtin");
 const Conn = @import("Conn.zig");
 const protocol = @import("protocol.zig");
 const messages = @import("messages.zig");

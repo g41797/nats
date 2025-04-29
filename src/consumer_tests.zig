@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 const STREAM: []const u8 = "ORDERS";
+const DeleteConsumer: bool = true;
+const DontDeleteConsumer = !DeleteConsumer;
 
 test "create stream" {
     {
@@ -16,15 +18,31 @@ test "create stream" {
 }
 
 test "create/consume/delete consumer" {
-    // { // ephemeral consumer
-    //     var conf: ConsumerConfig = .{};
-    //     conf.filter_subject = "orders.*";
-    //     var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
-    //
-    //     try testing.expectError(error.NoMessages, consumer.CONSUME(protocol.SECNS * 2));
-    //
-    //     defer consumer.STOP(null);
-    // }
+    {
+        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+        defer js.DISCONNECT();
+
+        js.DELETE(STREAM) catch {};
+    }
+
+    {
+        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+        defer js.DISCONNECT();
+
+        var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{ "orders.*", "items.*" } };
+
+        try js.CREATE(&CONF);
+    }
+
+    { // ephemeral consumer
+        var conf: ConsumerConfig = .{};
+        conf.filter_subject = "orders.*";
+        var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+
+        try testing.expectError(error.NoMessages, consumer.CONSUME(protocol.SECNS * 1));
+
+        defer consumer.STOP(null);
+    }
 
     { // durable consumer
         var conf: ConsumerConfig = .{
@@ -33,9 +51,9 @@ test "create/consume/delete consumer" {
         conf.filter_subject = "orders.*";
         var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
 
-        try testing.expectError(error.NoMessages, consumer.CONSUME(protocol.SECNS * 3));
+        try testing.expectError(error.NoMessages, consumer.CONSUME(protocol.SECNS * 1));
 
-        defer consumer.STOP(true);
+        defer consumer.STOP(DeleteConsumer);
     }
 
     return;
@@ -51,6 +69,7 @@ test "delete stream" {
 }
 
 const std = @import("std");
+const builtin = @import("builtin");
 const mailbox = @import("mailbox");
 
 const testing = std.testing;
