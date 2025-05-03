@@ -166,7 +166,7 @@ pub fn REQUEST(core: *Core, subject: []const u8, payload: ?[]const u8, timeout_n
         return error.NotConnected;
     }
 
-    return core.connection.?.request(subject, null, payload, timeout_ns);
+    return core.connection.?.requestNMT(subject, null, payload, timeout_ns);
 }
 
 /// Returns message to the pool

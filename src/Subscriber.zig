@@ -44,7 +44,7 @@ pub fn NEXT(sb: *Subscriber, timeout_ns: u64) error{ Interrupted, Closed, NotCon
         return error.NotConnected;
     }
 
-    return sb.connection.?.waitMessage(timeout_ns, null);
+    return sb.connection.?.waitMessageNMT(timeout_ns, null);
 }
 
 pub fn REUSE(sb: *Subscriber, msg: *AllocatedMSG) void {
@@ -77,10 +77,10 @@ fn subscribe(sb: *Subscriber, subject: []const u8) !void {
     }
 
     sb.deliver_subject = try Conn.newInbox();
-    sb.subscr_sid = sb.connection.?.nextSid();
+    sb.subscr_sid = sb.connection.?.nextSidNMT();
     sb.name = try Conn.newInbox();
 
-    try sb.connection.?.print("SUB {0s} {1d} \r\n", .{ sb.deliver_subject[0..36], sb.subscr_sid });
+    try sb.connection.?.printMT("SUB {0s} {1d} \r\n", .{ sb.deliver_subject[0..36], sb.subscr_sid });
 
     const subscrAll = ((subject[0] == '>') and (subject.len == 1));
 
@@ -141,7 +141,7 @@ fn unsubscribe(sb: *Subscriber) !void {
         sb.connection.?.reuse(delresp.?);
     }
 
-    sb.connection.?.print("UNSUB {0d}\r\n", .{sb.subscr_sid}) catch {};
+    sb.connection.?.printMT("UNSUB {0d}\r\n", .{sb.subscr_sid}) catch {};
 
     return;
 }
@@ -162,7 +162,7 @@ fn deinit(sb: *Subscriber) void {
 }
 
 fn process(sb: *Subscriber, timeout_ns: u64) !?*AllocatedMSG {
-    const response = try sb.connection.?.request(sb.cmd.formatbuf.body().?, null, sb.jsn.formatbuf.body(), timeout_ns);
+    const response = try sb.connection.?.requestNMT(sb.cmd.formatbuf.body().?, null, sb.jsn.formatbuf.body(), timeout_ns);
     errdefer sb.connection.?.reuse(response);
     if (response.letter.getPayload()) |payload| {
         if (parse.isFailed(payload)) {

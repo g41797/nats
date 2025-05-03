@@ -1097,3 +1097,219 @@ headers:
 2025-04-29T08:26:17.012501768Z [1] 2025/04/29 08:26:17.012341 [TRC] 172.18.0.1:37836 - cid:12 - ->> [PONG]
 2025-04-29T08:26:18.342608166Z [1] 2025/04/29 08:26:18.342465 [DBG] 172.18.0.1:37836 - cid:12 - Client connection closed: Client Closed
 2025-04-29T08:26:18.342648255Z [1] 2025/04/29 08:26:18.342508 [TRC] 172.18.0.1:37836 - cid:12 - <-> [DELSUB 1]
+
+==========================
+2025-04-30T11:11:07.700220680Z [1] 2025/04/30 11:11:07.699414 [DBG] 172.18.0.1:60616 - cid:386 - Client connection created
+2025-04-30T11:11:07.701029573Z [1] 2025/04/30 11:11:07.700864 [TRC] 172.18.0.1:60616 - cid:386 - <<- [CONNECT {"headers":true,"pedantic":false,"verbose":false,"lang":"php","version":"dev"}]
+2025-04-30T11:11:07.701063865Z [1] 2025/04/30 11:11:07.700955 [TRC] 172.18.0.1:60616 - cid:386 - <<- [SUB _REQSb4da39b3b1258139bbeaeb4bb791ac63.* _REQS1]
+2025-04-30T11:11:07.701189089Z [1] 2025/04/30 11:11:07.701126 [TRC] 172.18.0.1:60616 - cid:386 - <<- [PUB $JS.API.STREAM.CREATE.nacks _REQSb4da39b3b1258139bbeaeb4bb791ac63.2 206]
+2025-04-30T11:11:07.701209343Z [1] 2025/04/30 11:11:07.701139 [TRC] 172.18.0.1:60616 - cid:386 - <<- MSG_PAYLOAD: ["{\"allow_rollup_hdrs\":true,\"deny_delete\":true,\"discard\":\"old\",\"duplicate_window\":0,\"max_age\":0,\"max_consumers\":-1,\"name\":\"nacks\",\"num_replicas\":1,\"retention\":\"interest\",\"storage\":\"file\",\"subjects\":[\"nacks\"]}"]
+2025-04-30T11:11:07.702655880Z [1] 2025/04/30 11:11:07.702555 [TRC] 172.18.0.1:60616 - cid:386 - ->> [MSG _REQSb4da39b3b1258139bbeaeb4bb791ac63.2 _REQS1 721]
+2025-04-30T11:11:07.704742087Z [1] 2025/04/30 11:11:07.704648 [TRC] 172.18.0.1:60616 - cid:386 - <<- [PUB $JS.API.CONSUMER.NAMES.nacks _REQSb4da39b3b1258139bbeaeb4bb791ac63.3 2]
+2025-04-30T11:11:07.704781617Z [1] 2025/04/30 11:11:07.704671 [TRC] 172.18.0.1:60616 - cid:386 - <<- MSG_PAYLOAD: ["{}"]
+2025-04-30T11:11:07.704856975Z [1] 2025/04/30 11:11:07.704814 [TRC] 172.18.0.1:60616 - cid:386 - ->> [MSG _REQSb4da39b3b1258139bbeaeb4bb791ac63.3 _REQS1 108]
+2025-04-30T11:11:07.705258209Z [1] 2025/04/30 11:11:07.705196 [TRC] 172.18.0.1:60616 - cid:386 - <<- [PUB $JS.API.CONSUMER.DURABLE.CREATE.nacks.nacks _REQSb4da39b3b1258139bbeaeb4bb791ac63.4 155]
+2025-04-30T11:11:07.705282164Z [1] 2025/04/30 11:11:07.705210 [TRC] 172.18.0.1:60616 - cid:386 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"nacks\",\"config\":{\"ack_policy\":\"explicit\",\"deliver_policy\":\"all\",\"durable_name\":\"nacks\",\"replay_policy\":\"instant\",\"filter_subject\":\"nacks\"}}"]
+2025-04-30T11:11:07.705807086Z [1] 2025/04/30 11:11:07.705749 [TRC] JETSTREAM - <<- [SUB $JSC.CI.$G.nacks.nacks  87]
+2025-04-30T11:11:07.705926793Z [1] 2025/04/30 11:11:07.705845 [TRC] 172.18.0.1:60616 - cid:386 - ->> [MSG _REQSb4da39b3b1258139bbeaeb4bb791ac63.4 _REQS1 572]
+2025-04-30T11:11:07.706297017Z [1] 2025/04/30 11:11:07.706235 [TRC] 172.18.0.1:60616 - cid:386 - <<- [PUB nacks _REQSb4da39b3b1258139bbeaeb4bb791ac63.5 5]
+2025-04-30T11:11:07.706322300Z [1] 2025/04/30 11:11:07.706249 [TRC] 172.18.0.1:60616 - cid:386 - <<- MSG_PAYLOAD: ["first"]
+2025-04-30T11:11:07.706475111Z [1] 2025/04/30 11:11:07.706385 [TRC] 172.18.0.1:60616 - cid:386 - ->> [MSG _REQSb4da39b3b1258139bbeaeb4bb791ac63.5 _REQS1 27]
+2025-04-30T11:11:07.706781082Z [1] 2025/04/30 11:11:07.706720 [TRC] 172.18.0.1:60616 - cid:386 - <<- [PUB nacks _REQSb4da39b3b1258139bbeaeb4bb791ac63.6 6]
+2025-04-30T11:11:07.706807691Z [1] 2025/04/30 11:11:07.706735 [TRC] 172.18.0.1:60616 - cid:386 - <<- MSG_PAYLOAD: ["second"]
+2025-04-30T11:11:07.706888357Z [1] 2025/04/30 11:11:07.706831 [TRC] 172.18.0.1:60616 - cid:386 - ->> [MSG _REQSb4da39b3b1258139bbeaeb4bb791ac63.6 _REQS1 27]
+2025-04-30T11:11:07.707209344Z [1] 2025/04/30 11:11:07.707153 [TRC] 172.18.0.1:60616 - cid:386 - <<- [PUB $JS.API.CONSUMER.INFO.nacks.nacks _REQSb4da39b3b1258139bbeaeb4bb791ac63.7 2]
+2025-04-30T11:11:07.707234766Z [1] 2025/04/30 11:11:07.707166 [TRC] 172.18.0.1:60616 - cid:386 - <<- MSG_PAYLOAD: ["{}"]
+2025-04-30T11:11:07.707437863Z [1] 2025/04/30 11:11:07.707380 [TRC] 172.18.0.1:60616 - cid:386 - ->> [MSG _REQSb4da39b3b1258139bbeaeb4bb791ac63.7 _REQS1 570]
+2025-04-30T11:11:07.708772097Z [1] 2025/04/30 11:11:07.708666 [TRC] 172.18.0.1:60616 - cid:386 - <<- [SUB handler.9f6cc4e5 d55be22a]
+2025-04-30T11:11:07.749258734Z [1] 2025/04/30 11:11:07.749128 [TRC] 172.18.0.1:60616 - cid:386 - <<- [PUB $JS.API.CONSUMER.MSG.NEXT.nacks.nacks handler.9f6cc4e5 32]
+2025-04-30T11:11:07.749318797Z [1] 2025/04/30 11:11:07.749147 [TRC] 172.18.0.1:60616 - cid:386 - <<- MSG_PAYLOAD: ["{\"batch\":1,\"expires\":5000000000}"]
+2025-04-30T11:11:07.749470072Z [1] 2025/04/30 11:11:07.749420 [TRC] 172.18.0.1:60616 - cid:386 - ->> [MSG nacks d55be22a $JS.ACK.nacks.nacks.1.1.1.1746011467706290801.1 5]
+2025-04-30T11:11:09.971833452Z [1] 2025/04/30 11:11:09.971725 [DBG] 172.18.0.1:60616 - cid:386 - Client Ping Timer
+2025-04-30T11:11:09.971884995Z [1] 2025/04/30 11:11:09.971753 [TRC] 172.18.0.1:60616 - cid:386 - ->> [PING]
+
+
+<<- [PUB nacks _REQSb4da39b3b1258139bbeaeb4bb791ac63.5 5]
+<<- MSG_PAYLOAD: ["first"]
+->> [MSG _REQSb4da39b3b1258139bbeaeb4bb791ac63.6 _REQS1 27]
+<<- [PUB $JS.API.CONSUMER.INFO.nacks.nacks _REQSb4da39b3b1258139bbeaeb4bb791ac63.7 2]
+<<- MSG_PAYLOAD: ["{}"]
+->> [MSG _REQSb4da39b3b1258139bbeaeb4bb791ac63.7 _REQS1 570]
+<<- [SUB handler.9f6cc4e5 d55be22a]
+<<- [PUB $JS.API.CONSUMER.MSG.NEXT.nacks.nacks handler.9f6cc4e5 32]
+<<- MSG_PAYLOAD: ["{\"batch\":1,\"expires\":5000000000}"]
+->> [MSG nacks d55be22a $JS.ACK.nacks.nacks.1.1.1.1746011467706290801.1 5]
+
+========================================
+2025-04-30T12:13:18.018373461Z [1] 2025/04/30 12:13:18.017359 [DBG] 172.18.0.1:38338 - cid:394 - Client connection created
+ <<- [CONNECT {"headers":true,"pedantic":false,"verbose":false,"lang":"php","version":"dev"}]
+ <<- [SUB _REQS8d26a53e564b8ee0e33dc17d860aab97.* _REQS1]
+ 
+ <<- [PUB $JS.API.STREAM.CREATE.nacks _REQS8d26a53e564b8ee0e33dc17d860aab97.2 206]
+ <<- MSG_PAYLOAD: ["{\"allow_rollup_hdrs\":true,\"deny_delete\":true,\"discard\":\"old\",\"duplicate_window\":0,\"max_age\":0,\"max_consumers\":-1,\"name\":\"nacks\",\"num_replicas\":1,\"retention\":\"interest\",\"storage\":\"file\",\"subjects\":[\"nacks\"]}"]
+ ->> [MSG _REQS8d26a53e564b8ee0e33dc17d860aab97.2 _REQS1 722]
+ 
+ <<- [PUB $JS.API.CONSUMER.NAMES.nacks _REQS8d26a53e564b8ee0e33dc17d860aab97.3 2]
+ <<- MSG_PAYLOAD: ["{}"]
+ ->> [MSG _REQS8d26a53e564b8ee0e33dc17d860aab97.3 _REQS1 108]
+ 
+ <<- [PUB $JS.API.CONSUMER.DURABLE.CREATE.nacks.nacks _REQS8d26a53e564b8ee0e33dc17d860aab97.4 155]
+ <<- MSG_PAYLOAD: ["{\"stream_name\":\"nacks\",\"config\":{\"ack_policy\":\"explicit\",\"deliver_policy\":\"all\",\"durable_name\":\"nacks\",\"replay_policy\":\"instant\",\"filter_subject\":\"nacks\"}}"]
+ ->> [MSG _REQS8d26a53e564b8ee0e33dc17d860aab97.4 _REQS1 572]
+
+ <<- [PUB nacks _REQS8d26a53e564b8ee0e33dc17d860aab97.5 5]
+ <<- MSG_PAYLOAD: ["first"]
+ ->> [MSG _REQS8d26a53e564b8ee0e33dc17d860aab97.5 _REQS1 27]
+ 
+ <<- [PUB nacks _REQS8d26a53e564b8ee0e33dc17d860aab97.6 6]
+ <<- MSG_PAYLOAD: ["second"]
+ ->> [MSG _REQS8d26a53e564b8ee0e33dc17d860aab97.6 _REQS1 27]
+ 
+ <<- [PUB $JS.API.CONSUMER.INFO.nacks.nacks _REQS8d26a53e564b8ee0e33dc17d860aab97.7 2]
+ <<- MSG_PAYLOAD: ["{}"]
+ ->> [MSG _REQS8d26a53e564b8ee0e33dc17d860aab97.7 _REQS1 569]
+ 
+ <<- [SUB handler.084d2d18 bc3c401d]
+ 
+ <<- [PUB $JS.API.CONSUMER.MSG.NEXT.nacks.nacks handler.084d2d18 32]
+ <<- MSG_PAYLOAD: ["{\"batch\":1,\"expires\":5000000000}"]
+ ->> [MSG nacks bc3c401d $JS.ACK.nacks.nacks.1.1.1.1746015198024891404.1 5]
+ 
+ <<- [PUB $JS.ACK.nacks.nacks.1.1.1.1746015198024891404.1  24]
+ <<- MSG_PAYLOAD: ["-NAK {\"delay\":500000000}"]
+ 
+ <<- [PUB $JS.API.CONSUMER.INFO.nacks.nacks _REQS8d26a53e564b8ee0e33dc17d860aab97.8 2]
+ <<- MSG_PAYLOAD: ["{}"]
+ ->> [MSG _REQS8d26a53e564b8ee0e33dc17d860aab97.8 _REQS1 617]
+ 
+ <<- [PUB $JS.API.CONSUMER.INFO.nacks.nacks _REQS8d26a53e564b8ee0e33dc17d860aab97.9 2]
+ <<- MSG_PAYLOAD: ["{}"]
+ ->> [MSG _REQS8d26a53e564b8ee0e33dc17d860aab97.9 _REQS1 617]
+ 
+ <<- [PUB $JS.API.CONSUMER.MSG.NEXT.nacks.nacks handler.084d2d18 32]
+ <<- MSG_PAYLOAD: ["{\"batch\":1,\"expires\":5000000000}"]
+ ->> [MSG nacks bc3c401d $JS.ACK.nacks.nacks.1.2.2.1746015198025427989.0 6]
+ 
+ <<- [PUB $JS.ACK.nacks.nacks.1.2.2.1746015198025427989.0  4]
+ <<- MSG_PAYLOAD: ["+WPI"]
+ 
+ <<- [PUB $JS.ACK.nacks.nacks.1.2.2.1746015198025427989.0  0]
+ <<- MSG_PAYLOAD: [""]
+ 
+ <<- [PUB $JS.API.CONSUMER.MSG.NEXT.nacks.nacks handler.084d2d18 32]
+ <<- MSG_PAYLOAD: ["{\"batch\":1,\"expires\":5000000000}"]
+ 
+ <<- [PUB $JS.API.CONSUMER.INFO.nacks.nacks _REQS8d26a53e564b8ee0e33dc17d860aab97.10 2]
+ <<- MSG_PAYLOAD: ["{}"]
+ ->> [MSG _REQS8d26a53e564b8ee0e33dc17d860aab97.10 _REQS1 664]
+ 
+ <<- [PUB $JS.API.CONSUMER.INFO.nacks.nacks _REQS8d26a53e564b8ee0e33dc17d860aab97.11 2]
+ <<- MSG_PAYLOAD: ["{}"]
+ ->> [MSG _REQS8d26a53e564b8ee0e33dc17d860aab97.11 _REQS1 663]
+ 
+ ->> [MSG nacks bc3c401d $JS.ACK.nacks.nacks.2.1.3.1746015198024891404.0 5]
+ 
+ <<- [PUB $JS.API.CONSUMER.MSG.NEXT.nacks.nacks handler.084d2d18 32]
+ <<- MSG_PAYLOAD: ["{\"batch\":1,\"expires\":5000000000}"]
+ 
+ <<- [PUB $JS.ACK.nacks.nacks.2.1.3.1746015198024891404.0  0]
+ <<- MSG_PAYLOAD: [""]
+ <<- [PUB $JS.API.CONSUMER.INFO.nacks.nacks _REQS8d26a53e564b8ee0e33dc17d860aab97.12 2]
+ <<- MSG_PAYLOAD: ["{}"]
+ ->> [MSG _REQS8d26a53e564b8ee0e33dc17d860aab97.12 _REQS1 663]
+ <<- [PUB $JS.API.CONSUMER.INFO.nacks.nacks _REQS8d26a53e564b8ee0e33dc17d860aab97.13 2]
+ <<- MSG_PAYLOAD: ["{}"]
+ ->> [MSG _REQS8d26a53e564b8ee0e33dc17d860aab97.13 _REQS1 664]
+2025-04-30T12:13:19.119082391Z [1] 2025/04/30 12:13:19.118976 [DBG] 172.18.0.1:38344 - cid:400 - Client connection created
+2025-04-30T12:13:19.119533282Z [1] 2025/04/30 12:13:19.119434 [TRC] 172.18.0.1:38344 - cid:400 - <<- [CONNECT {"headers":true,"pedantic":false,"verbose":false,"lang":"php","version":"dev"}]
+ <<- [SUB _REQS6b7c24f151f71ee140244e052d5307be.* _REQS1]
+ <<- [PUB $JS.API.STREAM.NAMES _REQS6b7c24f151f71ee140244e052d5307be.2 2]
+ <<- MSG_PAYLOAD: ["{}"]
+ ->> [MSG _REQS6b7c24f151f71ee140244e052d5307be.2 _REQS1 111]
+ <<- [PUB $JS.API.STREAM.NAMES _REQS6b7c24f151f71ee140244e052d5307be.3 2]
+ <<- MSG_PAYLOAD: ["{}"]
+ ->> [MSG _REQS6b7c24f151f71ee140244e052d5307be.3 _REQS1 111]
+ <<- [PUB $JS.API.STREAM.DELETE.nacks _REQS6b7c24f151f71ee140244e052d5307be.4 2]
+ <<- MSG_PAYLOAD: ["{}"]
+2025-04-30T12:13:19.120919967Z [1] 2025/04/30 12:13:19.120881 [TRC] JETSTREAM - <-> [DELSUB 1]
+2025-04-30T12:13:19.120958519Z [1] 2025/04/30 12:13:19.120898 [TRC] JETSTREAM - <-> [DELSUB 2]
+2025-04-30T12:13:19.120982474Z [1] 2025/04/30 12:13:19.120907 [TRC] JETSTREAM - <-> [DELSUB 88]
+2025-04-30T12:13:19.120997630Z [1] 2025/04/30 12:13:19.120925 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+2025-04-30T12:13:19.121007198Z [1] 2025/04/30 12:13:19.120949 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+2025-04-30T12:13:19.121017744Z [1] 2025/04/30 12:13:19.120968 [TRC] 172.18.0.1:38338 - cid:394 - ->> [HMSG handler.084d2d18 bc3c401d 33 33]
+2025-04-30T12:13:19.121535263Z [1] 2025/04/30 12:13:19.121416 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+2025-04-30T12:13:19.121556354Z [1] 2025/04/30 12:13:19.121430 [TRC] JETSTREAM - <-> [DELSUB 1]
+2025-04-30T12:13:19.121564386Z [1] 2025/04/30 12:13:19.121439 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+2025-04-30T12:13:19.121575281Z [1] 2025/04/30 12:13:19.121464 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+ ->> [MSG _REQS6b7c24f151f71ee140244e052d5307be.4 _REQS1 73]
+ Client connection closed: Client Closed
+ <-> [DELSUB _REQS1]
+ Client connection closed: Client Closed
+ <-> [DELSUB _REQS1]
+ <-> [DELSUB bc3c401d]
+
+====================================================== Go
+Client connection created
+<<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+
+<<- [SUB _INBOX.UHnm7V7kIue61FBnWdN5Xo.*  1]
+
+<<- [PUB $JS.API.STREAM.CREATE.FOO _INBOX.UHnm7V7kIue61FBnWdN5Xo.MqC7jawN 271]
+<<- MSG_PAYLOAD: ["{\"name\":\"FOO\",\"subjects\":[\"foo\"],\"retention\":\"limits\",\"max_consumers\":0,\"max_msgs\":0,\"max_bytes\":0,\"discard\":\"old\",\"max_age\":0,\"max_msgs_per_subject\":0,\"storage\":\"file\",\"num_replicas\":0,\"compression\":\"none\",\"allow_direct\":false,\"mirror_direct\":false,\"consumer_limits\":{}}"]
+->> [MSG _INBOX.UHnm7V7kIue61FBnWdN5Xo.MqC7jawN 1 718]
+
+<<- [PUB foo _INBOX.UHnm7V7kIue61FBnWdN5Xo.SSby7mo1 9]
+<<- MSG_PAYLOAD: ["Hello JS!"]
+->> [MSG _INBOX.UHnm7V7kIue61FBnWdN5Xo.SSby7mo1 1 25]
+
+<<- [PUB $JS.API.STREAM.NAMES _INBOX.UHnm7V7kIue61FBnWdN5Xo.ueDDlYaS 17]
+<<- MSG_PAYLOAD: ["{\"subject\":\"foo\"}"]
+->> [MSG _INBOX.UHnm7V7kIue61FBnWdN5Xo.ueDDlYaS 1 109]
+
+<<- [PUB $JS.API.CONSUMER.INFO.FOO.wq _INBOX.UHnm7V7kIue61FBnWdN5Xo.VNPVgkuh 0]
+<<- MSG_PAYLOAD: [""]
+->> [MSG _INBOX.UHnm7V7kIue61FBnWdN5Xo.VNPVgkuh 1 131]
+
+=== sub, _ := js.PullSubscribe("foo", "wq") ===
+
+<<- [SUB _INBOX.UHnm7V7kIue61FBnWdN5cJ.*  2]
+
+<<- [PUB $JS.API.CONSUMER.CREATE.FOO.wq.foo _INBOX.UHnm7V7kIue61FBnWdN5Xo.hTzJyO5S 189]
+<<- MSG_PAYLOAD: ["{\"stream_name\":\"FOO\",\"config\":{\"durable_name\":\"wq\",\"deliver_policy\":\"all\",\"ack_policy\":\"explicit\",\"filter_subject\":\"foo\",\"replay_policy\":\"instant\",\"max_ack_pending\":65536,\"num_replicas\":0}}"]
+->> [MSG _INBOX.UHnm7V7kIue61FBnWdN5Xo.hTzJyO5S 1 574]
+
+=== msgs, _ := sub.Fetch(1, nats.MaxWait(2*time.Second)) ===
+
+<<- [PUB $JS.API.CONSUMER.MSG.NEXT.FOO.wq _INBOX.UHnm7V7kIue61FBnWdN5cJ.UHnm7V7kIue61FBnWdN5go 32]
+<<- MSG_PAYLOAD: ["{\"expires\":1799987079,\"batch\":1}"]
+->> [MSG foo 2 $JS.ACK.FOO.wq.1.1.1.1746074662381983509.0 9]
+
+=== msg.Ack() === 
+
+<<- [PUB $JS.ACK.FOO.wq.1.1.1.1746074662381983509.0 4]
+<<- MSG_PAYLOAD: ["+ACK"]
+
+Client connection closed: Client Closed
+
+<-> [DELSUB 1]
+
+<-> [DELSUB 2]
+
+	
+<<- [SUB _INBOX.ctpNH1Dcg1osRfebzm0qLn.*  2]
+<<- [PUB $JS.API.CONSUMER.MSG.NEXT.FOO.wq _INBOX.ctpNH1Dcg1osRfebzm0qLn.ctpNH1Dcg1osRfebzm0qNg 32]
+<<- MSG_PAYLOAD: ["{\"expires\":1799994969,\"batch\":1}"]
+
+->> [MSG foo 2 $JS.ACK.FOO.wq.1.3.3.1746076488180853371.0 9]
+
+<<- [PUB $JS.ACK.FOO.wq.1.3.3.1746076488180853371.0 4]
+<<- MSG_PAYLOAD: ["+ACK"]
+
+	// Try to pull one message,
+	msgs, _ = sub.Fetch(1, nats.MaxWait(2*time.Second)) - fetch result - NoMessages
+
+
+<<- [PUB $JS.API.CONSUMER.MSG.NEXT.FOO.wq _INBOX.ctpNH1Dcg1osRfebzm0qLn.ctpNH1Dcg1osRfebzm0qPZ 32]
+<<- MSG_PAYLOAD: ["{\"expires\":1799981200,\"batch\":1}"]
+->> [HMSG _INBOX.ctpNH1Dcg1osRfebzm0qLn.ctpNH1Dcg1osRfebzm0qPZ 2 81 81]
+

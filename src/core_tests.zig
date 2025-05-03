@@ -104,7 +104,7 @@ test "PUB-SUB the same connection" {
     return;
 }
 
-test "request prototype" {
+test "requestNMT prototype" {
     var cl: Core = .{};
     try cl.CONNECT(std.testing.allocator, .{});
     defer cl.DISCONNECT();
@@ -137,7 +137,7 @@ fn _unsub_(cl: *Core, sid: []const u8) void {
     }
 }
 
-test "request" {
+test "requestNMT" {
     const SUBJECT = "$JS.API.INFO";
 
     var rqtr: Core = .{};

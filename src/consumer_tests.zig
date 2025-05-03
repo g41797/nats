@@ -5,67 +5,91 @@ const STREAM: []const u8 = "ORDERS";
 const DeleteConsumer: bool = true;
 const DontDeleteConsumer = !DeleteConsumer;
 
-test "create stream" {
-    {
-        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
-        defer js.DISCONNECT();
+// test "create/consume/delete consumer" {
+//     try deleteStream();
+//
+//     try createStream();
+//
+//     { // ephemeral consumer
+//         var conf: ConsumerConfig = .{};
+//         conf.filter_subject = "orders.*";
+//         var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+//
+//         try testing.expectError(error.NoMessages, consumer.CONSUME(protocol.SECNS * 1));
+//
+//         defer consumer.STOP(null);
+//     }
+//
+//     { // durable consumer
+//         var conf: ConsumerConfig = .{
+//             .durable_name = "DurableConsumer",
+//         };
+//         conf.filter_subject = "orders.*";
+//         var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+//
+//         try testing.expectError(error.NoMessages, consumer.CONSUME(protocol.SECNS * 1));
+//
+//         defer consumer.STOP(DeleteConsumer);
+//     }
+//
+//     return;
+// }
 
-        var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{ "orders.*", "items.*" } };
+test "publish/consume" {
+    try deleteStream();
 
-        try js.CREATE(&CONF);
-    }
+    try createStream();
+
+    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    defer js.DISCONNECT();
+
+    // durable consumer
+    var conf: ConsumerConfig = .{
+        .durable_name = "DurableConsumer",
+    };
+    conf.filter_subject = "orders.*";
+    var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+
+    try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 1));
+
+    try js.PUBLISH("orders.received", null, "1");
+
+    var order = try consumer.CONSUME(protocol.SECNS * 1);
+
+    try testing.expectEqual(std.mem.eql(u8, "1", order.?.letter.getPayload().?), true);
+
+    try consumer.ACK(order.?, true);
+
+    defer consumer.STOP(DeleteConsumer);
+
     return;
 }
 
-test "create/consume/delete consumer" {
-    {
-        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
-        defer js.DISCONNECT();
+// test "delete stream" {
+//     try deleteStream();
+// }
 
-        js.DELETE(STREAM) catch {};
-    }
+fn createStream() !void {
+    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    defer js.DISCONNECT();
 
-    {
-        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
-        defer js.DISCONNECT();
+    var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{ "orders.*", "items.*" } };
 
-        var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{ "orders.*", "items.*" } };
-
-        try js.CREATE(&CONF);
-    }
-
-    { // ephemeral consumer
-        var conf: ConsumerConfig = .{};
-        conf.filter_subject = "orders.*";
-        var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
-
-        try testing.expectError(error.NoMessages, consumer.CONSUME(protocol.SECNS * 1));
-
-        defer consumer.STOP(null);
-    }
-
-    { // durable consumer
-        var conf: ConsumerConfig = .{
-            .durable_name = "DurableConsumer",
-        };
-        conf.filter_subject = "orders.*";
-        var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
-
-        try testing.expectError(error.NoMessages, consumer.CONSUME(protocol.SECNS * 1));
-
-        defer consumer.STOP(DeleteConsumer);
-    }
-
-    return;
+    try js.CREATE(&CONF);
 }
 
-test "delete stream" {
-    {
-        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
-        defer js.DISCONNECT();
+fn purgeStream() !void {
+    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    defer js.DISCONNECT();
 
-        js.DELETE(STREAM) catch {};
-    }
+    js.PURGE(STREAM) catch {};
+}
+
+fn deleteStream() !void {
+    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    defer js.DISCONNECT();
+
+    js.DELETE(STREAM) catch {};
 }
 
 const std = @import("std");

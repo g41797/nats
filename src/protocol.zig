@@ -101,6 +101,10 @@ pub const ConsumerConfig = struct {
     ack_wait: u64 = 30 * SECNS,
     deliver_policy: String = DELIVERPOLICY_ALL,
 
+    max_ack_pending: ?i32 = null,
+    max_waiting: ?i32 = null,
+    max_deliver: ?i32 = null,
+
     filter_subject: ?String = null,
     replay_policy: String = REPLAYPOLICY_INSTANT,
     headers_only: ?bool = false,

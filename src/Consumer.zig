@@ -89,9 +89,9 @@ pub const InternalConsumerConfig = struct {
     ack_policy: String = undefined,
     ack_wait: u64 = undefined,
 
-    max_ack_pending: ?i32 = 1,
-    max_waiting: ?i32 = 1,
-    max_deliver: ?i32 = 1,
+    max_ack_pending: ?i32 = null,
+    max_waiting: ?i32 = null,
+    max_deliver: ?i32 = null,
 
     filter_subject: ?String = null,
     replay_policy: String = undefined,
@@ -114,7 +114,10 @@ consumer: Appendable = .{},
 cmd: Formatter = .{},
 jsn: Formatter = .{},
 durable: bool = false,
+inbox: [36]u8 = undefined,
+sid: u64 = 0,
 created: bool = false,
+req_reply2: Formatter = .{},
 
 pub fn START(allocator: Allocator, co: protocol.ConnectOpts, stream: []const u8, cscnf: *ConsumerConfig) !Consumer {
     var cs: Consumer = .{ .allocator = allocator };
@@ -129,13 +132,14 @@ pub fn START(allocator: Allocator, co: protocol.ConnectOpts, stream: []const u8,
 
     cs.cmd = try Formatter.init(cs.allocator, 128);
     cs.jsn = try Formatter.init(cs.allocator, 256);
+    cs.req_reply2 = try Formatter.init(allocator, 48);
 
     try cs.start(cscnf);
 
     return cs;
 }
 
-pub fn CONSUME(cs: *Consumer, timeout_ns: u64) !*AllocatedMSG {
+pub fn CONSUME(cs: *Consumer, timeout_ns: u64) !?*AllocatedMSG {
     cs.mutex.lock();
     defer cs.mutex.unlock();
 
@@ -143,40 +147,9 @@ pub fn CONSUME(cs: *Consumer, timeout_ns: u64) !*AllocatedMSG {
         return error.NotConnected;
     }
 
-    _ = try cs.cmd.sprintf(CONSUME_NEXT_MSG_T, .{
-        cs.stream.body().?,
-        cs.consumer.body().?,
-    });
+    const gnmresp = try cs.processNext(timeout_ns);
 
-    const gnm: ConsumerGetNextMsgRequest = .{
-        .expires = timeout_ns,
-        .batch = 1,
-        .no_wait = true,
-    };
-
-    _ = try cs.jsn.stringify(gnm, .{
-        .emit_strings_as_arrays = false,
-        .whitespace = .minified,
-        .emit_null_optional_fields = false,
-    });
-
-    var delay: u64 = protocol.SECNS * 1;
-
-    if (builtin.mode == .Debug) {
-        delay *= 10;
-    }
-
-    const gnmresp = try cs.process(timeout_ns + delay);
-
-    if (gnmresp == null) {
-        return error.UnexpectedConsumeEmptyResponse;
-    }
-
-    if (isNoMessages(gnmresp.?)) {
-        cs.reuse(gnmresp.?);
-        return error.NoMessages;
-    }
-    return gnmresp.?;
+    return gnmresp;
 }
 
 pub fn STOP(cs: *Consumer, delete: ?bool) void {
@@ -193,12 +166,12 @@ pub fn STOP(cs: *Consumer, delete: ?bool) void {
     return;
 }
 
-pub fn ACK(cs: *Consumer, msg: *AllocatedMSG, reuseMsg: bool) void {
+pub fn ACK(cs: *Consumer, msg: *AllocatedMSG, reuseMsg: bool) !void {
     cs.mutex.lock();
     defer cs.mutex.unlock();
 
     if (cs.connection != null) {
-        cs.ack(msg) catch {};
+        try cs.ack(msg);
     }
 
     if (reuseMsg) {
@@ -206,12 +179,12 @@ pub fn ACK(cs: *Consumer, msg: *AllocatedMSG, reuseMsg: bool) void {
     }
 }
 
-pub fn NACK(cs: *Consumer, msg: *AllocatedMSG, reuseMsg: bool) void {
+pub fn NACK(cs: *Consumer, msg: *AllocatedMSG, reuseMsg: bool) !void {
     cs.mutex.lock();
     defer cs.mutex.unlock();
 
     if (cs.connection != null) {
-        cs.nack(msg) catch {};
+        try cs.nack(msg);
     }
 
     if (reuseMsg) {
@@ -227,6 +200,8 @@ pub fn REUSE(cs: *Consumer, msg: *AllocatedMSG) void {
 }
 
 fn start(cs: *Consumer, cscnf: *ConsumerConfig) !void {
+    // try cs.subscribe();
+
     var icc: InternalConsumerConfig = .{};
 
     _ = utils.copyFields(cscnf.*, &icc);
@@ -257,6 +232,8 @@ fn start(cs: *Consumer, cscnf: *ConsumerConfig) !void {
         return error.UnexpectedConsumeErrorEmptyResponse;
     }
 
+    defer cs.connection.?.reuse(crresp.?);
+
     if (crresp.?.letter.getPayload() == null) {
         return error.ConsumerEmptyResponse;
     }
@@ -267,14 +244,12 @@ fn start(cs: *Consumer, cscnf: *ConsumerConfig) !void {
         return error.ConsumerNameDoesNotExistInResponse;
     }
 
-    defer cs.connection.?.reuse(crresp.?);
-
     cs.created = true;
     return;
 }
 
 fn process(cs: *Consumer, timeout_ns: u64) !?*AllocatedMSG {
-    const response = try cs.connection.?.request(cs.cmd.formatbuf.body().?, null, cs.jsn.formatbuf.body(), timeout_ns);
+    const response = try cs.connection.?.requestNMT(cs.cmd.formatbuf.body().?, null, cs.jsn.formatbuf.body(), timeout_ns);
     errdefer cs.connection.?.reuse(response);
 
     if (response.letter.getPayload()) |payload| {
@@ -288,8 +263,75 @@ fn process(cs: *Consumer, timeout_ns: u64) !?*AllocatedMSG {
     }
 }
 
+fn processNext(cs: *Consumer, timeout_ns: u64) !?*AllocatedMSG {
+    const response = try cs.getNext(timeout_ns);
+
+    if (response == null) {
+        return null;
+    }
+
+    errdefer cs.connection.?.reuse(response.?);
+
+    if (response.?.letter.getPayload()) |payload| {
+        if (parse.isFailed(payload)) {
+            return error.JetStreamsRequestFailed;
+        } else {
+            return response;
+        }
+    } else { // headers only
+        return response;
+    }
+}
+
+fn getNext(cs: *Consumer, timeout_ns: u64) !?*AllocatedMSG {
+    _ = try cs.cmd.sprintf(CONSUME_NEXT_MSG_T, .{
+        cs.stream.body().?,
+        cs.consumer.body().?,
+    });
+
+    const gnm: ConsumerGetNextMsgRequest = .{
+        .expires = timeout_ns,
+        .batch = 1,
+        .no_wait = true,
+    };
+
+    _ = try cs.jsn.stringify(gnm, .{
+        .emit_strings_as_arrays = false,
+        .whitespace = .minified,
+        .emit_null_optional_fields = false,
+    });
+
+    const REPLY_TO = try cs.connection.?.nextReply2NMT();
+
+    if (builtin.mode == .Debug) {
+        try cs.connection.?.ping();
+    }
+
+    try cs.connection.?.@"pub"(cs.cmd.formatbuf.body().?, REPLY_TO, cs.jsn.formatbuf.body());
+
+    var delay: u64 = protocol.SECNS * 1;
+
+    if (builtin.mode == .Debug) {
+        delay *= 10;
+    }
+
+    const recvMsg = try cs.connection.?.waitMessageNMT(timeout_ns + delay, null);
+
+    if ((std.mem.eql(u8, REPLY_TO, recvMsg.*.letter.Subject().?)) and isNoMessages(recvMsg)) {
+        cs.reuse(recvMsg);
+        return null;
+    }
+
+    return recvMsg;
+}
+
+fn nextReply2NMT(cs: *Consumer) ![]const u8 {
+    const REPLY_TO = try cs.req_reply2.sprintf("{0s}.{1d}", .{ cs.inbox[0..36], cs.connection.?.nextSidNMT() });
+    return REPLY_TO.?;
+}
+
 fn ack(cs: *Consumer, msg: *AllocatedMSG) !void {
-    _ = try cs.connection.?.@"pub"(msg.letter.ReplyTo().?, null, null);
+    _ = try cs.connection.?.@"pub"(msg.letter.ReplyTo().?, null, "+ACK");
 }
 
 fn nack(cs: *Consumer, msg: *AllocatedMSG) void {
@@ -311,6 +353,8 @@ fn stop(cs: *Consumer, delete: ?bool) !void {
     if (cs.connection == null) {
         return;
     }
+
+    // cs.unsubscribe();
 
     if (!cs.durable) {
         return;
@@ -352,12 +396,13 @@ fn deinit(cs: *Consumer) void {
     cs.consumer.deinit();
     cs.cmd.deinit();
     cs.jsn.deinit();
+    cs.req_reply2.deinit();
 
     return;
 }
 
 const RequestTimeout = "NATS/1.0 408";
-const NoMessages = "NATS/1.0 408";
+const NoMessages = "NATS/1.0 404";
 
 fn isNoMessages(msg: *AllocatedMSG) bool {
     var result: bool = false;

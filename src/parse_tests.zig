@@ -1,6 +1,31 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
+test "parse MSG line for polled message" {
+    // MSG <subject> <sid> [reply-to] <#bytes>␍␊[payload]␍␊
+    // #bytes == payload length without ␍␊
+    const MSG_line = "MSG orders.received 1 $JS.ACK.ORDERS.DurableConsumer.1.1.1.1746172895871384209.0 1";
+
+    const args = parse.count_substrings(MSG_line);
+    try testing.expectEqual(5, args);
+
+    const parsed = try parse.cut_tail_size(MSG_line);
+    const BYTES = parsed.size;
+    try testing.expectEqual(1, BYTES);
+
+    // reply-to
+    var procstrs = try parse.cut_tail(parsed.shrinked);
+    try testing.expectEqual(std.mem.eql(u8, "$JS.ACK.ORDERS.DurableConsumer.1.1.1.1746172895871384209.0", procstrs.tail), true);
+
+    // sid
+    procstrs = try parse.cut_tail(procstrs.shrinked);
+    try testing.expectEqual(std.mem.eql(u8, "1", procstrs.tail), true);
+
+    // subject
+    procstrs = try parse.cut_tail(procstrs.shrinked);
+    try testing.expectEqual(std.mem.eql(u8, "orders.received", procstrs.tail), true);
+}
+
 test "parse HMSG line without replyTo" {
     // HMSG <subject> <sid> [reply-to] <#header bytes> <#total bytes>␍␊
     const HMSG_line = "HMSG DB50B30E-266F-4F28-AF30-7F4B03ADB399.3 1 81 81\r\n";
@@ -62,7 +87,7 @@ test "count_substrings" {
 }
 
 test "parse response error" {
-    const resp = "{\"type\":\"io.nats.jetstream.api.v1.stream_create_response\",\"error\":{\"code\":400,\"err_code\":10056,\"description\":\"stream name in subject does not match request\"}}";
+    const resp = "{\"type\":\"io.nats.jetstream.api.v1.stream_create_response\",\"error\":{\"code\":400,\"err_code\":10056,\"description\":\"stream name in subject does not match requestNMT\"}}";
 
     const text = parse.responseErrorText(resp);
 
