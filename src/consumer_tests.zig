@@ -36,12 +36,11 @@ const DontDeleteConsumer = !DeleteConsumer;
 // }
 
 test "publish/consume" {
-    try deleteStream();
-
     try createStream();
 
+    defer _deleteStream();
+
     var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
-    defer js.DISCONNECT();
 
     // durable consumer
     var conf: ConsumerConfig = .{
@@ -49,25 +48,32 @@ test "publish/consume" {
     };
     conf.filter_subject = "orders.*";
     var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
-
-    try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 1));
+    errdefer consumer.STOP(DeleteConsumer);
 
     try js.PUBLISH("orders.received", null, "1");
+    try js.PUBLISH("orders.received", null, "2");
+    try js.PUBLISH("orders.received", null, "3");
+    js.DISCONNECT();
 
-    var order = try consumer.CONSUME(protocol.SECNS * 1);
-
+    var order = try consumer.CONSUME(protocol.SECNS * 20);
     try testing.expectEqual(std.mem.eql(u8, "1", order.?.letter.getPayload().?), true);
-
     try consumer.ACK(order.?, true);
 
-    defer consumer.STOP(DeleteConsumer);
+    order = try consumer.CONSUME(protocol.SECNS * 20);
+    try testing.expectEqual(std.mem.eql(u8, "2", order.?.letter.getPayload().?), true);
+    try consumer.ACK(order.?, true);
+
+    order = try consumer.CONSUME(protocol.SECNS * 20);
+    try testing.expectEqual(std.mem.eql(u8, "3", order.?.letter.getPayload().?), true);
+    try consumer.ACK(order.?, true);
+
+    try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 5));
+    try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 5));
+
+    consumer.STOP(DeleteConsumer);
 
     return;
 }
-
-// test "delete stream" {
-//     try deleteStream();
-// }
 
 fn createStream() !void {
     var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
@@ -90,6 +96,10 @@ fn deleteStream() !void {
     defer js.DISCONNECT();
 
     js.DELETE(STREAM) catch {};
+}
+
+fn _deleteStream() void {
+    deleteStream() catch {};
 }
 
 const std = @import("std");
