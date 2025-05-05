@@ -3,6 +3,7 @@
 
 const parse = @import("parse.zig");
 const protocol = @import("protocol.zig");
+const Client = @import("Client.zig");
 const Core = @import("Core.zig");
 const Conn = @import("Conn.zig");
 const JS = @import("JetStream.zig");

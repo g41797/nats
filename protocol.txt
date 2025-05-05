@@ -1313,3 +1313,63 @@ Client connection closed: Client Closed
 <<- MSG_PAYLOAD: ["{\"expires\":1799981200,\"batch\":1}"]
 ->> [HMSG _INBOX.ctpNH1Dcg1osRfebzm0qLn.ctpNH1Dcg1osRfebzm0qPZ 2 81 81]
 
+==================== Go
+06:06:25.561632 [DBG] 172.18.0.1:37422 - cid:39 - Client connection created
+06:06:25.561974 [TRC] 172.18.0.1:37422 - cid:39 - <<- [CONNECT {"verbose":false,"pedantic":false,"tls_required":false,"name":"","lang":"go","version":"1.39.0","protocol":1,"echo":true,"headers":true,"no_responders":true}]
+06:06:25.562063 [TRC] 172.18.0.1:37422 - cid:39 - <<- [PING]
+06:06:25.562068 [TRC] 172.18.0.1:37422 - cid:39 - ->> [PONG]
+
+06:06:25.562540 [TRC] 172.18.0.1:37422 - cid:39 - <<- [SUB _INBOX.BsswrxeiTisANY4cWDApMx.*  1]
+06:06:25.562564 [TRC] 172.18.0.1:37422 - cid:39 - <<- [PUB $JS.API.STREAM.NAMES _INBOX.BsswrxeiTisANY4cWDApMx.MAllUW0r 17]
+06:06:25.562571 [TRC] 172.18.0.1:37422 - cid:39 - <<- MSG_PAYLOAD: ["{\"subject\":\"foo\"}"]
+06:06:25.562741 [TRC] 172.18.0.1:37422 - cid:39 - ->> [MSG _INBOX.BsswrxeiTisANY4cWDApMx.MAllUW0r 1 109]
+06:06:25.563168 [TRC] 172.18.0.1:37422 - cid:39 - <<- [PUB $JS.API.CONSUMER.INFO.FOO.wq _INBOX.BsswrxeiTisANY4cWDApMx.wWOpcQGi 0]
+06:06:25.563180 [TRC] 172.18.0.1:37422 - cid:39 - <<- MSG_PAYLOAD: [""]
+06:06:25.563276 [TRC] 172.18.0.1:37422 - cid:39 - ->> [MSG _INBOX.BsswrxeiTisANY4cWDApMx.wWOpcQGi 1 131]
+
+06:06:25.563952 [TRC] 172.18.0.1:37422 - cid:39 - <<- [SUB _INBOX.BsswrxeiTisANY4cWDApOr.*  2]
+06:06:25.564050 [TRC] 172.18.0.1:37422 - cid:39 - <<- [PUB $JS.API.CONSUMER.CREATE.FOO.wq.foo _INBOX.BsswrxeiTisANY4cWDApMx.iTfKgBMx 189]
+06:06:25.564084 [TRC] 172.18.0.1:37422 - cid:39 - <<- MSG_PAYLOAD: ["{\"stream_name\":\"FOO\",\"config\":{\"durable_name\":\"wq\",\"deliver_policy\":\"all\",\"ack_policy\":\"explicit\",\"filter_subject\":\"foo\",\"replay_policy\":\"instant\",\"max_ack_pending\":65536,\"num_replicas\":0}}"]
+06:06:25.564740 [TRC] JETSTREAM - <<- [SUB $JSC.CI.$G.FOO.wq  59]
+06:06:25.564822 [TRC] 172.18.0.1:37422 - cid:39 - ->> [MSG _INBOX.BsswrxeiTisANY4cWDApMx.iTfKgBMx 1 575]
+
+06:06:25.565363 [TRC] 172.18.0.1:37422 - cid:39 - <<- [PUB $JS.API.CONSUMER.MSG.NEXT.FOO.wq _INBOX.BsswrxeiTisANY4cWDApOr.BsswrxeiTisANY4cWDApQl 32]
+06:06:25.565385 [TRC] 172.18.0.1:37422 - cid:39 - <<- MSG_PAYLOAD: ["{\"expires\":1799993527,\"batch\":1}"]
+06:06:25.565540 [TRC] 172.18.0.1:37422 - cid:39 - ->> [MSG foo 2 $JS.ACK.FOO.wq.1.1.1.1746425169265699842.0 9]
+06:06:27.734197 [DBG] 172.18.0.1:37422 - cid:39 - Client Ping Timer
+06:06:27.734245 [TRC] 172.18.0.1:37422 - cid:39 - ->> [PING]
+
+06:06:28.600395 [TRC] 172.18.0.1:37422 - cid:39 - <<- [PUB $JS.ACK.FOO.wq.1.1.1.1746425169265699842.0 4]
+06:06:28.600564 [TRC] 172.18.0.1:37422 - cid:39 - <<- MSG_PAYLOAD: ["+ACK"]
+
+06:06:28.600727 [TRC] 172.18.0.1:37422 - cid:39 - <<- [PONG]
+
+06:06:28.600739 [TRC] 172.18.0.1:37422 - cid:39 - <<- [PUB $JS.API.CONSUMER.MSG.NEXT.FOO.wq _INBOX.BsswrxeiTisANY4cWDApOr.BsswrxeiTisANY4cWDApSf 32]
+06:06:28.600744 [TRC] 172.18.0.1:37422 - cid:39 - <<- MSG_PAYLOAD: ["{\"expires\":5399932068,\"batch\":1}"]
+06:06:34.001833 [TRC] 172.18.0.1:37422 - cid:39 - ->> [HMSG _INBOX.BsswrxeiTisANY4cWDApOr.BsswrxeiTisANY4cWDApSf 2 81 81]
+
+06:06:34.601732 [TRC] 172.18.0.1:37422 - cid:39 - <<- [PUB $JS.API.CONSUMER.MSG.NEXT.FOO.wq _INBOX.BsswrxeiTisANY4cWDApOr.BsswrxeiTisANY4cWDApUZ 32]
+06:06:34.601759 [TRC] 172.18.0.1:37422 - cid:39 - <<- MSG_PAYLOAD: ["{\"expires\":5399915937,\"batch\":1}"]
+06:06:40.002353 [TRC] 172.18.0.1:37422 - cid:39 - ->> [HMSG _INBOX.BsswrxeiTisANY4cWDApOr.BsswrxeiTisANY4cWDApUZ 2 81 81]
+
+06:07:01.180224 [TRC] 172.18.0.1:37422 - cid:39 - <<- [PUB $JS.API.CONSUMER.DELETE.FOO.wq _INBOX.BsswrxeiTisANY4cWDApMx.DKAmckbg 0]
+06:07:01.180243 [TRC] 172.18.0.1:37422 - cid:39 - <<- MSG_PAYLOAD: [""]
+06:07:01.180351 [TRC] JETSTREAM - <-> [DELSUB 1]
+06:07:01.180367 [TRC] JETSTREAM - <-> [DELSUB 2]
+06:07:01.180376 [TRC] JETSTREAM - <-> [DELSUB 59]
+06:07:01.180391 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+06:07:01.180399 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+06:07:01.180775 [TRC] 172.18.0.1:37422 - cid:39 - ->> [MSG _INBOX.BsswrxeiTisANY4cWDApMx.DKAmckbg 1 75]
+06:07:08.216982 [TRC] 172.18.0.1:37422 - cid:39 - <<- [PUB $JS.API.STREAM.DELETE.FOO _INBOX.BsswrxeiTisANY4cWDApMx.Y5BErhEt 0]
+06:07:08.217011 [TRC] 172.18.0.1:37422 - cid:39 - <<- MSG_PAYLOAD: [""]
+06:07:08.217147 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+06:07:08.217159 [TRC] JETSTREAM - <-> [DELSUB 1]
+06:07:08.217168 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+06:07:08.217175 [DBG] JETSTREAM - JetStream connection closed: Client Closed
+06:07:08.217516 [TRC] 172.18.0.1:37422 - cid:39 - ->> [MSG _INBOX.BsswrxeiTisANY4cWDApMx.Y5BErhEt 1 73]
+06:07:08.670487 [DBG] 172.18.0.1:37422 - cid:39 - Client connection closed: Client Closed
+06:07:08.670488 [DBG] 172.18.0.1:39594 - cid:35 - Client connection closed: Client Closed
+06:07:08.670524 [TRC] 172.18.0.1:37422 - cid:39 - <-> [DELSUB 1]
+06:07:08.670537 [TRC] 172.18.0.1:37422 - cid:39 - <-> [DELSUB 2]
+06:07:08.670528 [TRC] 172.18.0.1:39594 - cid:35 - <-> [DELSUB 1]
+

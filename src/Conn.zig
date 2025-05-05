@@ -5,11 +5,10 @@ pub const Conn = @This();
 
 mutex: Mutex = .{},
 allocator: Allocator = undefined,
-stream: ?*Stream = null,
+client: ?*Client = null,
 line: Appendable = .{},
 printbuf: Formatter = .{},
 
-attention: Sema = .{},
 thread: Thread = undefined,
 pool: Messages = .{},
 received: Messages = .{},
@@ -35,7 +34,7 @@ pub fn connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void 
 }
 
 fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
-    if (cn.stream != null) {
+    if (cn.client != null) {
         return error.AlreadyConnected;
     }
 
@@ -64,7 +63,10 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
     cn.received.init(allocator);
     cn.req_reply2 = try Formatter.init(allocator, 48);
 
-    cn.stream = try cn.connectTcp(host, prt);
+    cn.client = try cn.connectTcp(.{
+        .addr = host,
+        .port = prt,
+    });
 
     errdefer cn.disconnect();
 
@@ -85,7 +87,7 @@ pub fn disconnect(cn: *Conn) void {
     cn.mutex.lock();
     defer cn.mutex.unlock();
 
-    if (cn.stream == null) {
+    if (cn.client == null) {
         return;
     }
 
@@ -97,7 +99,7 @@ pub fn disconnect(cn: *Conn) void {
     cn.pool.deinit();
     cn.received.deinit();
 
-    cn.stream.?.close();
+    cn.client.?.close();
 
     cn.waitFinish();
 
@@ -105,8 +107,8 @@ pub fn disconnect(cn: *Conn) void {
     cn.printbuf.deinit();
     cn.req_reply2.deinit();
 
-    cn.allocator.destroy(cn.stream.?);
-    cn.stream = null;
+    cn.allocator.destroy(cn.client.?);
+    cn.client = null;
 
     return;
 }
@@ -442,7 +444,7 @@ fn read_mt(cn: *Conn) !MT {
 
 // Reads underlying stream include \r\n or \n to the internal buffer.
 fn read_line(cn: *Conn) !void {
-    if (cn.stream == null) {
+    if (cn.client == null) {
         return error.CommunicationFailure;
     }
 
@@ -452,69 +454,62 @@ fn read_line(cn: *Conn) !void {
 
     while (!cn.wasRaised()) {
         cn.sendHeartBit();
-        var str: [1]u8 = undefined;
-        if (cn.read(&str)) |rcount| {
-            if (rcount == 0) {
-                continue;
-            }
-
-            try cn.line.append(str[0..1]);
-
-            if (str[0] == '\r') {
-                continue;
-            }
-
-            if (str[0] == '\n') {
-                try cn.resetTimeOut();
-                return;
-            }
-        } else |er| {
+        const byte: ?u8 = cn.client.?.readByte() catch |er| {
             if (er == error.WouldBlock) {
                 continue;
             }
             return er;
+        };
+
+        if (byte == 0) {
+            continue;
+        }
+
+        var addIt: [1]u8 = undefined;
+        addIt[0] = byte.?;
+
+        try cn.line.append(&addIt);
+
+        if (byte.? == '\r') {
+            continue;
+        }
+
+        if (byte.? == '\n') {
+            try cn.resetTimeOut();
+            return;
         }
     }
 
     return error.WasCancelled;
 }
 
-fn connectTcp(client: *Conn, host: []const u8, port: u16) !*Stream {
-    const conn = try client.allocator.create(Stream);
-    errdefer client.allocator.destroy(conn);
+fn connectTcp(cn: *Conn, co: protocol.ConnectOpts) !*Client {
+    const cl = try cn.allocator.create(Client);
+    errdefer cn.allocator.destroy(cl);
 
-    const stream = try net.tcpConnectToHost(client.allocator, host, port);
-    errdefer stream.close();
+    cl.* = try Client.connect(cn.allocator, co);
 
-    conn.* = stream;
-
-    return conn;
+    return cl;
 }
 
 pub fn raiseAttention(cn: *Conn) void {
-    _ = cn.attention.post();
+    cn.client.?.raiseAttention();
 }
 
 inline fn wasRaised(cn: *Conn) bool {
-    if (cn.attention.timedWait(0)) |_| {
-        return true;
-    } else |_| {
-        return false;
-    }
+    return cn.client.?.wasRaised();
 }
 
 fn waitFinish(cn: *Conn) void {
     cn.thread.join();
 }
 
-inline fn setTimeOut(cn: *Conn) !void {
-    const timeout = posix.timeval{ .sec = 1, .usec = 0 };
-    try posix.setsockopt(cn.stream.?.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
+fn setTimeOut(cn: *Conn) !void {
+    try cn.client.?.setTimeOut();
 }
 
-inline fn resetTimeOut(cn: *Conn) !void {
-    const timeout = posix.timeval{ .sec = 0, .usec = 0 };
-    try posix.setsockopt(cn.stream.?.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
+fn resetTimeOut(cn: *Conn) !void {
+    try cn.client.?.resetTimeOut();
 }
 
 pub fn requestNMT(cn: *Conn, subject: []const u8, headers: ?*Headers, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
@@ -684,7 +679,7 @@ pub fn printNMT(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
 }
 
 pub fn writeNMT(cn: *Conn, buffer: []const u8) !void {
-    if (cn.stream == null) {
+    if (cn.client == null) {
         return error.CommunicationFailure;
     }
     if (buffer.len == 0) {
@@ -694,7 +689,7 @@ pub fn writeNMT(cn: *Conn, buffer: []const u8) !void {
 }
 
 pub fn writevNMT(cn: *Conn, iovecs: []posix.iovec_const) !void {
-    if (cn.stream == null) {
+    if (cn.client == null) {
         return error.CommunicationFailure;
     }
     if (iovecs.len == 0) {
@@ -706,41 +701,32 @@ pub fn writevNMT(cn: *Conn, iovecs: []posix.iovec_const) !void {
 //
 // Non MT write wrappers
 //
-fn writeAll(cn: *Conn, bytes: []const u8) !void {
-    try cn.stream.?.writeAll(bytes);
+pub fn writeAll(cn: *Conn, bytes: []const u8) !void {
+    try cn.client.?.writeAll(bytes);
 }
 
 fn writevAll(cn: *Conn, iovecs: []posix.iovec_const) !void {
-    try cn.stream.?.writevAll(iovecs);
+    try cn.client.?.writevAll(iovecs);
 }
 
 //
 // Non MT read wrappers
 //
 fn readByte(cn: *Conn) !?u8 {
-    const byte: u8 = undefined;
-    const rlen = try cn.read(&byte);
-    if (rlen == 0) {
-        return null;
-    }
-    return byte;
+    return cn.client.?.readByte();
 }
 
-fn read(cn: *Conn, buffer: []u8) !usize {
-    return try cn.stream.?.read(buffer);
-}
+// fn read(cn: *Conn, buffer: []u8) !usize {
+//     return try cn.client.?.read(buffer);
+// }
 
 fn readAll(cn: *Conn, buffer: []u8) !usize {
-    return try cn.stream.?.readAll(buffer);
+    return try cn.client.?.readAll(buffer);
 }
 
 // Reads 'len' bytes from underlying stream to the buffer.
 fn read_buffer(cn: *Conn, buffer: *Appendable, len: usize) !void {
-    if (cn.wasRaised()) {
-        return error.WasCancelled;
-    }
-
-    if (cn.stream == null) {
+    if (cn.client == null) {
         return error.CommunicationFailure;
     }
 
@@ -776,17 +762,14 @@ pub fn newInbox() ![36]u8 {
 
 const std = @import("std");
 const builtin = @import("builtin");
-const net = std.net;
 const posix = std.posix;
-const Stream = net.Stream;
-const Socket = posix.socket_t;
 const Allocator = std.mem.Allocator;
 const Thread = std.Thread;
-const Sema = std.Thread.Semaphore;
 const Mutex = std.Thread.Mutex;
 
 const parse = @import("parse.zig");
 const protocol = @import("protocol.zig");
+const Client = @import("Client.zig");
 const messages = @import("messages.zig");
 const Appendable = @import("Appendable.zig");
 const Formatter = @import("Formatter.zig");
