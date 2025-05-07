@@ -1,6 +1,8 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
+var byte: u8 = 69;
+
 test "setsockopt RCVTIMEO does not work on Windows" {
     if (builtin.single_threaded) return error.SkipZigTest;
     if (builtin.os.tag == .wasi) return error.SkipZigTest;
@@ -22,19 +24,25 @@ test "setsockopt RCVTIMEO does not work on Windows" {
     defer server.deinit();
 
     const S = struct {
-        fn clientFn(server_address: net.Address) !void {
+        fn clientFn(server_address: net.Address, notify: *u8) !void {
             var stream = try net.tcpConnectToAddress(server_address);
             defer stream.close();
 
             if (builtin.os.tag != .windows) {
-                try tryReadByte(&stream);
+                tryReadByte(&stream) catch |er| {
+                    if (er == error.WouldBlock) {
+                        notify.* = 1; //"WouldBlock";
+                    } else {
+                        notify.* = 2; //"Unknown";
+                    }
+                };
             }
 
             _ = try stream.writer().writeAll("Hello world!");
         }
     };
 
-    const t = try std.Thread.spawn(.{}, S.clientFn, .{server.listen_address});
+    const t = try std.Thread.spawn(.{}, S.clientFn, .{ server.listen_address, &byte });
     defer t.join();
 
     var client = try server.accept();
@@ -42,18 +50,22 @@ test "setsockopt RCVTIMEO does not work on Windows" {
     var buf: [16]u8 = undefined;
     const n = try client.stream.reader().read(&buf);
 
+    const lc = byte;
+    _ = lc;
+
     try testing.expectEqual(@as(usize, 12), n);
     try testing.expectEqualSlices(u8, "Hello world!", buf[0..n]);
 }
 
 fn tryReadByte(stream: *Stream) !void {
-    try setTimeOut(stream);
+    // try setTimeOut(stream);
+
+    try nclient.setSockNONBLOCK(stream.handle);
+
     var str: [1]u8 = undefined;
-    _ = stream.read(&str) catch |er| {
-        if (er != error.WouldBlock) {
-            return er;
-        }
-    };
+    str[0] = 0;
+    const rl = try stream.read(&str);
+    _ = rl;
     return;
 }
 
@@ -506,3 +518,4 @@ const posix = std.posix;
 const Stream = net.Stream;
 const Socket = posix.socket_t;
 const Allocator = std.mem.Allocator;
+const nclient = @import("Client.zig");

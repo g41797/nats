@@ -1373,3 +1373,5 @@ Client connection closed: Client Closed
 06:07:08.670537 [TRC] 172.18.0.1:37422 - cid:39 - <-> [DELSUB 2]
 06:07:08.670528 [TRC] 172.18.0.1:39594 - cid:35 - <-> [DELSUB 1]
 
+
+MSG NOTIFY NSID 0

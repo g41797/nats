@@ -454,27 +454,23 @@ fn read_line(cn: *Conn) !void {
 
     while (!cn.wasRaised()) {
         cn.sendHeartBit();
-        const byte: ?u8 = cn.client.?.readByte() catch |er| {
+        const byte: u8 = cn.client.?.readByte() catch |er| {
             if (er == error.WouldBlock) {
                 continue;
             }
             return er;
         };
 
-        if (byte == 0) {
-            continue;
-        }
-
         var addIt: [1]u8 = undefined;
-        addIt[0] = byte.?;
+        addIt[0] = byte;
 
         try cn.line.append(&addIt);
 
-        if (byte.? == '\r') {
+        if (byte == '\r') {
             continue;
         }
 
-        if (byte.? == '\n') {
+        if (byte == '\n') {
             try cn.resetTimeOut();
             return;
         }
@@ -504,12 +500,12 @@ fn waitFinish(cn: *Conn) void {
     cn.thread.join();
 }
 
-fn setTimeOut(cn: *Conn) !void {
-    try cn.client.?.setTimeOut();
+fn setTimeOut(_: *Conn) !void {
+    // try cn.client.?.setTimeOut();
 }
 
-fn resetTimeOut(cn: *Conn) !void {
-    try cn.client.?.resetTimeOut();
+fn resetTimeOut(_: *Conn) !void {
+    // try cn.client.?.resetTimeOut();
 }
 
 pub fn requestNMT(cn: *Conn, subject: []const u8, headers: ?*Headers, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {

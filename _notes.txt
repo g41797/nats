@@ -83,6 +83,12 @@ TCP Server in Zig - Part 7 - Kqueue
 TCP Server in Zig - Part 8 - Epoll & Kqueue
     https://www.openmymind.net/TCP-Server-In-Zig-Part-8-Epoll-and-Kqueue/
 
+Linux, sockets, non-blocking connect
+    https://stackoverflow.com/questions/17769964/linux-sockets-non-blocking-connect
+
+Non-blocking BSD socket connections
+    https://cr.yp.to/docs/connect.html
+
 How Polling Works in Linux
     https://cyberpanel.net/blog/how-polling-works-in-linux
 
@@ -228,3 +234,19 @@ libxev
     
 reusable utility for using tmp files
     https://zig.news/liyu1981/tmpfilezig-an-reusable-utility-for-using-tmp-files-in-sys-tmp-1l63    
+    
+Add support for debugging tests launched from Zig Build #82
+    https://github.com/FalsePattern/ZigBrains/issues/82#issuecomment-275885368
+    
+    <component name="ProjectRunConfigurationManager">
+      <configuration default="false" name="testall" type="ZIGBRAINS_BUILD" factoryName="ZIGBRAINS_BUILD" singleton="false">
+        <ZigBrainsOption name="workingDirectory" value="$PROJECT_DIR$" />
+        <ZigBrainsOption name="buildSteps" value="install" />
+        <ZigBrainsOption name="compilerArgs" value="" />
+        <ZigBrainsOption name="debugBuildSteps" value="install" />
+        <ZigBrainsOption name="debugCompilerArgs" value="" />
+        <ZigBrainsOption name="exePath" value="$PROJECT_DIR$/zig-out/bin/test" />
+        <ZigBrainsOption name="exeArgs" value="" />
+        <method v="2" />
+      </configuration>
+    </component>    
