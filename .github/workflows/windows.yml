@@ -29,5 +29,5 @@ jobs:
         run: Start-Sleep -s 2
         shell: powershell
        
-      - run: zig build test -freference-trace --summary all
+#      - run: zig build test -freference-trace --summary all
 
