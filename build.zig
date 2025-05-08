@@ -1,5 +1,3 @@
-const std = @import("std");
-
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
 // runner.
@@ -37,7 +35,10 @@ pub fn build(b: *std.Build) void {
 
     lib.root_module.addImport("mailbox", mailbox.module("mailbox"));
     lib.root_module.addImport("zul", zul.module("zul"));
-
+    if (builtin.os.tag == .windows) {
+        lib.linkLibC();
+    }
+    
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
@@ -90,6 +91,10 @@ pub fn build(b: *std.Build) void {
     lib_unit_tests.root_module.addImport("mailbox", mailbox.module("mailbox"));
     lib_unit_tests.root_module.addImport("zul", zul.module("zul"));
 
+    if (builtin.os.tag == .windows) {
+        lib_unit_tests.linkLibC();
+    }
+
     b.installArtifact(lib_unit_tests);
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
@@ -109,3 +114,6 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_lib_unit_tests.step);
     // test_step.dependOn(&run_exe_unit_tests.step);
 }
+
+const std = @import("std");
+const builtin = @import("builtin");
