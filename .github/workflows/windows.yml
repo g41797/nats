@@ -29,7 +29,7 @@ jobs:
         run: Start-Sleep -s 2
         shell: powershell
        
-      - run: zig libc > %TEMP%\libc.txt 
+      - run: zig libc > libc.txt 
       
-      - run: zig build test -freference-trace --summary all --libc %TEMP%\libc.txt
+      - run: zig build test -freference-trace --summary all --libc libc.txt
 
