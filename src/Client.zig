@@ -249,16 +249,6 @@ fn tcpConnectToAddress(address: net.Address) !Stream {
     return Stream{ .handle = sockfd };
 }
 
-pub fn setTimeOut(cl: *Client) !void {
-    const timeout = posix.timeval{ .sec = 1, .usec = 0 };
-    try posix.setsockopt(cl.stream.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
-}
-
-pub fn resetTimeOut(cl: *Client) !void {
-    const timeout = posix.timeval{ .sec = 0, .usec = 0 };
-    try posix.setsockopt(cl.stream.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
-}
-
 pub fn raiseAttention(cl: *Client) void {
     _ = cl.attention.post();
 }

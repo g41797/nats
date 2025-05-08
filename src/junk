@@ -322,3 +322,12 @@ pub fn copyCommonFields(source: anytype, dest: anytype) !usize {
     }
 }
 
+pub fn setTimeOut(cl: *Client) !void {
+    const timeout = posix.timeval{ .sec = 1, .usec = 0 };
+    try posix.setsockopt(cl.stream.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
+}
+
+pub fn resetTimeOut(cl: *Client) !void {
+    const timeout = posix.timeval{ .sec = 0, .usec = 0 };
+    try posix.setsockopt(cl.stream.handle, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
+}

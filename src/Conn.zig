@@ -450,8 +450,6 @@ fn read_line(cn: *Conn) !void {
 
     cn.line.reset();
 
-    try cn.setTimeOut();
-
     while (!cn.wasRaised()) {
         cn.sendHeartBit();
         const byte: u8 = cn.client.?.readByte() catch |er| {
@@ -471,7 +469,6 @@ fn read_line(cn: *Conn) !void {
         }
 
         if (byte == '\n') {
-            try cn.resetTimeOut();
             return;
         }
     }
@@ -498,14 +495,6 @@ inline fn wasRaised(cn: *Conn) bool {
 
 fn waitFinish(cn: *Conn) void {
     cn.thread.join();
-}
-
-fn setTimeOut(_: *Conn) !void {
-    // try cn.client.?.setTimeOut();
-}
-
-fn resetTimeOut(_: *Conn) !void {
-    // try cn.client.?.resetTimeOut();
 }
 
 pub fn requestNMT(cn: *Conn, subject: []const u8, headers: ?*Headers, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
