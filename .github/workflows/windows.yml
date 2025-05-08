@@ -22,6 +22,12 @@ jobs:
         with:
           version:   0.14.0
           use-cache: false
+      
+      - run: ./bin/windows/nats-server.exe  -js -m 8222 &
 
+      - name: Sleep for 30 seconds
+        run: Start-Sleep -s 30
+        shell: powershell
+       
       - run: zig build test -freference-trace --summary all
 
