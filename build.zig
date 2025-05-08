@@ -37,6 +37,7 @@ pub fn build(b: *std.Build) void {
     lib.root_module.addImport("zul", zul.module("zul"));
     if (builtin.os.tag == .windows) {
         lib.linkLibC();
+        lib.linkSystemLibrary("ws2_32");
     }
     
     // This declares intent for the library to be installed into the standard
@@ -93,6 +94,7 @@ pub fn build(b: *std.Build) void {
 
     if (builtin.os.tag == .windows) {
         lib_unit_tests.linkLibC();
+        lib_unit_tests.linkSystemLibrary("ws2_32");
     }
 
     b.installArtifact(lib_unit_tests);
