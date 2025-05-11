@@ -1375,3 +1375,11 @@ Client connection closed: Client Closed
 
 
 MSG NOTIFY NSID 0
+
+HMSG <subject> <sid> [reply-to] <#header bytes> <#total bytes>␍␊
+[headers]␍␊␍␊
+[payload]␍␊
+
+
+HMSG BF7D11BB-3A89-400B-BBFD-C4DA719E820C.4 1 81 
+

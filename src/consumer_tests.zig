@@ -5,39 +5,41 @@ const STREAM: []const u8 = "ORDERS";
 const DeleteConsumer: bool = true;
 const DontDeleteConsumer = !DeleteConsumer;
 
-// test "create/consume/delete consumer" {
-//     try deleteStream();
-//
-//     try createStream();
-//
-//     { // ephemeral consumer
-//         var conf: ConsumerConfig = .{};
-//         conf.filter_subject = "orders.*";
-//         var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
-//
-//         try testing.expectError(error.NoMessages, consumer.CONSUME(protocol.SECNS * 1));
-//
-//         defer consumer.STOP(null);
-//     }
-//
-//     { // durable consumer
-//         var conf: ConsumerConfig = .{
-//             .durable_name = "DurableConsumer",
-//         };
-//         conf.filter_subject = "orders.*";
-//         var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
-//
-//         try testing.expectError(error.NoMessages, consumer.CONSUME(protocol.SECNS * 1));
-//
-//         defer consumer.STOP(DeleteConsumer);
-//     }
-//
-//     return;
-// }
+test "create/consume/delete consumer" {
+    try deleteStream();
+
+    try createStream();
+
+    { // ephemeral consumer
+        var conf: ConsumerConfig = .{};
+        conf.filter_subject = "orders.*";
+        var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+
+        try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 1));
+
+        defer consumer.STOP(null);
+    }
+
+    { // durable consumer
+        var conf: ConsumerConfig = .{
+            .durable_name = "DurableConsumer",
+        };
+        conf.filter_subject = "orders.*";
+        var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+
+        try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 1));
+
+        defer consumer.STOP(DeleteConsumer);
+    }
+
+    return;
+}
 
 test "publish/consume" {
     try createStream();
 
+    try purgeStream();
+    
     defer _deleteStream();
 
     var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
@@ -50,25 +52,31 @@ test "publish/consume" {
     var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
     errdefer consumer.STOP(DeleteConsumer);
 
+    var order = try consumer.CONSUME(protocol.SECNS * 1);
+    try testing.expectEqual(null, order);
+
+    order = try consumer.CONSUME(protocol.SECNS * 1);
+    try testing.expectEqual(null, order);
+
     try js.PUBLISH("orders.received", null, "1");
     try js.PUBLISH("orders.received", null, "2");
     try js.PUBLISH("orders.received", null, "3");
     js.DISCONNECT();
 
-    var order = try consumer.CONSUME(protocol.SECNS * 20);
+    order = try consumer.CONSUME(protocol.SECNS * 2);
     try testing.expectEqual(std.mem.eql(u8, "1", order.?.letter.getPayload().?), true);
     try consumer.ACK(order.?, true);
 
-    order = try consumer.CONSUME(protocol.SECNS * 20);
+    order = try consumer.CONSUME(protocol.SECNS * 2);
     try testing.expectEqual(std.mem.eql(u8, "2", order.?.letter.getPayload().?), true);
     try consumer.ACK(order.?, true);
 
-    order = try consumer.CONSUME(protocol.SECNS * 20);
+    order = try consumer.CONSUME(protocol.SECNS * 2);
     try testing.expectEqual(std.mem.eql(u8, "3", order.?.letter.getPayload().?), true);
     try consumer.ACK(order.?, true);
 
-    try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 5));
-    try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 5));
+    try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 2));
+    try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 2));
 
     consumer.STOP(DeleteConsumer);
 

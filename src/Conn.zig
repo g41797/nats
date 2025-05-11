@@ -20,6 +20,8 @@ req_reply2: Formatter = .{},
 timeout_timer: std.time.Timer = undefined,
 allow_heartBit: bool = false,
 
+dump: Appendable = .{},
+
 pub fn connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
     {
         cn.mutex.lock();
@@ -58,6 +60,11 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
     }
 
     try cn.line.init(allocator, 128, 32);
+    if (builtin.mode == .Debug) {
+        try cn.dump.init(allocator, 4096, 32);
+        cn.dump.clean();
+    }
+
     cn.printbuf = try Formatter.init(allocator, 128);
     cn.pool.init(allocator);
     cn.received.init(allocator);
@@ -104,6 +111,11 @@ pub fn disconnect(cn: *Conn) void {
     cn.waitFinish();
 
     cn.line.deinit();
+
+    if (builtin.mode == .Debug) {
+        cn.forDebug();
+    }
+
     cn.printbuf.deinit();
     cn.req_reply2.deinit();
 
@@ -406,12 +418,13 @@ fn read_HMSG(cn: *Conn) !?*AllocatedMSG {
     const HDR_LEN = parsed.size;
 
     try cn.read_buffer(&alm.letter.headers.buffer, HDR_LEN);
-    try alm.letter.headers.buffer.shrink(2); // remove ␍␊
+    try alm.letter.headers.buffer.shrink(4); // remove ␍␊␍␊
 
     if (HDR_LEN == TOT_LEN) {
+        try cn.read_buffer(&alm.letter.payload, 2); // ␍␊
         alm.letter.payload.reset();
     } else {
-        try cn.read_buffer(&alm.letter.payload, TOT_LEN - HDR_LEN + 1);
+        try cn.read_buffer(&alm.letter.payload, TOT_LEN - HDR_LEN + 2);
         try alm.letter.payload.shrink(2); // remove ␍␊
     }
 
@@ -450,8 +463,12 @@ fn read_line(cn: *Conn) !void {
 
     cn.line.reset();
 
+    var cr: bool = false;
+
     while (!cn.wasRaised()) {
-        cn.sendHeartBit();
+        if (cn.line.actual_len == 0) {
+            cn.sendHeartBit();
+        }
         const byte: u8 = cn.client.?.readByte() catch |er| {
             if (er == error.WouldBlock) {
                 continue;
@@ -464,11 +481,30 @@ fn read_line(cn: *Conn) !void {
 
         try cn.line.append(&addIt);
 
+        if (builtin.mode == .Debug) {
+            try cn.dump.append(&addIt);
+        }
+
         if (byte == '\r') {
+            cr = true;
             continue;
         }
 
         if (byte == '\n') {
+            if (!cr) {
+                cn.line.buffer.?[cn.line.actual_len - 1] = '\r';
+                try cn.line.append(&addIt);
+            }
+            if (builtin.mode == .Debug) {
+                addIt[0] = '|';
+                try cn.dump.append(&addIt);
+            }
+            if (cn.line.actual_len <= 2) { // Strange case obsolete /r/n
+                cn.line.reset();
+                cr = false;
+                continue;
+            }
+
             return;
         }
     }
@@ -758,6 +794,7 @@ const Client = @import("Client.zig");
 const messages = @import("messages.zig");
 const Appendable = @import("Appendable.zig");
 const Formatter = @import("Formatter.zig");
+const utils = @import("utils.zig");
 
 const MT = messages.MessageType;
 const Header = messages.Header;
@@ -766,3 +803,7 @@ const HeaderIterator = messages.HeaderIterator;
 pub const alloc = messages.alloc;
 pub const Messages = messages.Messages;
 pub const AllocatedMSG = messages.AllocatedMSG;
+
+fn forDebug(cn: *Conn) void {
+    cn.dump.deinit();
+}

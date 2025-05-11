@@ -292,7 +292,7 @@ fn getNext(cs: *Consumer, timeout_ns: u64) !?*AllocatedMSG {
     const gnm: ConsumerGetNextMsgRequest = .{
         .expires = timeout_ns,
         .batch = 1,
-        // .no_wait = true,
+        .no_wait = true,
     };
 
     _ = try cs.jsn.stringify(gnm, .{

@@ -97,6 +97,12 @@ pub fn alloc(apndbl: *Appendable, len: usize) !void {
     return;
 }
 
+pub fn clean(apndbl: *Appendable) void {
+    if (apndbl.buffer != null) {
+        @memset(apndbl.buffer.?, 0);
+    }
+}
+
 fn free(apndbl: *Appendable) void {
     if (apndbl.buffer != null) {
         apndbl.allocator.free(apndbl.buffer.?);

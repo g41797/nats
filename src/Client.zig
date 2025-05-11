@@ -25,8 +25,11 @@ pub fn connect(allocator: Allocator, co: protocol.ConnectOpts) !Client {
     }
     var client: Client = .{};
 
-    client.stream = try tcpConnectToHost(allocator, host, prt);
+    client.stream = try net.tcpConnectToHost(allocator, host, prt);
     client.connected = true;
+    errdefer client.close();
+    try setSockNONBLOCK(client.stream.handle);
+
     return client;
 }
 
@@ -163,7 +166,14 @@ pub fn readByte(cl: *Client) !u8 {
 
         switch (pollstatus) {
             1 => {
-                _ = try cl.stream.read(&byte);
+                byte[0] = 0;
+                const rlen = try cl.stream.read(&byte);
+                if (rlen == 0) {
+                    return error.WouldBlock;
+                }
+                if (byte[0] == 0) {
+                    return error.WouldBlock;
+                }
                 return byte[0];
             },
             0 => return error.WouldBlock,
@@ -217,36 +227,6 @@ pub fn readAll(cl: *Client, buffer: []u8) !usize {
     }
 
     return index;
-}
-
-fn tcpConnectToHost(allocator: Allocator, name: []const u8, port: u16) !Stream {
-    const list = try net.getAddressList(allocator, name, port);
-    defer list.deinit();
-
-    if (list.addrs.len == 0) return error.UnknownHostName;
-
-    for (list.addrs) |addr| {
-        return tcpConnectToAddress(addr) catch |err| switch (err) {
-            error.ConnectionRefused => {
-                continue;
-            },
-            else => return err,
-        };
-    }
-    return posix.ConnectError.ConnectionRefused;
-}
-
-fn tcpConnectToAddress(address: net.Address) !Stream {
-    const sock_flags = posix.SOCK.STREAM |
-        (if (builtin.target.os.tag == .windows) 0 else posix.SOCK.CLOEXEC);
-    const sockfd = try posix.socket(address.any.family, sock_flags, posix.IPPROTO.TCP);
-    errdefer Stream.close(.{ .handle = sockfd });
-
-    try posix.connect(sockfd, &address.any, address.getOsSockLen());
-
-    try setSockNONBLOCK(sockfd);
-
-    return Stream{ .handle = sockfd };
 }
 
 pub fn raiseAttention(cl: *Client) void {
