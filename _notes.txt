@@ -45,7 +45,10 @@ MQTT client for Zig
     https://github.com/karlseguin/mqttz
     
 Submodules
-    git submodule add https://github.com/nats-io/nats.c src/submodules/nats.c
+    Add
+        git submodule add https://github.com/nats-io/nats.c src/submodules/nats.c
+    Remove
+    git rm <path-to-submodule> [-r], and commit.
     
 HTTP messages
     https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages

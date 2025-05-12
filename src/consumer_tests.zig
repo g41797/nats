@@ -35,11 +35,64 @@ test "create/consume/delete consumer" {
     return;
 }
 
-test "publish/consume" {
+test "publish/consume ephemeral consumer" {
     try createStream();
 
     try purgeStream();
-    
+
+    defer _deleteStream();
+
+    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+
+    // ephemeral consumer
+    var conf: ConsumerConfig = .{
+        .filter_subject = "orders.*",
+    };
+
+    var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+    errdefer consumer.STOP(DeleteConsumer);
+
+    var order = try consumer.CONSUME(protocol.SECNS * 1);
+    try testing.expectEqual(null, order);
+
+    order = try consumer.CONSUME(protocol.SECNS * 1);
+    try testing.expectEqual(null, order);
+
+    try js.PUBLISH("orders.received", null, "1");
+    try js.PUBLISH("orders.received", null, "2");
+    try js.PUBLISH("orders.received", null, "3");
+    js.DISCONNECT();
+
+    order = try consumer.CONSUME(protocol.SECNS * 2);
+    try testing.expectEqual(std.mem.eql(u8, "1", order.?.letter.getPayload().?), true);
+    try consumer.ACK(order.?, true);
+
+    order = try consumer.CONSUME(protocol.SECNS * 2);
+    try testing.expectEqual(std.mem.eql(u8, "2", order.?.letter.getPayload().?), true);
+    try consumer.ACK(order.?, true);
+
+    order = try consumer.CONSUME(protocol.SECNS * 2);
+    try testing.expectEqual(std.mem.eql(u8, "3", order.?.letter.getPayload().?), true);
+    try consumer.NACK(order.?, true);
+
+    order = try consumer.CONSUME(protocol.SECNS * 2);
+    try testing.expectEqual(std.mem.eql(u8, "3", order.?.letter.getPayload().?), true);
+    try consumer.ACK(order.?, true);
+
+    try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 2));
+
+    try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 2));
+
+    consumer.STOP(DeleteConsumer);
+
+    return;
+}
+
+test "publish/consume durable consumer" {
+    try createStream();
+
+    try purgeStream();
+
     defer _deleteStream();
 
     var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
@@ -47,8 +100,9 @@ test "publish/consume" {
     // durable consumer
     var conf: ConsumerConfig = .{
         .durable_name = "DurableConsumer",
+        .filter_subject = "orders.*",
     };
-    conf.filter_subject = "orders.*";
+
     var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
     errdefer consumer.STOP(DeleteConsumer);
 

@@ -3,108 +3,6 @@
 
 pub const Consumer = @This();
 
-const ACTION_CREATE_CONSUMER: []const u8 = "create";
-const ACTION_UPDATE_CONSUMER: []const u8 = "update";
-const ACTION_CREATE_OR_UPDATE_CONSUMER: []const u8 = "";
-
-pub const ACK_CONSUME_T: []const u8 = "$JS.ACK.{s}.{s}";
-
-pub const CONSUME_NEXT_MSG_T: []const u8 = "$JS.API.CONSUMER.MSG.NEXT.{s}.{s}";
-
-const CreateConsumerRequest = struct {
-    stream_name: []const u8 = undefined,
-    config: InternalConsumerConfig = undefined,
-    action: String = undefined,
-};
-
-// type JSApiConsumerGetNextRequest struct {
-//     Expires   time.Duration `json:"expires,omitempty"`
-//     Batch     int           `json:"batch,omitempty"`
-//     MaxBytes  int           `json:"max_bytes,omitempty"`
-//     NoWait    bool          `json:"no_wait,omitempty"`
-//     Heartbeat time.Duration `json:"idle_heartbeat,omitempty"`
-//     PriorityGroup
-// }
-
-const ConsumerGetNextMsgRequest = struct {
-    expires: ?u64 = null,
-    batch: ?i32 = null,
-    no_wait: ?bool = null,
-};
-
-//------------------
-// Go ConsumerConfig
-//------------------
-// type ConsumerConfig struct {
-//     Durable         string          `json:"durable_name,omitempty"`
-//     Name            string          `json:"name,omitempty"`
-//     Description     string          `json:"description,omitempty"`
-//     DeliverPolicy   DeliverPolicy   `json:"deliver_policy"`
-//     OptStartSeq     uint64          `json:"opt_start_seq,omitempty"`
-//     OptStartTime    *time.Time      `json:"opt_start_time,omitempty"`
-//     AckPolicy       AckPolicy       `json:"ack_policy"`
-//     AckWait         time.Duration   `json:"ack_wait,omitempty"`
-//     MaxDeliver      int             `json:"max_deliver,omitempty"`
-//     BackOff         []time.Duration `json:"backoff,omitempty"`
-//     FilterSubject   string          `json:"filter_subject,omitempty"`
-//     FilterSubjects  []string        `json:"filter_subjects,omitempty"`
-//     ReplayPolicy    ReplayPolicy    `json:"replay_policy"`
-//     RateLimit       uint64          `json:"rate_limit_bps,omitempty"` // Bits per sec
-//     SampleFrequency string          `json:"sample_freq,omitempty"`
-//     MaxWaiting      int             `json:"max_waiting,omitempty"`
-//     MaxAckPending   int             `json:"max_ack_pending,omitempty"`
-//     FlowControl     bool            `json:"flow_control,omitempty"`
-//     Heartbeat       time.Duration   `json:"idle_heartbeat,omitempty"`
-//     HeadersOnly     bool            `json:"headers_only,omitempty"`
-//
-//     // Pull based options.
-//     MaxRequestBatch    int           `json:"max_batch,omitempty"`
-//     MaxRequestExpires  time.Duration `json:"max_expires,omitempty"`
-//     MaxRequestMaxBytes int           `json:"max_bytes,omitempty"`
-//
-//     // Push based consumers.
-//     DeliverSubject string `json:"deliver_subject,omitempty"`
-//     DeliverGroup   string `json:"deliver_group,omitempty"`
-//
-//     // Inactivity threshold.
-//     InactiveThreshold time.Duration `json:"inactive_threshold,omitempty"`
-//
-//     // Generally inherited by parent stream and other markers, now can be configured directly.
-//     Replicas int `json:"num_replicas"`
-//     // Force memory storage.
-//     MemoryStorage bool `json:"mem_storage,omitempty"`
-//
-//     // Metadata is additional metadata for the Consumer.
-//     // Keys starting with `_nats` are reserved.
-//     // NOTE: Metadata requires nats-server v2.10.0+
-//     Metadata map[string]string `json:"metadata,omitempty"`
-// }
-
-pub const InternalConsumerConfig = struct {
-    durable_name: ?String = null,
-    name: ?String = null,
-    description: ?String = null,
-    deliver_policy: String = undefined,
-
-    ack_policy: String = undefined,
-    ack_wait: u64 = undefined,
-
-    max_ack_pending: ?i32 = null,
-    max_waiting: ?i32 = null,
-    max_deliver: ?i32 = null,
-
-    filter_subject: ?String = null,
-    replay_policy: String = undefined,
-
-    headers_only: ?bool = null,
-
-    num_replicas: i32 = undefined,
-    mem_storage: ?bool = null,
-
-    flow_control: ?bool = false,
-    idle_heartbeat: ?u64 = null,
-};
-
 mutex: Mutex = .{},
 allocator: Allocator = undefined,
 co: protocol.ConnectOpts = undefined,
@@ -334,7 +232,7 @@ fn ack(cs: *Consumer, msg: *AllocatedMSG) !void {
     _ = try cs.connection.?.@"pub"(msg.letter.ReplyTo().?, null, "+ACK");
 }
 
-fn nack(cs: *Consumer, msg: *AllocatedMSG) void {
+fn nack(cs: *Consumer, msg: *AllocatedMSG) !void {
     _ = try cs.connection.?.@"pub"(msg.letter.ReplyTo().?, null, "-NAK");
 }
 
@@ -400,6 +298,108 @@ fn deinit(cs: *Consumer) void {
 
     return;
 }
+
+const ACTION_CREATE_CONSUMER: []const u8 = "create";
+const ACTION_UPDATE_CONSUMER: []const u8 = "update";
+const ACTION_CREATE_OR_UPDATE_CONSUMER: []const u8 = "";
+
+pub const ACK_CONSUME_T: []const u8 = "$JS.ACK.{s}.{s}";
+
+pub const CONSUME_NEXT_MSG_T: []const u8 = "$JS.API.CONSUMER.MSG.NEXT.{s}.{s}";
+
+const CreateConsumerRequest = struct {
+    stream_name: []const u8 = undefined,
+    config: InternalConsumerConfig = undefined,
+    action: String = undefined,
+};
+
+// type JSApiConsumerGetNextRequest struct {
+//     Expires   time.Duration `json:"expires,omitempty"`
+//     Batch     int           `json:"batch,omitempty"`
+//     MaxBytes  int           `json:"max_bytes,omitempty"`
+//     NoWait    bool          `json:"no_wait,omitempty"`
+//     Heartbeat time.Duration `json:"idle_heartbeat,omitempty"`
+//     PriorityGroup
+// }
+
+const ConsumerGetNextMsgRequest = struct {
+    expires: ?u64 = null,
+    batch: ?i32 = null,
+    no_wait: ?bool = null,
+};
+
+//------------------
+// Go ConsumerConfig
+//------------------
+// type ConsumerConfig struct {
+//     Durable         string          `json:"durable_name,omitempty"`
+//     Name            string          `json:"name,omitempty"`
+//     Description     string          `json:"description,omitempty"`
+//     DeliverPolicy   DeliverPolicy   `json:"deliver_policy"`
+//     OptStartSeq     uint64          `json:"opt_start_seq,omitempty"`
+//     OptStartTime    *time.Time      `json:"opt_start_time,omitempty"`
+//     AckPolicy       AckPolicy       `json:"ack_policy"`
+//     AckWait         time.Duration   `json:"ack_wait,omitempty"`
+//     MaxDeliver      int             `json:"max_deliver,omitempty"`
+//     BackOff         []time.Duration `json:"backoff,omitempty"`
+//     FilterSubject   string          `json:"filter_subject,omitempty"`
+//     FilterSubjects  []string        `json:"filter_subjects,omitempty"`
+//     ReplayPolicy    ReplayPolicy    `json:"replay_policy"`
+//     RateLimit       uint64          `json:"rate_limit_bps,omitempty"` // Bits per sec
+//     SampleFrequency string          `json:"sample_freq,omitempty"`
+//     MaxWaiting      int             `json:"max_waiting,omitempty"`
+//     MaxAckPending   int             `json:"max_ack_pending,omitempty"`
+//     FlowControl     bool            `json:"flow_control,omitempty"`
+//     Heartbeat       time.Duration   `json:"idle_heartbeat,omitempty"`
+//     HeadersOnly     bool            `json:"headers_only,omitempty"`
+//
+//     // Pull based options.
+//     MaxRequestBatch    int           `json:"max_batch,omitempty"`
+//     MaxRequestExpires  time.Duration `json:"max_expires,omitempty"`
+//     MaxRequestMaxBytes int           `json:"max_bytes,omitempty"`
+//
+//     // Push based consumers.
+//     DeliverSubject string `json:"deliver_subject,omitempty"`
+//     DeliverGroup   string `json:"deliver_group,omitempty"`
+//
+//     // Inactivity threshold.
+//     InactiveThreshold time.Duration `json:"inactive_threshold,omitempty"`
+//
+//     // Generally inherited by parent stream and other markers, now can be configured directly.
+//     Replicas int `json:"num_replicas"`
+//     // Force memory storage.
+//     MemoryStorage bool `json:"mem_storage,omitempty"`
+//
+//     // Metadata is additional metadata for the Consumer.
+//     // Keys starting with `_nats` are reserved.
+//     // NOTE: Metadata requires nats-server v2.10.0+
+//     Metadata map[string]string `json:"metadata,omitempty"`
+// }
+
+pub const InternalConsumerConfig = struct {
+    durable_name: ?String = null,
+    name: ?String = null,
+    description: ?String = null,
+    deliver_policy: String = undefined,
+
+    ack_policy: String = undefined,
+    ack_wait: u64 = undefined,
+
+    max_ack_pending: ?i32 = null,
+    max_waiting: ?i32 = null,
+    max_deliver: ?i32 = null,
+
+    filter_subject: ?String = null,
+    replay_policy: String = undefined,
+
+    headers_only: ?bool = null,
+
+    num_replicas: i32 = undefined,
+    mem_storage: ?bool = null,
+
+    flow_control: ?bool = false,
+    idle_heartbeat: ?u64 = null,
+};
 
 const RequestTimeout = "NATS/1.0 408";
 const NoMessages = "NATS/1.0 404";

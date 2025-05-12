@@ -43,9 +43,6 @@ pub fn close(cl: *Client) void {
     return;
 }
 
-//
-// Non MT write wrappers
-//
 pub fn writeAll(cl: *Client, bytes: []const u8) !void {
     if (!cl.connected) {
         return error.NotConnected;
@@ -95,7 +92,6 @@ pub fn writevAll(cl: *Client, iovecs: []posix.iovec_const) !void {
     if (!cl.connected) {
         return error.NotConnected;
     }
-    // try cl.stream.writevAll(iovecs);
 
     if (iovecs.len == 0) {
         return;
@@ -143,9 +139,6 @@ pub fn writevAll(cl: *Client, iovecs: []posix.iovec_const) !void {
     }
 }
 
-//
-// Non MT read wrappers
-//
 pub fn readByte(cl: *Client) !u8 {
     if (!cl.connected) {
         return error.NotConnected;
@@ -171,9 +164,6 @@ pub fn readByte(cl: *Client) !u8 {
                 if (rlen == 0) {
                     return error.WouldBlock;
                 }
-                if (byte[0] == 0) {
-                    return error.WouldBlock;
-                }
                 return byte[0];
             },
             0 => return error.WouldBlock,
@@ -185,9 +175,6 @@ pub fn readByte(cl: *Client) !u8 {
 pub fn readAll(cl: *Client, buffer: []u8) !usize {
     if (!cl.connected) {
         return error.NotConnected;
-    }
-    if (cl.wasRaised()) { // move to poll loop
-        return error.WasCancelled;
     }
 
     var _poll: pollfd = .{
@@ -201,6 +188,10 @@ pub fn readAll(cl: *Client, buffer: []u8) !usize {
     var index: usize = 0;
 
     while (index < buffer.len) {
+        if (cl.wasRaised()) {
+            return error.WasCancelled;
+        }
+
         rpoll[0].revents = 0;
 
         const pollstatus = system.poll(rpoll, 1, INFINITE_TIMEOUT_MS);
