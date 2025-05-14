@@ -253,3 +253,7 @@ Add support for debugging tests launched from Zig Build #82
         <method v="2" />
       </configuration>
     </component>    
+
+
+Using std.os.poll on windows causes undefined reference error #16122
+    https://github.com/ziglang/zig/issues/16122
