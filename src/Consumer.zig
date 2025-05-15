@@ -97,6 +97,28 @@ pub fn REUSE(cs: *Consumer, msg: *AllocatedMSG) void {
     cs.reuse(msg);
 }
 
+pub fn PUBLISH(cs: *Consumer, subject: []const u8, headers: ?*Headers, payload: ?[]const u8) !void { // Check HEADERS
+    cs.mutex.lock();
+    defer cs.mutex.unlock();
+
+    if (cs.connection == null) {
+        return error.NotConnected;
+    }
+
+    const response = try cs.connection.?.requestNMT(subject, headers, payload, protocol.SECNS * 10);
+    defer cs.connection.?.reuse(response);
+
+    if (response.letter.getPayload()) |data| {
+        if (parse.isFailed(data)) {
+            return error.JetStreamsRequestFailed;
+        } else {
+            return;
+        }
+    } else {
+        return;
+    }
+}
+
 fn start(cs: *Consumer, cscnf: *ConsumerConfig) !void {
     // try cs.subscribe();
 

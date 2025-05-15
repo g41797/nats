@@ -137,6 +137,103 @@ test "publish/consume durable consumer" {
     return;
 }
 
+test "publish/consume two consumers" {
+    try createStream();
+    try purgeStream();
+    defer _deleteStream();
+
+    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    try js.PUBLISH("orders.received", null, "1");
+    js.DISCONNECT();
+
+    var conf: ConsumerConfig = .{
+        .durable_name = "NEW",
+        .filter_subject = "orders.received",
+    };
+
+    var NEW: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+    errdefer NEW.STOP(DeleteConsumer);
+
+    conf = .{
+        .durable_name = "DISPATCH",
+        .filter_subject = "orders.processed",
+    };
+
+    var DISPATCH: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+    errdefer DISPATCH.STOP(DeleteConsumer);
+
+    var order = try NEW.CONSUME(protocol.SECNS * 2);
+    try testing.expectEqual(std.mem.eql(u8, "1", order.?.letter.getPayload().?), true);
+    try NEW.ACK(order.?, false);
+    try NEW.PUBLISH("orders.processed", null, order.?.letter.getPayload().?);
+    NEW.REUSE(order.?);
+
+    order = try DISPATCH.CONSUME(protocol.SECNS * 2);
+    try testing.expectEqual(std.mem.eql(u8, "1", order.?.letter.getPayload().?), true);
+    try DISPATCH.ACK(order.?, true);
+
+    NEW.STOP(DeleteConsumer);
+    DISPATCH.STOP(DeleteConsumer);
+
+    return;
+}
+
+test "publish/consume/subscribe" {
+    try createStream();
+    try purgeStream();
+    defer _deleteStream();
+
+    var subscriber: Subscriber = try Subscriber.SUBSCRIBE(std.testing.allocator, .{}, STREAM, "orders.*");
+    defer subscriber.UNSUBSCRIBE();
+
+    var mcount: u8 = 0;
+
+    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    try js.PUBLISH("orders.received", null, "1");
+    mcount += 1;
+    js.DISCONNECT();
+
+    var conf: ConsumerConfig = .{
+        .durable_name = "NEW",
+        .filter_subject = "orders.received",
+    };
+
+    var NEW: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+    errdefer NEW.STOP(DeleteConsumer);
+
+    conf = .{
+        .durable_name = "DISPATCH",
+        .filter_subject = "orders.processed",
+    };
+
+    var DISPATCH: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+    errdefer DISPATCH.STOP(DeleteConsumer);
+
+    var order = try NEW.CONSUME(protocol.SECNS * 2);
+    try testing.expectEqual(std.mem.eql(u8, "1", order.?.letter.getPayload().?), true);
+    try NEW.ACK(order.?, false);
+    try NEW.PUBLISH("orders.processed", null, order.?.letter.getPayload().?);
+    mcount += 1;
+    NEW.REUSE(order.?);
+
+    order = try DISPATCH.CONSUME(protocol.SECNS * 2);
+    try testing.expectEqual(std.mem.eql(u8, "1", order.?.letter.getPayload().?), true);
+    try DISPATCH.ACK(order.?, false);
+    try DISPATCH.PUBLISH("orders.completed", null, order.?.letter.getPayload().?);
+    mcount += 1;
+    DISPATCH.REUSE(order.?);
+
+    NEW.STOP(DeleteConsumer);
+    DISPATCH.STOP(DeleteConsumer);
+
+    for (0..mcount) |_| {
+        const pmsg = try subscriber.NEXT(protocol.SECNS * 5);
+
+        subscriber.REUSE(pmsg);
+    }
+    return;
+}
+
 fn createStream() !void {
     var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
     defer js.DISCONNECT();
@@ -177,6 +274,7 @@ const messages = @import("messages.zig");
 const Conn = @import("Conn.zig");
 const JetStream = @import("JetStream.zig");
 const Consumer = @import("Consumer.zig");
+const Subscriber = @import("Subscriber.zig");
 
 const Messages = messages.Messages;
 const AllocatedMSG = messages.AllocatedMSG;
