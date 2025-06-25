@@ -33,6 +33,13 @@ pub fn build(b: *std.Build) void {
         .single_threaded = false,
     });
 
+    _ = b.addModule("nats", .{
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+
     lib.root_module.addImport("mailbox", mailbox.module("mailbox"));
     lib.root_module.addImport("zul", zul.module("zul"));
     if (builtin.os.tag == .windows) {
