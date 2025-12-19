@@ -17,13 +17,13 @@ pub const Client = @import("Client.zig");
 /// Parsing utilities for NATS protocol messages.
 pub const parse = @import("parse.zig");
 
-const protocol = @import("protocol.zig");
-const Core = @import("Core.zig");
-const Conn = @import("Conn.zig");
-const JS = @import("JetStream.zig");
-const pool = @import("messages.zig");
-const Subscriber = @import("Subscriber.zig");
-const Consumer = @import("Consumer.zig");
+pub const protocol = @import("protocol.zig");
+pub const Core = @import("Core.zig");
+pub const Conn = @import("Conn.zig");
+pub const JS = @import("JetStream.zig");
+pub const pool = @import("messages.zig");
+pub const Subscriber = @import("Subscriber.zig");
+pub const Consumer = @import("Consumer.zig");
 
 /// General utility functions for field copying and string operations.
 pub const utils = @import("utils.zig");
