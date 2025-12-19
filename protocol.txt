@@ -395,4 +395,4 @@ Nats-Pending-Messages: 1
 Nats-Pending-Bytes: 0
 
 408 Request Timeout' instead of '404 No Messages' from $JS.API.CONSUMER.MSG.NEXT.<stream>.<consumer> [v2.10.14]
-    https://github.com/nats-io/nats-server/issues/5373
+    https://github.com/nats-io/nats-server/issues/5373 fixed  #7466 on Oct 24 2025
