@@ -1,12 +1,16 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
+/// NATS Core client for basic publish/subscribe messaging.
+/// Provides the fundamental NATS protocol operations.
 pub const Core = @This();
 
 mutex: Mutex = .{},
 allocator: Allocator = undefined,
 connection: ?*Conn = null,
 
+/// Connects to a NATS server.
+/// Returns an error if already connected.
 pub fn CONNECT(core: *Core, allocator: Allocator, co: protocol.ConnectOpts) !void {
     core.mutex.lock();
     defer core.mutex.unlock();
@@ -23,6 +27,7 @@ pub fn CONNECT(core: *Core, allocator: Allocator, co: protocol.ConnectOpts) !voi
     return;
 }
 
+/// Disconnects from the NATS server and releases all resources.
 pub fn DISCONNECT(core: *Core) void {
     core.mutex.lock();
     defer core.mutex.unlock();
@@ -201,4 +206,5 @@ const Allocator = std.mem.Allocator;
 const Mutex = std.Thread.Mutex;
 
 const Headers = messages.Headers;
+/// Re-export of the allocated message type.
 pub const AllocatedMSG = messages.AllocatedMSG;

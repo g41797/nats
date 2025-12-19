@@ -6,7 +6,7 @@
     //
     // It is redundant to include "zig" in this name because it is already
     // within the Zig package namespace.
-    .name = .nats,
+    .name = "nats",
 
     .fingerprint = 0x31f7624f839e6231,
 
@@ -30,14 +30,14 @@
             .hash = "12208d8777b69f62cccf70b4372d8c31a22bb022881279713d424689d6555532d389",
         },
         .zul = .{
-            .url = "git+https://github.com/karlseguin/zul#d9142c73aedc5698beba58b3fbf2bcfe69864778",
-            .hash = "zul-0.0.0-1oDot0BCBwA9cUo5OOrPs5NGmvoM7sk1ztfbdfL7mh4P",
+            .path = "vendor/zul",
         },
     },
     .paths = .{
         "build.zig",
         "build.zig.zon",
         "src",
+        "vendor",
         "LICENSE",
     },
 }

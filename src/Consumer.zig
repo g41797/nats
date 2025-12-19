@@ -1,6 +1,8 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
+/// JetStream consumer for pull-based message consumption.
+/// Supports both durable and ephemeral consumers.
 pub const Consumer = @This();
 
 mutex: Mutex = .{},
@@ -17,6 +19,8 @@ sid: u64 = 0,
 created: bool = false,
 req_reply2: Formatter = .{},
 
+/// Creates and starts a new JetStream consumer.
+/// Returns a Consumer instance connected to the specified stream.
 pub fn START(allocator: Allocator, co: protocol.ConnectOpts, stream: []const u8, cscnf: *ConsumerConfig) !Consumer {
     var cs: Consumer = .{ .allocator = allocator };
 
@@ -37,6 +41,8 @@ pub fn START(allocator: Allocator, co: protocol.ConnectOpts, stream: []const u8,
     return cs;
 }
 
+/// Fetches the next message from the consumer with the specified timeout.
+/// Returns null if no messages are available.
 pub fn CONSUME(cs: *Consumer, timeout_ns: u64) !?*AllocatedMSG {
     cs.mutex.lock();
     defer cs.mutex.unlock();
@@ -50,6 +56,8 @@ pub fn CONSUME(cs: *Consumer, timeout_ns: u64) !?*AllocatedMSG {
     return gnmresp;
 }
 
+/// Stops the consumer and optionally deletes it from the server.
+/// Releases all resources associated with the consumer.
 pub fn STOP(cs: *Consumer, delete: ?bool) void {
     cs.mutex.lock();
     defer cs.mutex.unlock();
@@ -64,6 +72,8 @@ pub fn STOP(cs: *Consumer, delete: ?bool) void {
     return;
 }
 
+/// Acknowledges a message, indicating successful processing.
+/// Optionally returns the message to the pool for reuse.
 pub fn ACK(cs: *Consumer, msg: *AllocatedMSG, reuseMsg: bool) !void {
     cs.mutex.lock();
     defer cs.mutex.unlock();
@@ -77,6 +87,8 @@ pub fn ACK(cs: *Consumer, msg: *AllocatedMSG, reuseMsg: bool) !void {
     }
 }
 
+/// Negatively acknowledges a message, requesting redelivery.
+/// Optionally returns the message to the pool for reuse.
 pub fn NACK(cs: *Consumer, msg: *AllocatedMSG, reuseMsg: bool) !void {
     cs.mutex.lock();
     defer cs.mutex.unlock();
@@ -90,6 +102,7 @@ pub fn NACK(cs: *Consumer, msg: *AllocatedMSG, reuseMsg: bool) !void {
     }
 }
 
+/// Returns a message to the pool for reuse.
 pub fn REUSE(cs: *Consumer, msg: *AllocatedMSG) void {
     cs.mutex.lock();
     defer cs.mutex.unlock();
@@ -97,7 +110,8 @@ pub fn REUSE(cs: *Consumer, msg: *AllocatedMSG) void {
     cs.reuse(msg);
 }
 
-pub fn PUBLISH(cs: *Consumer, subject: []const u8, headers: ?*Headers, payload: ?[]const u8) !void { // Check HEADERS
+/// Publishes a message to JetStream with optional headers and payload.
+pub fn PUBLISH(cs: *Consumer, subject: []const u8, headers: ?*Headers, payload: ?[]const u8) !void {
     cs.mutex.lock();
     defer cs.mutex.unlock();
 
@@ -325,8 +339,10 @@ const ACTION_CREATE_CONSUMER: []const u8 = "create";
 const ACTION_UPDATE_CONSUMER: []const u8 = "update";
 const ACTION_CREATE_OR_UPDATE_CONSUMER: []const u8 = "";
 
+/// Template for ACK subject in JetStream.
 pub const ACK_CONSUME_T: []const u8 = "$JS.ACK.{s}.{s}";
 
+/// Template for requesting the next message from a consumer.
 pub const CONSUME_NEXT_MSG_T: []const u8 = "$JS.API.CONSUMER.MSG.NEXT.{s}.{s}";
 
 const CreateConsumerRequest = struct {
@@ -398,6 +414,7 @@ const ConsumerGetNextMsgRequest = struct {
 //     Metadata map[string]string `json:"metadata,omitempty"`
 // }
 
+/// Internal consumer configuration used for JetStream API requests.
 pub const InternalConsumerConfig = struct {
     durable_name: ?String = null,
     name: ?String = null,
@@ -461,6 +478,7 @@ const Allocator = std.mem.Allocator;
 const Mutex = std.Thread.Mutex;
 
 const Headers = messages.Headers;
+/// Re-export of the allocated message type.
 pub const AllocatedMSG = messages.AllocatedMSG;
 const Formatter = @import("Formatter.zig");
 

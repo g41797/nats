@@ -257,3 +257,6 @@ Add support for debugging tests launched from Zig Build #82
 
 Using std.os.poll on windows causes undefined reference error #16122
     https://github.com/ziglang/zig/issues/16122
+
+Generate docs
+    zig build-lib src/root.zig -femit-docs=docs -fno-emit-bin

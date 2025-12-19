@@ -1,6 +1,8 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
+/// JetStream push-based subscriber for receiving messages.
+/// Creates an ephemeral consumer that pushes messages to the client.
 pub const Subscriber = @This();
 
 const CREATE_SUBJECT_SUBSCRIBER: []const u8 = "$JS.API.CONSUMER.CREATE.{s}.{s}.{s}";
@@ -19,6 +21,8 @@ subscr_sid: u64 = 0,
 name: [36]u8 = undefined,
 subscribed: bool = false,
 
+/// Creates a subscriber for the specified stream and subject.
+/// Use ">" to subscribe to all subjects in the stream.
 pub fn SUBSCRIBE(allocator: Allocator, co: protocol.ConnectOpts, stream: []const u8, subject: []const u8) !Subscriber {
     var sb: Subscriber = .{ .allocator = allocator };
 
@@ -36,6 +40,7 @@ pub fn SUBSCRIBE(allocator: Allocator, co: protocol.ConnectOpts, stream: []const
     return sb;
 }
 
+/// Waits for and returns the next pushed message with timeout.
 pub fn NEXT(sb: *Subscriber, timeout_ns: u64) error{ Interrupted, Closed, NotConnected, Timeout, CommunicationFailure }!*AllocatedMSG {
     sb.mutex.lock();
     defer sb.mutex.unlock();
@@ -47,6 +52,7 @@ pub fn NEXT(sb: *Subscriber, timeout_ns: u64) error{ Interrupted, Closed, NotCon
     return sb.connection.?.waitMessageNMT(timeout_ns, null);
 }
 
+/// Returns a message to the pool for reuse.
 pub fn REUSE(sb: *Subscriber, msg: *AllocatedMSG) void {
     sb.mutex.lock();
     defer sb.mutex.unlock();
@@ -57,6 +63,7 @@ pub fn REUSE(sb: *Subscriber, msg: *AllocatedMSG) void {
     sb.connection.?.reuse(msg);
 }
 
+/// Unsubscribes and releases all resources.
 pub fn UNSUBSCRIBE(sb: *Subscriber) void {
     sb.mutex.lock();
     defer sb.mutex.unlock();
@@ -175,6 +182,7 @@ fn process(sb: *Subscriber, timeout_ns: u64) !?*AllocatedMSG {
     }
 }
 
+/// Configuration for push-based JetStream subscribers.
 pub const SubscriberConfig = struct {
     description: ?String = null,
     ack_policy: String = protocol.ACKPOLICY_EXPLICIT,
@@ -219,6 +227,7 @@ const Allocator = std.mem.Allocator;
 const Mutex = std.Thread.Mutex;
 
 const Headers = messages.Headers;
+/// Re-export of the allocated message type.
 pub const AllocatedMSG = messages.AllocatedMSG;
 const Formatter = @import("Formatter.zig");
 

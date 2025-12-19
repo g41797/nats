@@ -39,14 +39,13 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-
     lib.root_module.addImport("mailbox", mailbox.module("mailbox"));
     lib.root_module.addImport("zul", zul.module("zul"));
     if (builtin.os.tag == .windows) {
         lib.linkLibC();
         lib.linkSystemLibrary("ws2_32");
     }
-    
+
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
@@ -117,7 +116,7 @@ pub fn build(b: *std.Build) void {
         exe_unit_tests.linkLibC();
         exe_unit_tests.linkSystemLibrary("ws2_32");
     }
-    
+
     _ = b.addRunArtifact(exe_unit_tests);
 
     // Similar to creating the run step earlier, this exposes a `test` step to

@@ -1,6 +1,8 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
+/// NATS connection manager handling protocol communication.
+/// Manages TCP connection, message parsing, and request-reply patterns.
 pub const Conn = @This();
 
 mutex: Mutex = .{},
@@ -22,6 +24,8 @@ allow_heartBit: bool = false,
 
 dump: Appendable = .{},
 
+/// Establishes a connection to the NATS server.
+/// Spawns a background thread for reading messages.
 pub fn connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
     {
         cn.mutex.lock();
@@ -90,6 +94,7 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
     return;
 }
 
+/// Disconnects from the NATS server and releases all resources.
 pub fn disconnect(cn: *Conn) void {
     cn.mutex.lock();
     defer cn.mutex.unlock();
@@ -125,6 +130,8 @@ pub fn disconnect(cn: *Conn) void {
     return;
 }
 
+/// Fetches a received message from the queue with timeout.
+/// Returns Interrupted if an interrupt signal was received.
 pub fn fetch(cn: *Conn, timeout_ns: u64) error{ Interrupted, Timeout, Closed }!*AllocatedMSG {
     if (cn.received.receive(timeout_ns)) |recvd| {
         if (recvd.*.letter.mt == .INTERRUPT) {
@@ -137,6 +144,7 @@ pub fn fetch(cn: *Conn, timeout_ns: u64) error{ Interrupted, Timeout, Closed }!*
     }
 }
 
+/// Sends an interrupt signal to wake up waiting operations.
 pub fn interrupt(cn: *Conn) !void {
     const alm = try cn.pool.get(0);
 
@@ -151,10 +159,13 @@ inline fn _free(alm: *AllocatedMSG) void {
     messages.free(alm);
 }
 
+/// Returns a message to the pool for reuse.
 pub fn reuse(cn: *Conn, msg: *AllocatedMSG) void {
     cn.pool.put(msg);
 }
 
+/// Publishes a message with optional headers.
+/// Uses HPUB if headers are provided, otherwise uses PUB.
 pub fn publish(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: ?*Headers, payload: ?[]const u8) !void {
     if (headers == null) {
         return cn.@"pub"(subject, reply2, payload);
@@ -163,6 +174,7 @@ pub fn publish(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: ?*H
     }
 }
 
+/// Publishes a message without headers (PUB command).
 pub fn @"pub"(cn: *Conn, subject: []const u8, reply2: ?[]const u8, payload: ?[]const u8) !void {
     cn.mutex.lock();
     defer cn.mutex.unlock();
@@ -195,6 +207,7 @@ pub fn @"pub"(cn: *Conn, subject: []const u8, reply2: ?[]const u8, payload: ?[]c
     return;
 }
 
+/// Publishes a message with headers (HPUB command).
 pub fn hpub(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: *Headers, payload: ?[]const u8) !void {
     cn.mutex.lock();
     defer cn.mutex.unlock();
@@ -232,6 +245,7 @@ pub fn hpub(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: *Heade
     return;
 }
 
+/// Subscribes to a subject with optional queue group (SUB command).
 pub fn sub(cn: *Conn, subject: []const u8, queue_group: ?[]const u8, sid: []const u8) !void {
     var qgr: []const u8 = undefined;
 
@@ -246,6 +260,7 @@ pub fn sub(cn: *Conn, subject: []const u8, queue_group: ?[]const u8, sid: []cons
     return;
 }
 
+/// Unsubscribes from a subscription (UNSUB command).
 pub fn unsub(cn: *Conn, sid: []const u8, max_msgs: ?u32) !void {
     var mm: u32 = undefined;
 
@@ -272,10 +287,12 @@ fn _unsub_(cn: *Conn, sid: []const u8) void {
     }
 }
 
+/// Sends a PING command to the server.
 pub fn ping(cn: *Conn) !void {
     try cn.writeMT("PING\r\n");
 }
 
+/// Sends a PONG response to the server.
 pub fn pong(cn: *Conn) !void {
     try cn.writeMT("PONG\r\n");
 }
@@ -521,6 +538,7 @@ fn connectTcp(cn: *Conn, co: protocol.ConnectOpts) !*Client {
     return cl;
 }
 
+/// Signals the client to raise an attention event.
 pub fn raiseAttention(cn: *Conn) void {
     cn.client.?.raiseAttention();
 }
@@ -533,6 +551,8 @@ fn waitFinish(cn: *Conn) void {
     cn.thread.join();
 }
 
+/// Performs a request-reply operation (non-mutex-taking variant).
+/// Sends a request and waits for a response with the specified timeout.
 pub fn requestNMT(cn: *Conn, subject: []const u8, headers: ?*Headers, payload: ?[]const u8, timeout_ns: u64) !*AllocatedMSG {
     if (!cn.subscribed) {
         try cn.printMT("SUB {0s}.* {1d} \r\n", .{ cn.inbox[0..36], cn.nextSidNMT() });
@@ -547,16 +567,20 @@ pub fn requestNMT(cn: *Conn, subject: []const u8, headers: ?*Headers, payload: ?
     return cn.waitMessageNMT(timeout_ns, REPLY_TO);
 }
 
+/// Generates the next reply-to subject for request-reply (non-mutex-taking).
 pub fn nextReply2NMT(cn: *Conn) ![]const u8 {
     const REPLY_TO = try cn.req_reply2.sprintf("{0s}.{1d}", .{ cn.inbox[0..36], cn.nextSidNMT() });
     return REPLY_TO.?;
 }
 
+/// Returns the next subscription ID (non-mutex-taking).
 pub fn nextSidNMT(cn: *Conn) u64 {
     cn.next += 1;
     return cn.next;
 }
 
+/// Waits for a message with the specified timeout (non-mutex-taking).
+/// Handles PING/PONG protocol automatically.
 pub fn waitMessageNMT(cn: *Conn, timeout_ns: u64, subject: ?[]const u8) error{ CommunicationFailure, Interrupted, Closed, NotConnected, Timeout }!*AllocatedMSG {
     _ = subject;
 
@@ -657,6 +681,7 @@ fn sendHeartBit(cn: *Conn) void {
 // MT writes
 //
 
+/// Formats and writes a message to the connection (mutex-taking).
 pub fn printMT(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
     cn.mutex.lock();
     defer cn.mutex.unlock();
@@ -666,6 +691,7 @@ pub fn printMT(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
     return;
 }
 
+/// Writes bytes to the connection (mutex-taking).
 pub fn writeMT(cn: *Conn, buffer: []const u8) !void {
     cn.mutex.lock();
     defer cn.mutex.unlock();
@@ -674,6 +700,7 @@ pub fn writeMT(cn: *Conn, buffer: []const u8) !void {
     return;
 }
 
+/// Writes multiple buffers using vectored I/O (mutex-taking).
 pub fn writevMT(cn: *Conn, iovecs: []posix.iovec_const) !void {
     cn.mutex.lock();
     defer cn.mutex.unlock();
@@ -685,6 +712,8 @@ pub fn writevMT(cn: *Conn, iovecs: []posix.iovec_const) !void {
 //
 // Non MT writes
 //
+
+/// Formats and writes a message (non-mutex-taking).
 pub fn printNMT(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
     // try cn._format(fmt, args, &cn.printbuf);
     if (cn.printbuf.sprintf(fmt, args)) |fstr| {
@@ -699,6 +728,7 @@ pub fn printNMT(cn: *Conn, comptime fmt: []const u8, args: anytype) !void {
     return;
 }
 
+/// Writes bytes to the connection (non-mutex-taking).
 pub fn writeNMT(cn: *Conn, buffer: []const u8) !void {
     if (cn.client == null) {
         return error.CommunicationFailure;
@@ -709,6 +739,7 @@ pub fn writeNMT(cn: *Conn, buffer: []const u8) !void {
     try cn.writeAll(buffer);
 }
 
+/// Writes multiple buffers using vectored I/O (non-mutex-taking).
 pub fn writevNMT(cn: *Conn, iovecs: []posix.iovec_const) !void {
     if (cn.client == null) {
         return error.CommunicationFailure;
@@ -722,6 +753,8 @@ pub fn writevNMT(cn: *Conn, iovecs: []posix.iovec_const) !void {
 //
 // Non MT write wrappers
 //
+
+/// Writes all bytes to the underlying client.
 pub fn writeAll(cn: *Conn, bytes: []const u8) !void {
     try cn.client.?.writeAll(bytes);
 }
@@ -772,10 +805,11 @@ fn read_buffer(cn: *Conn, buffer: *Appendable, len: usize) !void {
 
 const zul = @import("zul");
 
+/// UUID type from the zul library.
 pub const UUID = zul.UUID;
 
-/// Unique ID used as INBOX
-/// in Request/Reply flow
+/// Generates a unique inbox identifier for request-reply patterns.
+/// Returns a 36-character UUID string.
 pub fn newInbox() ![36]u8 {
     const uuid4 = UUID.v4();
     return UUID.binToHex(&uuid4.bin, .upper);
@@ -800,8 +834,11 @@ const MT = messages.MessageType;
 const Header = messages.Header;
 const Headers = messages.Headers;
 const HeaderIterator = messages.HeaderIterator;
+/// Re-export of the message allocation function.
 pub const alloc = messages.alloc;
+/// Re-export of the Messages pool type.
 pub const Messages = messages.Messages;
+/// Re-export of the allocated message type.
 pub const AllocatedMSG = messages.AllocatedMSG;
 
 fn forDebug(cn: *Conn) void {

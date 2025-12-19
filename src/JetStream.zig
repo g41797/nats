@@ -1,6 +1,8 @@
 // Copyright (c) 2025 g41797
 // SPDX-License-Identifier: MIT
 
+/// JetStream client for managing NATS JetStream streams.
+/// Provides methods for creating, updating, purging, and deleting streams.
 pub const JetStream = @This();
 
 const CREATE_STREAM_T: []const u8 = "$JS.API.STREAM.CREATE.{s}";
@@ -15,6 +17,8 @@ connection: ?*Conn = null,
 cmd: Formatter = .{},
 jsn: Formatter = .{},
 
+/// Connects to a NATS server with JetStream support.
+/// Returns a JetStream client instance.
 pub fn CONNECT(allocator: Allocator, co: protocol.ConnectOpts) !JetStream {
     var js: JetStream = .{ .allocator = allocator };
 
@@ -27,6 +31,7 @@ pub fn CONNECT(allocator: Allocator, co: protocol.ConnectOpts) !JetStream {
     return js;
 }
 
+/// Creates a new stream with the given configuration.
 pub fn CREATE(js: *JetStream, sc: *protocol.StreamConfig) !void {
     js.mutex.lock();
     defer js.mutex.unlock();
@@ -45,6 +50,7 @@ pub fn CREATE(js: *JetStream, sc: *protocol.StreamConfig) !void {
     return js.process(protocol.SECNS * 5);
 }
 
+/// Updates an existing stream with the given configuration.
 pub fn UPDATE(js: *JetStream, sc: *protocol.StreamConfig) !void {
     js.mutex.lock();
     defer js.mutex.unlock();
@@ -63,6 +69,7 @@ pub fn UPDATE(js: *JetStream, sc: *protocol.StreamConfig) !void {
     return js.process(protocol.SECNS * 5);
 }
 
+/// Purges all messages from the specified stream.
 pub fn PURGE(js: *JetStream, sname: []const u8) !void {
     js.mutex.lock();
     defer js.mutex.unlock();
@@ -77,6 +84,7 @@ pub fn PURGE(js: *JetStream, sname: []const u8) !void {
     return js.process(protocol.SECNS * 5);
 }
 
+/// Deletes the specified stream.
 pub fn DELETE(js: *JetStream, sname: []const u8) !void {
     js.mutex.lock();
     defer js.mutex.unlock();
@@ -91,7 +99,8 @@ pub fn DELETE(js: *JetStream, sname: []const u8) !void {
     return js.process(protocol.SECNS * 5);
 }
 
-pub fn PUBLISH(js: *JetStream, subject: []const u8, headers: ?*Headers, payload: ?[]const u8) !void { // Check HEADERS
+/// Publishes a message to JetStream with optional headers and payload.
+pub fn PUBLISH(js: *JetStream, subject: []const u8, headers: ?*Headers, payload: ?[]const u8) !void {
     js.mutex.lock();
     defer js.mutex.unlock();
 
@@ -113,6 +122,7 @@ pub fn PUBLISH(js: *JetStream, subject: []const u8, headers: ?*Headers, payload:
     }
 }
 
+/// Disconnects from the NATS server and releases all resources.
 pub fn DISCONNECT(js: *JetStream) void {
     js.mutex.lock();
     defer js.mutex.unlock();
@@ -146,6 +156,7 @@ fn process(js: *JetStream, timeout_ns: u64) !void {
     }
 }
 
+/// Creates and connects a new connection to the NATS server.
 pub fn createConn(allocator: Allocator, co: protocol.ConnectOpts) !*Conn {
     const conn = try allocator.create(Conn);
     conn.* = .{};
@@ -166,5 +177,6 @@ const Allocator = std.mem.Allocator;
 const Mutex = std.Thread.Mutex;
 
 const Headers = messages.Headers;
+/// Re-export of the allocated message type.
 pub const AllocatedMSG = messages.AllocatedMSG;
 const Formatter = @import("Formatter.zig");
