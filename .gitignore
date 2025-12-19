@@ -4,3 +4,5 @@
 **/.zig-out/
 .idea/
 .claude/settings.local.json
+*.a
+*.a.o

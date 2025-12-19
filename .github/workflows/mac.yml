@@ -20,10 +20,14 @@ jobs:
         
       - run: nats-server -js -m 8222 & 
 
-      - uses: mlugg/setup-zig@v1
+      - uses: mlugg/setup-zig@v2
         with:
-          version:   0.14.0
+          version: 0.14.1
           use-cache: false
+
+      - run: rm -rf ./.zig-cache/
+
+      - run: zig version
 
       - run: zig build test -freference-trace --summary all
 
