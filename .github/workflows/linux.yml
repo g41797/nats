@@ -23,5 +23,9 @@ jobs:
           version: 0.14.1
           use-cache: false
 
+      - run: rm -rf ./.zig-cache/
+
+      - run: zig version
+
       - run: zig build test -freference-trace --summary all
 
