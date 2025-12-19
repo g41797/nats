@@ -6,7 +6,7 @@
     //
     // It is redundant to include "zig" in this name because it is already
     // within the Zig package namespace.
-    .name = "nats",
+    .name = .nats,
 
     .fingerprint = 0x31f7624f839e6231,
 
