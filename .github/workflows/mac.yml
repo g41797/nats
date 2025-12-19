@@ -16,8 +16,9 @@ jobs:
         with:
           submodules: true
       
-      - run: brew install nats-server
-        
+      - run: brew install nats-server@2.11
+
+
       - run: nats-server -js -m 8222 & 
 
       - uses: mlugg/setup-zig@v2
