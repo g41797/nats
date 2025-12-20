@@ -139,6 +139,43 @@ Updated Zig version in all workflow files:
    - `readAll` removed from `net.Stream`
    - Direct `read()`, `write()`, `writeAll()` methods preferred
 
+## New Features
+
+### Standalone Modules
+
+Added separate module exports in `build.zig` for projects that only need specific utilities without the full NATS client.
+
+**build.zig additions:**
+```zig
+// Standalone Appendable module for projects that only need buffer utilities
+_ = b.*.addModule("Appendable", .{
+    .root_source_file = b.*.path("src/Appendable.zig"),
+    .target = target,
+    .optimize = optimize,
+});
+
+// Standalone Formatter module for projects that only need formatting utilities
+_ = b.*.addModule("Formatter", .{
+    .root_source_file = b.*.path("src/Formatter.zig"),
+    .target = target,
+    .optimize = optimize,
+});
+```
+
+**Usage in dependent project:**
+```zig
+// build.zig
+const nats_dep = b.dependency("nats", .{ .target = target, .optimize = optimize });
+exe.root_module.addImport("Appendable", nats_dep.module("Appendable"));
+exe.root_module.addImport("Formatter", nats_dep.module("Formatter"));
+
+// source code
+const Appendable = @import("Appendable");
+const Formatter = @import("Formatter");
+```
+
+Note: Zig only compiles what's actually imported - using just these modules won't compile the rest of nats.
+
 ## Verification
 
 All source files pass `zig ast-check` and the project builds successfully with `zig build`.

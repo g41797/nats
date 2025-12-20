@@ -51,6 +51,20 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    // Standalone Appendable module for projects that only need buffer utilities
+    _ = b.*.addModule("Appendable", .{
+        .root_source_file = b.*.path("src/Appendable.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // Standalone Formatter module for projects that only need formatting utilities
+    _ = b.*.addModule("Formatter", .{
+        .root_source_file = b.*.path("src/Formatter.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
@@ -64,7 +78,6 @@ pub fn build(b: *std.Build) void {
 
     const docs_step = b.*.step("docs", "Install docs into zig-out/docs");
     docs_step.dependOn(&install_docs.step);
-
 
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
