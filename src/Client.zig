@@ -212,7 +212,7 @@ pub fn readAll(cl: *Client, buffer: []u8) !usize {
         }
 
         if (pollstatus == 1) {
-            const amt = cl.stream.readAll(buffer[index..]) catch |err| {
+            const amt = cl.stream.read(buffer[index..]) catch |err| {
                 if (err == error.WouldBlock) {
                     continue;
                 }

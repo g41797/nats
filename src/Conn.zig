@@ -81,6 +81,9 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
 
     errdefer cn.disconnect();
 
+    // Initialize timer before read_mt() since it calls sendHeartBit()
+    cn.timeout_timer = std.time.Timer.start() catch unreachable;
+
     const mt = try cn.read_mt();
 
     if (mt != .INFO) {
@@ -88,8 +91,6 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
     }
 
     try cn.writeAll(protocol.ConnectString);
-
-    cn.timeout_timer = std.time.Timer.start() catch unreachable;
 
     return;
 }

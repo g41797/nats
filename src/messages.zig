@@ -291,7 +291,7 @@ pub const Messages = struct {
     }
 
     /// Receives a message from the pool with timeout.
-    pub fn receive(msgs: *Messages, timeout_ns: u64) error{ Timeout, Closed }!*AllocatedMSG {
+    pub fn receive(msgs: *Messages, timeout_ns: u64) error{ Timeout, Closed, Interrupted }!*AllocatedMSG {
         if (msgs.pool.receive(timeout_ns)) |amsg| {
             return amsg;
         } else |rer| {

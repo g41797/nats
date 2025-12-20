@@ -38,7 +38,7 @@ test "setsockopt RCVTIMEO does not work on Windows" {
                 };
             }
 
-            _ = try stream.writer().writeAll("Hello world!");
+            try stream.writeAll("Hello world!");
         }
     };
 
@@ -48,7 +48,7 @@ test "setsockopt RCVTIMEO does not work on Windows" {
     var client = try server.accept();
     defer client.stream.close();
     var buf: [16]u8 = undefined;
-    const n = try client.stream.reader().read(&buf);
+    const n = try client.stream.read(&buf);
 
     const lc = byte;
     _ = lc;

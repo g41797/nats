@@ -7,8 +7,8 @@ pub const Formatter = @This();
 
 /// The underlying buffer for formatted output.
 formatbuf: Appendable = .{},
-/// Fixed buffer stream for writing formatted data.
-fbs: std.io.FixedBufferStream([]u8) = undefined,
+/// Current position in the buffer.
+pos: usize = 0,
 
 /// Creates a new formatter with the given allocator and initial buffer size.
 pub fn init(allocator: Allocator, len: usize) !Formatter {
@@ -16,15 +16,13 @@ pub fn init(allocator: Allocator, len: usize) !Formatter {
 
     try frmtr.formatbuf.init(allocator, len, 256);
 
-    frmtr.fbs = std.io.fixedBufferStream(frmtr.formatbuf.buffer.?);
-
     return frmtr;
 }
 
 /// Resets the formatter for reuse, clearing all buffered data.
 pub fn reset(frmtr: *Formatter) void {
-    frmtr.*.fbs.reset();
-    frmtr.*.formatbuf.reset();
+    frmtr.pos = 0;
+    frmtr.formatbuf.reset();
 }
 
 /// Releases all allocated memory.
@@ -38,11 +36,10 @@ pub fn deinit(frmtr: *Formatter) void {
 pub fn sprintf(frmtr: *Formatter, comptime fmt: []const u8, args: anytype) !?[]const u8 {
     while (true) {
         if (frmtr.tryformat(fmt, args)) |_| {
-            return frmtr.*.formatbuf.body();
+            return frmtr.formatbuf.body();
         } else |ferr| switch (ferr) {
             error.NoSpaceLeft => {
-                _ = try frmtr.*.formatbuf.alloc(frmtr.*.formatbuf.buffer.?.len + 256);
-                frmtr.fbs = std.io.fixedBufferStream(frmtr.*.formatbuf.buffer.?);
+                _ = try frmtr.formatbuf.alloc(frmtr.formatbuf.buffer.?.len + 256);
                 continue;
             },
             else => {
@@ -53,9 +50,13 @@ pub fn sprintf(frmtr: *Formatter, comptime fmt: []const u8, args: anytype) !?[]c
 }
 
 fn tryformat(frmtr: *Formatter, comptime fmt: []const u8, args: anytype) !void {
-    frmtr.*.fbs.reset();
-    _ = try frmtr.*.fbs.writer().print(fmt, args);
-    try frmtr.*.formatbuf.change(frmtr.*.fbs.getWritten().len);
+    frmtr.pos = 0;
+    const buffer = frmtr.formatbuf.buffer.?;
+    const result = std.fmt.bufPrint(buffer, fmt, args) catch |err| switch (err) {
+        error.NoSpaceLeft => return error.NoSpaceLeft,
+    };
+    frmtr.pos = result.len;
+    try frmtr.formatbuf.change(frmtr.pos);
 }
 
 /// Converts a value to its JSON string representation.
@@ -63,11 +64,10 @@ fn tryformat(frmtr: *Formatter, comptime fmt: []const u8, args: anytype) !void {
 pub fn stringify(frmtr: *Formatter, value: anytype, options: StringifyOptions) !?[]const u8 {
     while (true) {
         if (frmtr.trystringify(value, options)) |_| {
-            return frmtr.*.formatbuf.body();
+            return frmtr.formatbuf.body();
         } else |ferr| switch (ferr) {
             error.NoSpaceLeft => {
-                _ = try frmtr.*.formatbuf.alloc(frmtr.*.formatbuf.buffer.?.len + 256);
-                frmtr.fbs = std.io.fixedBufferStream(frmtr.*.formatbuf.buffer.?);
+                _ = try frmtr.formatbuf.alloc(frmtr.formatbuf.buffer.?.len + 256);
                 continue;
             },
             else => {
@@ -78,14 +78,21 @@ pub fn stringify(frmtr: *Formatter, value: anytype, options: StringifyOptions) !
 }
 
 fn trystringify(frmtr: *Formatter, value: anytype, options: StringifyOptions) !void {
-    frmtr.*.fbs.reset();
-    _ = try json.stringify(value, options, frmtr.*.fbs.writer());
-    try frmtr.*.formatbuf.change(frmtr.*.fbs.getWritten().len);
+    frmtr.pos = 0;
+    const buffer = frmtr.formatbuf.buffer.?;
+    var writer = Io.Writer.fixed(buffer);
+    json.Stringify.value(value, options, &writer) catch |err| switch (err) {
+        // WriteFailed indicates the fixed buffer ran out of space
+        error.WriteFailed => return error.NoSpaceLeft,
+    };
+    frmtr.pos = writer.end;
+    try frmtr.formatbuf.change(frmtr.pos);
 }
 
 const std = @import("std");
 const json = std.json;
-const StringifyOptions = json.StringifyOptions;
+const Io = std.Io;
+const StringifyOptions = json.Stringify.Options;
 
 const Appendable = @import("Appendable.zig");
 
