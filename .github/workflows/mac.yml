@@ -16,7 +16,7 @@ jobs:
         with:
           submodules: true
       
-      - run: brew install nats-server@2.11
+      - run: brew install nats-server
 
 
       - run: nats-server -js -m 8222 & 
