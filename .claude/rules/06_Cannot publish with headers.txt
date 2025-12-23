@@ -1,0 +1,134 @@
+#Environment
+    Your current directory is root of the project called nats.
+
+#Project description
+
+    Zig based implementation of base api for NATS Core and JetStream
+
+#Objective
+
+    Check that current implementation are written in accordance to NATS protocol.
+    Special attention to bug - see section
+
+#Must to read - information for an analysis
+
+    - README.MD
+    - Short description of protocol -  protocol.txt
+    - Links related to NATS, Zig, communication - _notes.txt
+
+#Special attention
+    HPUB implementation
+
+#Existing bug
+    https://github.com/g41797/nats/issues/6
+
+    [Bug] Cannot publish with headers:
+
+        I want to append the header `Nats-Msg-Id` for deduplication but I had a timeout issue: nats with the ack. When I remove it, it works.
+
+        I believe there could be a bug in the length header calculation in:
+        https://github.com/g41797/nats/blob/b4655d4154457b8f4af31a34f93ef4445da66fd3/src/Conn.zig#L212
+
+
+        The NATS protocol for HPUB:
+        ```
+        HPUB <subject> <reply-to> <header bytes> <total bytes>\r\n
+        <hdr_len bytes of headers including NATS/1.0\r\n...header:value\r\n\r\n>
+        <payload bytes>
+        \r\n
+        ```
+
+        I removed the `+1` and remove `.{ .base = protocol.CRLF.ptr, .len = protocol.CRLF.len },`so that `buffers.len = 3`.
+
+        https://github.com/g41797/nats/blob/b4655d4154457b8f4af31a34f93ef4445da66fd3/src/Conn.zig#L232
+
+        ```zig
+        // Headers already include trailing \r\n\r\n separator
+        const HDR_LEN = headers.buffer.body().?.len;
+        const TOT_LEN = HDR_LEN + body.len;
+
+        try cn.printNMT("HPUB {0s} {1s} {2d} {3d}\r\n", .{ subject, repl, HDR_LEN, TOT_LEN });
+
+        var buffers: [3]posix.iovec_const = .{
+            .{ .base = headers.buffer.body().?.ptr, .len = headers.buffer.body().?.len },
+            .{ .base = body.ptr, .len = body.len },
+            .{ .base = protocol.CRLF.ptr, .len = protocol.CRLF.len },
+        };
+        ```
+#Snippet with test
+
+  ```zig
+test "header serialization format" {
+    // Test that headers are correctly formatted for NATS HPUB protocol
+    var headers: Headers = .{};
+    try headers.init(std.testing.allocator, 256);
+    defer headers.deinit();
+
+    try headers.append("Nats-Msg-Id", "test-msg-123");
+
+    const header_bytes = headers.buffer.body().?;
+
+    const expected = "NATS/1.0\r\nNats-Msg-Id:test-msg-123\r\n\r\n";
+    try testing.expectEqualStrings(expected, header_bytes);
+
+    const HDR_LEN = header_bytes.len;
+    try testing.expectEqual(@as(usize, 42), HDR_LEN);
+
+    return;
+}
+```
+
+Manual check against a nats server running:
+
+```sh
+nats pub ords.received "with Nats-Msg-Id header" --header "Nats-Msg-Id:test-msg-123"
+nats pub ords.received "dup" --header "Nats-Msg-Id:test-msg-123"
+nats stream view ORDS --subject "ords.received"
+```
+
+
+```zig
+test "jetstream publish with headers" {
+    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    defer js.DISCONNECT();
+
+    const STREAM: []const u8 = "ORDS";
+    var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{"ords.>"} };
+
+    try js.CREATE(&CONF);
+    defer _ = js.DELETE(STREAM) catch {};
+
+    var headers: Headers = .{};
+    try headers.init(std.testing.allocator, 256);
+    defer headers.deinit();
+    try headers.append("Nats-Msg-Id", "test-msg-123");
+
+    try js.PUBLISH("ords.received", &headers, "Order with headers");
+
+    var headers2: Headers = .{};
+    try headers2.init(std.testing.allocator, 256);
+    defer headers2.deinit();
+    try headers2.append("Nats-Msg-Id", "test-msg-123");
+    try js.PUBLISH("ords.received", &headers2, "Duplicate order");
+
+    return;
+}
+```
+
+# Git Safety Rules
+    **CRITICAL**:
+    - NEVER execute git commands automatically
+    - NEVER run `git add`, `git commit`, `git push`, or any git operation without explicit user approval
+
+# If you need additional information - ask anytime
+
+# File Processing
+
+    1. Edit files in-place (no temporary copies)
+    2. Process one file at a time
+    3. After editing each file, verify syntax with: `zig ast-check <filename>`
+    4. If syntax check fails, immediately fix the issue before proceeding
+    5. Show a summary after each file: filename, number of items documented
+
+# Save useful information for me in forder ./clause/takeaways/06_Cannot publish with headers.txt
+

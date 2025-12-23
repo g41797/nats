@@ -80,6 +80,21 @@ test "copy fields" {
     try testing.expectEqual(count, utils.copyFields(src, &dst));
 }
 
+test "header serialization format" {
+    var headers: Headers = .{};
+    try headers.init(std.testing.allocator, 256);
+    defer headers.deinit();
+
+    try headers.append("Nats-Msg-Id", "test-msg-123");
+
+    const header_bytes = headers.buffer.body().?;
+    const expected = "NATS/1.0\r\nNats-Msg-Id:test-msg-123\r\n\r\n";
+    try testing.expectEqualStrings(expected, header_bytes);
+
+    const HDR_LEN = header_bytes.len;
+    try testing.expectEqual(@as(usize, 38), HDR_LEN);
+}
+
 const std = @import("std");
 const testing = std.testing;
 

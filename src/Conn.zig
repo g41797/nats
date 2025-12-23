@@ -229,14 +229,14 @@ pub fn hpub(cn: *Conn, subject: []const u8, reply2: ?[]const u8, headers: *Heade
         body = payload.?;
     }
 
-    const HDR_LEN = headers.buffer.body().?.len + 1; // +1 for ␍␊
+    // Headers already include trailing \r\n\r\n separator
+    const HDR_LEN = headers.buffer.body().?.len;
     const TOT_LEN = HDR_LEN + body.len;
 
     try cn.printNMT("HPUB {0s} {1s} {2d} {3d}\r\n", .{ subject, repl, HDR_LEN, TOT_LEN });
 
-    var buffers: [4]posix.iovec_const = .{
+    var buffers: [3]posix.iovec_const = .{
         .{ .base = headers.buffer.body().?.ptr, .len = headers.buffer.body().?.len },
-        .{ .base = protocol.CRLF.ptr, .len = protocol.CRLF.len },
         .{ .base = body.ptr, .len = body.len },
         .{ .base = protocol.CRLF.ptr, .len = protocol.CRLF.len },
     };
