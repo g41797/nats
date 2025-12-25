@@ -185,7 +185,7 @@ pub fn INFO(js: *JetStream, sname: []const u8, request: *const StreamInfoRequest
 /// Generic function for JetStream JSON request-response pattern.
 /// Sends a request to the subject in js.cmd with payload from js.jsn,
 /// receives response, parses JSON, and checks for JetStream errors.
-fn jsRequest(js: *JetStream, comptime ResponseType: type, timeout_ns: u64) !ResponseType {
+pub fn jsRequest(js: *JetStream, comptime ResponseType: type, timeout_ns: u64) !ResponseType {
     // Step 1: Send request and receive response
     const response = try js.connection.?.requestNMT(
         js.cmd.formatbuf.body().?,
