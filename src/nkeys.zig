@@ -25,6 +25,7 @@ const base32_decode_map = blk: {
     var map: [256]u8 = undefined;
     for (&map) |*c| c.* = 0xFF;
     for (base32_alphabet, 0..) |char, i| {
+        // Safe: i ranges from 0..32 (base32 alphabet size), fits in u8
         map[char] = @intCast(i);
     }
     break :blk map;
@@ -35,6 +36,7 @@ const crc16_table = blk: {
     @setEvalBranchQuota(10000); // Need more branches for 256x8 loop
     var table: [256]u16 = undefined;
     for (&table, 0..) |*entry, i| {
+        // Safe: i ranges from 0..256, i << 8 fits in u16 (max value: 255 << 8 = 65280)
         var crc: u16 = @intCast(i << 8);
         for (0..8) |_| {
             if (crc & 0x8000 != 0) {
@@ -119,7 +121,7 @@ fn base32Encode(allocator: std.mem.Allocator, src: []const u8) ![]u8 {
 
 /// Encodes a public key with NKey prefix and CRC16
 /// Public keys use: 1 prefix byte + 32 pubkey bytes + 2 CRC bytes = 35 bytes (NOT like seeds!)
-/// Seds use 2 prefix bytes because they encode both "seed" and "key type"
+/// Seeds use 2 prefix bytes because they encode both "seed" and "key type"
 /// Public keys only encode the key type, so just 1 prefix byte
 fn encodePublicKey(allocator: std.mem.Allocator, prefix: u8, raw_pubkey: []const u8) ![]const u8 {
     // Structure: 1 prefix byte + 32 pubkey bytes + 2 CRC bytes = 35 bytes
@@ -134,6 +136,7 @@ fn encodePublicKey(allocator: std.mem.Allocator, prefix: u8, raw_pubkey: []const
 
     // Compute and append CRC16 (little-endian)
     const crc = computeCRC16(data[0 .. 1 + raw_pubkey.len]);
+    // Safe: CRC16 produces u16, truncate to u8 for low/high bytes
     data[1 + raw_pubkey.len] = @truncate(crc & 0xFF);
     data[1 + raw_pubkey.len + 1] = @truncate((crc >> 8) & 0xFF);
 

@@ -70,6 +70,12 @@ const ConnectMessage = struct {
 /// If nkey_pubkey and nkey_sig are provided, they will be included in the CONNECT message
 ///
 /// Returns owned slice that caller must free
+///
+/// Errors:
+///   - error.ConflictingAuthMethods: Multiple auth methods provided (nkey with token/user/pass, or token with user/pass)
+///   - error.MissingPassword: User provided without password
+///   - error.PasswordWithoutUser: Password provided without user
+///   - error.OutOfMemory: Allocation failure during JSON serialization or string building
 pub fn buildConnectString(
     allocator: std.mem.Allocator,
     opts: ConnectOpts,
@@ -121,6 +127,7 @@ pub fn buildConnectString(
     defer allocator.free(json_payload);
 
     // Build final CONNECT message
+    // Cleanup strategy: json_payload freed by defer above, buf freed by errdefer or returned to caller
     var buf: std.ArrayList(u8) = .empty;
     errdefer buf.deinit(allocator);
 

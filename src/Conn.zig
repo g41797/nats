@@ -104,29 +104,34 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
     const info_line = cn.line.body() orelse return error.ProtocolError;
 
     // Handle NKey authentication if nkey is provided
+    // NKey auth requires: 1) extract nonce from server INFO, 2) sign it with private key, 3) send public key + signature
     var nkey_pubkey: ?[]const u8 = null;
     var nkey_sig: ?[]const u8 = null;
     defer {
+        // Critical: Free nkey_pubkey and nkey_sig to prevent memory leaks
+        // These are allocated during auth and must be cleaned up even on error paths
         if (nkey_pubkey) |pk| allocator.free(pk);
         if (nkey_sig) |sig| allocator.free(sig);
     }
 
     if (co.nkey) |nkey_seed| {
 
-        // Parse INFO to extract nonce
+        // Parse INFO to extract nonce (server challenge for authentication)
+        // The nonce may not be present if the server doesn't require NKey auth
         const nonce = try protocol.parseInfoNonce(allocator, info_line);
         defer if (nonce) |n| allocator.free(n);
 
         if (nonce) |n| {
 
-            // Sign the nonce with the NKey seed
+            // Sign the nonce with the NKey seed (proves we own the private key)
             const signature_raw = try nkeys.signNonce(allocator, nkey_seed, n);
             defer allocator.free(signature_raw);
 
-            // Base64URL encode the signature
+            // Base64URL encode the signature for JSON transport
             nkey_sig = try nkeys.base64UrlEncode(allocator, signature_raw);
 
-            // Extract public key from seed (already base32-encoded with "U" prefix)
+            // Extract public key from seed (returns base32-encoded with "U" prefix)
+            // This is sent to server so it knows which key signed the nonce
             nkey_pubkey = try nkeys.extractPublicKey(allocator, nkey_seed);
         }
     }
@@ -159,8 +164,6 @@ pub fn disconnect(cn: *Conn) void {
     }
 
     cn.raiseAttention();
-    // cn.pool.deinit();
-    // cn.received.deinit();
 
     cn.client.?.close();
 
