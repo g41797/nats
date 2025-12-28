@@ -1,0 +1,2 @@
+[ OK ] generated and stored account key "AANXWTMT245JJTCJJFR3XMRB2RAUBONM2MD62SPHVSMY3UZPFL77WCJB"
+[ OK ] added account "MyAccount"

@@ -132,7 +132,10 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
 
             // Extract public key from seed (returns base32-encoded with "U" prefix)
             // This is sent to server so it knows which key signed the nonce
-            nkey_pubkey = try nkeys.extractPublicKey(allocator, nkey_seed);
+            // If JWT is used, NKey public key is not sent
+            if (co.jwt == null) {
+                nkey_pubkey = try nkeys.extractPublicKey(allocator, nkey_seed);
+            }
         }
     }
 

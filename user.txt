@@ -1,0 +1,3 @@
+[ OK ] generated and stored user key "UDESQGOWNXBRHGTIM3IDFRSNIXMQHTTTILGLPMWTGP3OD5QALDE2O64E"
+[ OK ] generated user creds file `~/.local/share/nats/nsc/keys/creds/MyOperator/MyAccount/MyUser.creds`
+[ OK ] added user "MyUser" to account "MyAccount"
