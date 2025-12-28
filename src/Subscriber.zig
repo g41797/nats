@@ -59,6 +59,7 @@ pub fn REUSE(sb: *Subscriber, msg: *AllocatedMSG) void {
 
     if (sb.connection == null) {
         messages.free(msg);
+        return; // NEW
     }
     sb.connection.?.reuse(msg);
 }

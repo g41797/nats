@@ -5,14 +5,20 @@ test "base requests" {
     const STREAM: []const u8 = "ORDERS";
 
     {
-        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+        var js: JetStream = JetStream.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
         defer js.DISCONNECT();
 
         js.DELETE(STREAM) catch {};
     }
 
     {
-        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+        var js: JetStream = JetStream.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
         defer js.DISCONNECT();
 
         var CONF: protocol.StreamConfig = .{ .name = STREAM, .subjects = &.{ "orders.*", "items.*" } };
@@ -21,7 +27,10 @@ test "base requests" {
     }
 
     {
-        var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+        var js: JetStream = JetStream.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
         defer js.DISCONNECT();
 
         try js.PUBLISH("orders.1", null, "First Order");

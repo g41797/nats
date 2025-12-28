@@ -182,6 +182,7 @@ pub fn REUSE(core: *Core, msg: *AllocatedMSG) void {
 
     if (core.connection == null) {
         messages.free(msg);
+        return;
     }
     core.connection.?.reuse(msg);
 }

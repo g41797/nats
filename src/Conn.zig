@@ -63,7 +63,17 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
         prt = co.port.?;
     }
 
+    errdefer {
+        if (cn.req_reply2.formatbuf.buffer) |_| cn.req_reply2.deinit();
+        cn.received.deinit();
+        cn.pool.deinit();
+        if (cn.printbuf.formatbuf.buffer) |_| cn.printbuf.deinit();
+        if (cn.dump.buffer) |_| cn.dump.deinit();
+        if (cn.line.buffer) |_| cn.line.deinit();
+    }
+
     try cn.line.init(allocator, 128, 32);
+
     if (builtin.mode == .Debug) {
         try cn.dump.init(allocator, 4096, 32);
         cn.dump.clean();
@@ -90,7 +100,47 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
         return error.ProtocolError;
     }
 
-    try cn.writeAll(protocol.ConnectString);
+    // Extract INFO payload to get nonce for NKey authentication
+    const info_line = cn.line.body() orelse return error.ProtocolError;
+
+    // Handle NKey authentication if nkey is provided
+    var nkey_pubkey: ?[]const u8 = null;
+    var nkey_sig: ?[]const u8 = null;
+    defer {
+        if (nkey_pubkey) |pk| allocator.free(pk);
+        if (nkey_sig) |sig| allocator.free(sig);
+    }
+
+    if (co.nkey) |nkey_seed| {
+
+        // Parse INFO to extract nonce
+        const nonce = try protocol.parseInfoNonce(allocator, info_line);
+        defer if (nonce) |n| allocator.free(n);
+
+        if (nonce) |n| {
+
+            // Sign the nonce with the NKey seed
+            const signature_raw = try nkeys.signNonce(allocator, nkey_seed, n);
+            defer allocator.free(signature_raw);
+
+            // Base64URL encode the signature
+            nkey_sig = try nkeys.base64UrlEncode(allocator, signature_raw);
+
+            // Extract public key from seed (already base32-encoded with "U" prefix)
+            nkey_pubkey = try nkeys.extractPublicKey(allocator, nkey_seed);
+        }
+    }
+
+    // Build CONNECT string with auth credentials (including NKey if provided)
+    const connect_str = try protocol.buildConnectString(
+        allocator,
+        co,
+        nkey_pubkey,
+        nkey_sig,
+    );
+    defer allocator.free(connect_str);
+
+    try cn.writeAll(connect_str);
 
     return;
 }
@@ -109,12 +159,17 @@ pub fn disconnect(cn: *Conn) void {
     }
 
     cn.raiseAttention();
-    cn.pool.deinit();
-    cn.received.deinit();
+    // cn.pool.deinit();
+    // cn.received.deinit();
 
     cn.client.?.close();
 
     cn.waitFinish();
+
+    // Deinit message pools AFTER the run thread has finished
+    // to prevent leaking messages allocated after deinit() but before thread exit
+    cn.pool.deinit();
+    cn.received.deinit();
 
     cn.line.deinit();
 
@@ -614,12 +669,13 @@ pub fn waitMessageNMT(cn: *Conn, timeout_ns: u64, subject: ?[]const u8) error{ C
                     return error.CommunicationFailure;
                 };
             },
-            .PONG, .OK => {},
+            .PONG, .OK, .INFO => {}, // INFO messages are normal, just ignore them
             .INTERRUPT => {
                 return error.Interrupted;
             },
-            // .INFO .CONNECT .SUB .UNSUB .ERR
+            // .CONNECT .SUB .UNSUB .ERR
             else => {
+                log.err("Unexpected message type in waitMessageNMT: {}", .{rmt});
                 return error.CommunicationFailure;
             },
         }
@@ -656,6 +712,7 @@ fn run(cn: *Conn) void {
             if (cn.received.send(almsg.?)) |_| {
                 continue;
             } else |_| {
+                // Message is already freed by send() when it fails
                 break;
             }
         } else |_| {
@@ -830,6 +887,9 @@ const messages = @import("messages.zig");
 const Appendable = @import("Appendable.zig");
 const Formatter = @import("Formatter.zig");
 const utils = @import("utils.zig");
+const nkeys = @import("nkeys.zig");
+
+const log = std.log.scoped(.Conn);
 
 const MT = messages.MessageType;
 const Header = messages.Header;

@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 test {
+    // Include unit tests from library modules
+    _ = @import("protocol.zig");
+    _ = @import("nkeys.zig");
+
     if (builtin.target.os.tag == .windows) {
         _ = @import("net_tests.zig");
         _ = @import("core_tests.zig");

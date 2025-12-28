@@ -25,9 +25,13 @@ pub const ConnectOpts = struct {
     addr: ?[]const u8 = DefaultAddr,
     /// Server port.
     port: ?u16 = DefaultPort,
+    auth_token: ?[]const u8 = null,
+    user: ?[]const u8 = null,
+    pass: ?[]const u8 = null,
+    nkey: ?[]const u8 = null,
 };
 
-const ClientOpts = struct {
+pub const ClientOpts = struct {
     verbose: bool = false,
     pedantic: bool = false,
     tls_required: bool = false,
@@ -42,6 +46,110 @@ const ClientOpts = struct {
     headers: bool = true,
     nkey: ?[]const u8 = null,
 };
+
+/// CONNECT message payload structure
+const ConnectMessage = struct {
+    verbose: bool = false,
+    pedantic: bool = false,
+    tls_required: bool = false,
+    nkey: ?[]const u8 = null,
+    sig: ?[]const u8 = null,
+    auth_token: ?[]const u8 = null,
+    user: ?[]const u8 = null,
+    pass: ?[]const u8 = null,
+    lang: []const u8 = "Zig",
+    version: []const u8 = "T.B.D",
+    protocol: u8 = 1,
+    echo: bool = true,
+    no_responders: bool = true,
+    headers: bool = true,
+};
+
+/// Build CONNECT string with optional NKey authentication
+///
+/// If nkey_pubkey and nkey_sig are provided, they will be included in the CONNECT message
+///
+/// Returns owned slice that caller must free
+pub fn buildConnectString(
+    allocator: std.mem.Allocator,
+    opts: ConnectOpts,
+    nkey_pubkey: ?[]const u8, // Base32-encoded public key (optional)
+    nkey_sig: ?[]const u8, // Base64url-encoded signature (optional)
+) ![]const u8 {
+    const has_nkey = opts.nkey != null;
+    const has_token = opts.auth_token != null;
+    const has_user = opts.user != null;
+    const has_pass = opts.pass != null;
+
+    // Validate auth method exclusivity
+    if (has_nkey and (has_token or has_user or has_pass)) {
+        return error.ConflictingAuthMethods;
+    }
+    if (has_token and (has_user or has_pass)) {
+        return error.ConflictingAuthMethods;
+    }
+
+    if (has_user and !has_pass) {
+        return error.MissingPassword;
+    }
+
+    if (has_pass and !has_user) {
+        return error.PasswordWithoutUser;
+    }
+
+    // Build the message structure
+    const message = ConnectMessage{
+        .nkey = nkey_pubkey,
+        .sig = nkey_sig,
+        .auth_token = opts.auth_token,
+        .user = opts.user,
+        .pass = opts.pass,
+    };
+
+    // Serialize to JSON using std.json.fmt (Zig 0.15.2 API)
+    const fmt = std.json.fmt(message, .{
+        .whitespace = .minified,
+        .emit_null_optional_fields = false,
+    });
+
+    var writer = std.Io.Writer.Allocating.init(allocator);
+    defer writer.deinit();
+
+    try fmt.format(&writer.writer);
+
+    const json_payload = try writer.toOwnedSlice();
+    defer allocator.free(json_payload);
+
+    // Build final CONNECT message
+    var buf: std.ArrayList(u8) = .empty;
+    errdefer buf.deinit(allocator);
+
+    try buf.appendSlice(allocator, "CONNECT ");
+    try buf.appendSlice(allocator, json_payload);
+    try buf.appendSlice(allocator, "\r\n");
+
+    const final_msg = try buf.toOwnedSlice(allocator);
+
+    return final_msg;
+}
+
+/// Parse INFO message to extract nonce (simple string search)
+///
+/// Returns owned slice that caller must free
+pub fn parseInfoNonce(allocator: std.mem.Allocator, info_payload: []const u8) !?[]const u8 {
+    // Look for "nonce":"..." in the JSON
+    const nonce_key = "\"nonce\":\"";
+    const start_idx = std.mem.indexOf(u8, info_payload, nonce_key) orelse return null;
+    const value_start = start_idx + nonce_key.len;
+
+    // Find the closing quote
+    const remaining = info_payload[value_start..];
+    const end_idx = std.mem.indexOf(u8, remaining, "\"") orelse return error.InvalidInfoJson;
+
+    // Extract and return the nonce value
+    const nonce = remaining[0..end_idx];
+    return try allocator.dupe(u8, nonce);
+}
 
 const Drain = fn (msg: *messages.MSG) void;
 
@@ -75,10 +183,10 @@ pub const StreamConfig = struct {
     subjects: ?Strings = null,
     retention: []const u8 = RETENTION_LIMITS,
     max_consumers: i32 = -1,
-    max_msgs: i32 = -1,
-    max_bytes: i32 = -1,
-    max_age: i32 = 0,
-    max_msgs_per_subject: i32 = -1,
+    max_msgs: i64 = -1, // Can be very large (e.g., 10000000), needs i64
+    max_bytes: i64 = -1, // Can be very large (e.g., 8589934592 = 8GB), needs i64
+    max_age: u64 = 0, // Nanoseconds - must be u64 to handle large values (e.g., 24h = 86400000000000)
+    max_msgs_per_subject: i64 = -1, // Can be very large, needs i64
     max_msg_size: i32 = -1,
     discard: String = DISCARD_OLD,
     storage: String = STORAGE_FILE,

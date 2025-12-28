@@ -1,0 +1,9 @@
+services:
+
+  nats-server:
+    image: nats:latest
+    ports:
+      - "4222:4222"
+    command: [ "-c", "/config/nats-server.conf" ]
+    volumes:
+      - ./nats-default.conf:/config/nats-server.conf:ro
