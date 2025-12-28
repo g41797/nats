@@ -25,6 +25,7 @@ pub const ConnectOpts = struct {
     addr: ?[]const u8 = DefaultAddr,
     /// Server port.
     port: ?u16 = DefaultPort,
+    jwt: ?[]const u8 = null,
     auth_token: ?[]const u8 = null,
     user: ?[]const u8 = null,
     pass: ?[]const u8 = null,
@@ -52,6 +53,7 @@ const ConnectMessage = struct {
     verbose: bool = false,
     pedantic: bool = false,
     tls_required: bool = false,
+    jwt: ?[]const u8 = null,
     nkey: ?[]const u8 = null,
     sig: ?[]const u8 = null,
     auth_token: ?[]const u8 = null,
@@ -105,7 +107,10 @@ pub fn buildConnectString(
 
     // Build the message structure
     const message = ConnectMessage{
-        .nkey = nkey_pubkey,
+        .jwt = opts.jwt,
+        // if JWT is used, NKey public key is not sent
+        .nkey = if (opts.jwt != null) null else nkey_pubkey,
+        // nkey_pubkey,
         .sig = nkey_sig,
         .auth_token = opts.auth_token,
         .user = opts.user,

@@ -8,6 +8,30 @@ const protocol = @import("protocol.zig");
 const Conn = @import("Conn.zig");
 const Core = @import("Core.zig");
 
+test "Auth: JWT Authentication" {
+    const allocator = std.testing.allocator;
+
+    // 1. Read Env Vars
+    // Get environment variables
+    var envs = try std.process.getEnvMap(allocator);
+    defer envs.deinit();
+
+    const jwt = envs.get("NATS_JWT") orelse return error.SkipZigTest;
+    const seed = envs.get("NATS_NKEY_SEED") orelse return error.SkipZigTest;
+
+    // 2. Connect using both JWT and Seed
+    var core = Core{};
+    try core.CONNECT(allocator, .{
+        .addr = "127.0.0.1",
+        .port = 4226,
+        .jwt = jwt,
+        .nkey = seed, // The seed is needed to sign the nonce
+    });
+    defer core.DISCONNECT();
+    // 3. Verify connection by pinging the server
+    try core.PING();
+}
+
 test "Auth: Token Authentication" {
     const allocator = testing.allocator;
 
@@ -69,6 +93,7 @@ test "Auth: NKey Authentication" {
 
     // Only run if NATS_NKEY_SEED env var is set
     const seed = envs.get("NATS_NKEY_SEED") orelse return error.SkipZigTest;
+    if (envs.get("NATS_JWT") != null) return error.SkipZigTest;
 
     var core = Core{};
     try core.CONNECT(allocator, .{

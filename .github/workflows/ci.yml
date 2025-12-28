@@ -78,6 +78,46 @@ jobs:
           kill $SERVER_PID || true
 
 
+      # JWT / Operator Auth
+      - name: Test JWT Auth
+        run: |
+          # 1. Install nsc (Tool to generate NATS JWTs)
+          curl -L https://github.com/nats-io/nsc/releases/download/v2.10.2/nsc-linux-amd64.zip -o nsc.zip
+          unzip nsc.zip
+          sudo mv nsc /usr/local/bin/
+
+          # 2. Setup PKI (Operator -> Account)
+          # Initialize a new Operator and Account locally
+          nsc init -n CI_OP --dir ./nsc_store
+          nsc add account -n CI_ACC
+          
+          # 3. Generate Server Config
+          # --mem-resolver embeds the Account JWT directly into the config file.
+          # This allows the server to validate users without needing an external URL/server.
+          nsc generate config --mem-resolver --config-file ./nsc_store/resolver.conf
+
+          # 4. Create a User Dynamically
+          # We mint a new user signed by the CI_ACC account
+          nsc add user -n CI_USER
+          nsc generate creds -a CI_ACC -n CI_USER > user.creds
+
+          # 5. Extract Credentials
+          # The .creds file contains the JWT (starts with 'eyJ') and the Seed (starts with 'S')
+          # We parse them out to pass as environment variables
+          JWT_VAL=$(grep -v '\-\-\-' user.creds | grep 'eyJ')
+          SEED_VAL=$(grep -v '\-\-\-' user.creds | grep '^S')
+
+          # 6. Start Server & Run Test
+          # Start NATS with the generated resolver config (Port 4226)
+          nats-server -c ./nsc_store/resolver.conf -p 4226 &
+          SERVER_PID=$!
+          sleep 2
+
+          # Run the test passing the extracted credentials
+          NATS_JWT="$JWT_VAL" NATS_NKEY_SEED="$SEED_VAL" zig build integration-test --summary all
+
+          kill $SERVER_PID || true
+
       # Run Unit Tests without NATS server
       # mem leaks removed & ConnError handled
       - name: Run Unit Tests without NATS Server
