@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 test "base jetstream requests" {
-    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    var js: JetStream = JetStream.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer js.DISCONNECT();
 
     const STREAM: []const u8 = "ORDS";
@@ -22,7 +25,10 @@ test "base jetstream requests" {
 }
 
 test "min jetstream requests" {
-    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    var js: JetStream = JetStream.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer js.DISCONNECT();
 
     const STREAM: []const u8 = "ORDS";
@@ -38,7 +44,10 @@ test "min jetstream requests" {
 
 test "stream info functionality" {
     // Step 1: Connect to JetStream
-    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    var js: JetStream = JetStream.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer js.DISCONNECT();
 
     const STREAM: []const u8 = "TESTINFO";
@@ -108,7 +117,10 @@ test "stream info functionality" {
 }
 
 test "stream info with subjects filter" {
-    var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    var js: JetStream = JetStream.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer js.DISCONNECT();
 
     const STREAM: []const u8 = "TESTFILTER";

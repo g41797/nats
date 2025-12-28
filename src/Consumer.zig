@@ -275,6 +275,7 @@ fn nack(cs: *Consumer, msg: *AllocatedMSG) !void {
 fn reuse(cs: *Consumer, msg: *AllocatedMSG) void {
     if (cs.connection == null) {
         messages.free(msg);
+        return;
     }
     cs.connection.?.reuse(msg);
 }

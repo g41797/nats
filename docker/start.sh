@@ -12,24 +12,19 @@ docker compose -f $DOCOMPOSE up -d
 
 echo Waiting for open port $QPORT
 
-for (( ; ; ))
+# Wait for NATS to be ready (up to 30 seconds)
+for i in {1..30}
 do
-    sudo netstat --tcp --listening --programs --numeric|grep -o $QPORT|wc -l >/tmp/openedports
-    OPENED=$(< /tmp/openedports)
-    if [ $OPENED -gt 0 ];
-    then
+    if nc -z localhost $QPORT 2>/dev/null; then
+        echo 'ok'
+        echo ''
+        date
+        echo "Port $QPORT is open"
+        echo ''
         break
     fi
-
     echo -n .
     sleep 1
 done
-
-echo 'ok'
-echo ''
-
-date
-sudo netstat --tcp --listening --programs --numeric|grep $QPORT
-echo ''
 
 

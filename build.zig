@@ -126,6 +126,31 @@ pub fn build(b: *std.Build) void {
     const test_step = b.*.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
     // test_step.dependOn(&exe_unit_tests.step);
+
+    // Integration tests - requires environment variables and running NATS server
+    const integration_test_module = b.*.createModule(.{
+        .root_source_file = b.*.path("src/integration_tests.zig"),
+        .target = target,
+        .optimize = optimize,
+        .single_threaded = false,
+    });
+
+    integration_test_module.addImport("mailbox", mailbox.module("mailbox"));
+    integration_test_module.addImport("zul", zul.module("zul"));
+
+    const integration_tests = b.*.addTest(.{
+        .root_module = integration_test_module,
+    });
+
+    if (builtin.os.tag == .windows) {
+        integration_tests.linkLibC();
+        integration_tests.linkSystemLibrary("ws2_32");
+    }
+
+    const run_integration_tests = b.*.addRunArtifact(integration_tests);
+
+    const integration_test_step = b.*.step("integration-test", "Run integration tests (requires NATS server and env vars)");
+    integration_test_step.dependOn(&run_integration_tests.step);
 }
 
 const std = @import("std");

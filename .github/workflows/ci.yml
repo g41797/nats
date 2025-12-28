@@ -1,0 +1,97 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Install Zig 0.15.2
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      # 2. Install NATS Server 2.12.3
+      - name: Install NATS Server
+        run: |
+          curl -L https://github.com/nats-io/nats-server/releases/download/v2.12.3/nats-server-v2.12.3-linux-amd64.tar.gz -o nats.tar.gz
+          tar -xzf nats.tar.gz
+          sudo mv nats-server-v2.12.3-linux-amd64/nats-server /usr/local/bin/
+          nats-server --version
+
+      # 3. Build the Project (Ensures compilation works before tests)
+      - name: Build
+        run: zig build
+
+
+      # Token Auth
+      - name: Test Token Auth
+        env:
+          NATS_TOKEN: test_token_12345
+        run: |
+          # Start NATS in background with token config (port 4223)
+          nats-server -c int-test/nats-token.conf &
+          SERVER_PID=$!
+
+          # Wait for server to be ready
+          sleep 2
+
+          # Run the integration test
+          zig build integration-test --summary all
+
+          # Kill the server
+          kill $SERVER_PID || true
+
+      # User/Pass Auth
+      - name: Test User/Pass Auth
+        env:
+          NATS_USER: testuser
+          NATS_PASS: testpass
+        run: |
+          # Start NATS in background with user/pass config (port 4224)
+          nats-server -c int-test/nats-userpass.conf &
+          SERVER_PID=$!
+          sleep 2
+
+          zig build integration-test --summary all
+
+          # Kill the server
+          kill $SERVER_PID || true
+
+      # NKey Auth
+      - name: Test NKey Auth
+        env:
+          NATS_NKEY_SEED: SUAEBVUWOAJRL5FSDXP3A7EEUC3ZU7GYILW6TMVK2J63RQAZQQ642MVIBI
+        run: |
+          # Start server with NKey config (port 4225)
+          nats-server -c int-test/nats-nkey.conf &
+          SERVER_PID=$!
+          sleep 2
+
+          # Run test with the seed that matches the public key in config
+          zig build integration-test --summary all
+
+          # Kill the server
+          kill $SERVER_PID || true
+
+
+      # Run Unit Tests without NATS server
+      # mem leaks removed & ConnError handled
+      - name: Run Unit Tests without NATS Server
+        run: zig build test --summary all
+
+      # Run Unit Tests with NATS server
+      - name: Run Unit Tests with NATS Server
+        run: |
+          # Start NATS in background with JetStream enabled (port 4222)
+          nats-server -js -p 4222 &
+          SERVER_PID=$!
+          sleep 2
+
+          zig build test --summary all
+
+          # Kill the server
+          kill $SERVER_PID || true

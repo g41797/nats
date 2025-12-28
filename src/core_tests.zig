@@ -7,13 +7,19 @@ const SECNS = protocol.SECNS;
 
 test "CONNECT DISCONNECT" {
     var cl: Core = .{};
-    try cl.CONNECT(std.testing.allocator, .{});
+    cl.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer cl.DISCONNECT();
 }
 
 test "PING-PONG" {
     var cl: Core = .{};
-    try cl.CONNECT(std.testing.allocator, .{});
+    cl.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer cl.DISCONNECT();
 
     try cl.PING();
@@ -22,7 +28,10 @@ test "PING-PONG" {
 
 test "PUB-SUB" {
     var sb: Core = .{};
-    try sb.CONNECT(std.testing.allocator, .{});
+    sb.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer sb.DISCONNECT();
 
     // SUB <subject> [queue group] <sid>␍␊
@@ -30,7 +39,10 @@ test "PUB-SUB" {
     try sb.SUB(NOTIFY, null, "NSID");
 
     var pb: Core = .{};
-    try pb.CONNECT(std.testing.allocator, .{});
+    pb.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer pb.DISCONNECT();
 
     // PUB <subject> [reply-to] <#bytes>␍␊[payload]␍␊
@@ -81,7 +93,10 @@ fn wait(cl: *Core, mt: MT) !*AllocatedMSG {
 
 test "PUB-SUB the same connection" {
     var sb: Core = .{};
-    try sb.CONNECT(std.testing.allocator, .{});
+    sb.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer sb.DISCONNECT();
 
     // SUB <subject> [queue group] <sid>␍␊
@@ -106,7 +121,10 @@ test "PUB-SUB the same connection" {
 
 test "requestNMT prototype" {
     var cl: Core = .{};
-    try cl.CONNECT(std.testing.allocator, .{});
+    cl.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer cl.DISCONNECT();
 
     // Prepare for response
@@ -141,7 +159,10 @@ test "requestNMT" {
     const SUBJECT = "$JS.API.INFO";
 
     var rqtr: Core = .{};
-    try rqtr.CONNECT(std.testing.allocator, .{});
+    rqtr.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer rqtr.DISCONNECT();
 
     const resp = try rqtr.REQUEST(SUBJECT, null, SECNS * 20);
@@ -163,7 +184,10 @@ test "delete non existing stream" {
     }
 
     var rqtr: Core = .{};
-    try rqtr.CONNECT(std.testing.allocator, .{});
+    rqtr.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer rqtr.DISCONNECT();
 
     const resp = try rqtr.REQUEST(SUBJECT.?, null, SECNS * 20);
@@ -186,7 +210,10 @@ test "create delete stream" {
     const EXISTINGSTREAM: []const u8 = "EXISTINGSTREAM";
 
     var rqtr: Core = .{};
-    try rqtr.CONNECT(std.testing.allocator, .{});
+    rqtr.CONNECT(std.testing.allocator, .{}) catch |err| {
+        if (err == error.ConnectionRefused) return error.SkipZigTest;
+        return err;
+    };
     defer rqtr.DISCONNECT();
 
     var DELETE_STREAM = try cmd.sprintf(DELETE_STREAM_T, .{EXISTINGSTREAM});
