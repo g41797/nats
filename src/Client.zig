@@ -283,11 +283,12 @@ pub fn wasRaised(self: *Client) bool {
     return true;
 }
 
-fn setNonBlocking(fd: posix.fd_t) !void {
+// Uses a packed struct to avoid alignment issues
+pub fn setNonBlocking(sock: posix.socket_t) !void {
     if (builtin.os.tag == .windows) {
         // Windows implementation using ioctlsocket
         var mode: c_ulong = 1; // 1 = Non-Blocking
-        const res = std.os.windows.ws2_32.ioctlsocket(fd, std.os.windows.ws2_32.FIONBIO, &mode);
+        const res = std.os.windows.ws2_32.ioctlsocket(sock, std.os.windows.ws2_32.FIONBIO, &mode);
         if (res != 0) {
             switch (std.os.windows.ws2_32.WSAGetLastError()) {
                 .WSANOTINITIALISED => unreachable,
@@ -300,7 +301,7 @@ fn setNonBlocking(fd: posix.fd_t) !void {
         // POSIX implementation using fcntl and packed structs
 
         // 1. Get current flags
-        const current_flags_int = try posix.fcntl(fd, posix.F.GETFL, 0);
+        const current_flags_int = try posix.fcntl(sock, posix.F.GETFL, 0);
 
         // 2. Create the bitmask for NONBLOCK safely
         const nonblock_struct = posix.O{ .NONBLOCK = true };
@@ -310,15 +311,16 @@ fn setNonBlocking(fd: posix.fd_t) !void {
         const new_flags = @as(u32, @intCast(current_flags_int)) | nonblock_mask;
 
         // 4. Set the new flags
-        _ = try posix.fcntl(fd, posix.F.SETFL, new_flags);
+        _ = try posix.fcntl(sock, posix.F.SETFL, new_flags);
     }
 }
 
-fn setBlocking(fd: posix.fd_t) !void {
+// Uses a packed struct to avoid alignment issues
+fn setBlocking(sock: posix.socket_t) !void {
     if (builtin.os.tag == .windows) {
         // Windows implementation using ioctlsocket
         var mode: c_ulong = 0; // 0 = Blocking
-        const res = std.os.windows.ws2_32.ioctlsocket(fd, std.os.windows.ws2_32.FIONBIO, &mode);
+        const res = std.os.windows.ws2_32.ioctlsocket(sock, std.os.windows.ws2_32.FIONBIO, &mode);
         if (res != 0) {
             switch (std.os.windows.ws2_32.WSAGetLastError()) {
                 .WSANOTINITIALISED => unreachable,
@@ -330,7 +332,7 @@ fn setBlocking(fd: posix.fd_t) !void {
     } else {
         // POSIX implementation using fcntl
         // 1. Get current flags
-        const current_flags_int = try posix.fcntl(fd, posix.F.GETFL, 0);
+        const current_flags_int = try posix.fcntl(sock, posix.F.GETFL, 0);
 
         // 2. Create the bitmask for NONBLOCK
         const nonblock_struct = posix.O{ .NONBLOCK = true };
@@ -340,39 +342,6 @@ fn setBlocking(fd: posix.fd_t) !void {
         const new_flags = @as(u32, @intCast(current_flags_int)) & ~nonblock_mask;
 
         // 4. Set the new flags
-        _ = try posix.fcntl(fd, posix.F.SETFL, new_flags);
-    }
-}
-
-pub fn setSockNONBLOCK(sock: posix.socket_t) !void {
-    if (builtin.os.tag == .windows) {
-        var mode: c_ulong = 1;
-        if (windows.ws2_32.ioctlsocket(sock, windows.ws2_32.FIONBIO, &mode) == windows.ws2_32.SOCKET_ERROR) {
-            switch (windows.ws2_32.WSAGetLastError()) {
-                .WSANOTINITIALISED => unreachable,
-                .WSAENETDOWN => return error.NetworkSubsystemFailed,
-                .WSAENOTSOCK => return error.FileDescriptorNotASocket,
-                // !!! handle more errors !!!
-                else => |err| return windows.unexpectedWSAError(err),
-            }
-        }
-    } else {
-        var fl_flags = posix.fcntl(sock, posix.F.GETFL, 0) catch |err| switch (err) {
-            error.FileBusy => unreachable,
-            error.Locked => unreachable,
-            error.PermissionDenied => unreachable,
-            error.DeadLock => unreachable,
-            error.LockedRegionLimitExceeded => unreachable,
-            else => |e| return e,
-        };
-        fl_flags |= 1 << @bitOffsetOf(system.O, "NONBLOCK");
-        _ = posix.fcntl(sock, posix.F.SETFL, fl_flags) catch |err| switch (err) {
-            error.FileBusy => unreachable,
-            error.Locked => unreachable,
-            error.PermissionDenied => unreachable,
-            error.DeadLock => unreachable,
-            error.LockedRegionLimitExceeded => unreachable,
-            else => |e| return e,
-        };
+        _ = try posix.fcntl(sock, posix.F.SETFL, new_flags);
     }
 }
