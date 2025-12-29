@@ -25,7 +25,7 @@ test "Auth: JWT Authentication" {
         .addr = "127.0.0.1",
         .port = 4226,
         .jwt = jwt,
-        .nkey = seed, // The seed is needed to sign the nonce
+        .nkey_seed = seed, // The seed is needed to sign the nonce
     });
     defer core.DISCONNECT();
     // 3. Verify connection by pinging the server
@@ -99,7 +99,7 @@ test "Auth: NKey Authentication" {
     try core.CONNECT(allocator, .{
         .addr = "127.0.0.1",
         .port = 4225,
-        .nkey = seed,
+        .nkey_seed = seed,
     });
     defer core.DISCONNECT();
 
@@ -117,7 +117,7 @@ test "Auth Validation: Conflicting auth methods (NKey + Token)" {
     const result = protocol.buildConnectString(
         allocator,
         .{
-            .nkey = "SUAA5NXASOB7VKY5KDN2XMOV6ZU5T6V5C2RWTGEFITZDNCMJGR2BTWQOQ4",
+            .nkey_seed = "SUAA5NXASOB7VKY5KDN2XMOV6ZU5T6V5C2RWTGEFITZDNCMJGR2BTWQOQ4",
             .auth_token = "some_token",
         },
         null,
@@ -134,7 +134,7 @@ test "Auth Validation: Conflicting auth methods (NKey + User/Pass)" {
     const result = protocol.buildConnectString(
         allocator,
         .{
-            .nkey = "SUAA5NXASOB7VKY5KDN2XMOV6ZU5T6V5C2RWTGEFITZDNCMJGR2BTWQOQ4",
+            .nkey_seed = "SUAA5NXASOB7VKY5KDN2XMOV6ZU5T6V5C2RWTGEFITZDNCMJGR2BTWQOQ4",
             .user = "testuser",
             .pass = "testpass",
         },
@@ -232,7 +232,7 @@ test "Auth Validation: Valid auth methods work correctly" {
     {
         const result = try protocol.buildConnectString(
             allocator,
-            .{ .nkey = "SUAA5NXASOB7VKY5KDN2XMOV6ZU5T6V5C2RWTGEFITZDNCMJGR2BTWQOQ4" },
+            .{ .nkey_seed = "SUAA5NXASOB7VKY5KDN2XMOV6ZU5T6V5C2RWTGEFITZDNCMJGR2BTWQOQ4" },
             "UAD46KBLJ5NVEPU3BGXQY75NTDWSZ6BEBMPQKMLS3BAX7PWYS2IIGCZF",
             "dGVzdF9zaWduYXR1cmU",
         );

@@ -60,7 +60,7 @@ test "setsockopt RCVTIMEO does not work on Windows" {
 fn tryReadByte(stream: *Stream) !void {
     // try setTimeOut(stream);
 
-    try nclient.setSockNONBLOCK(stream.handle);
+    try nclient.setNonBlocking(stream.handle);
 
     var str: [1]u8 = undefined;
     str[0] = 0;

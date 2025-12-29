@@ -51,17 +51,8 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
 
     cn.allocator = allocator;
 
-    var host: []const u8 = protocol.DefaultAddr;
-
-    if (co.addr != null) {
-        host = co.addr.?;
-    }
-
-    var prt: u16 = protocol.DefaultPort;
-
-    if (co.port != null) {
-        prt = co.port.?;
-    }
+    const host = co.addr orelse protocol.DefaultAddr;
+    const prt = co.port orelse protocol.DefaultPort;
 
     errdefer {
         if (cn.req_reply2.formatbuf.buffer) |_| cn.req_reply2.deinit();
@@ -84,25 +75,51 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
     cn.received.init(allocator);
     cn.req_reply2 = try Formatter.init(allocator, 48);
 
-    cn.client = try cn.connectTcp(.{
-        .addr = host,
-        .port = prt,
-    });
+    // Allocate Client on the heap so it is stable
+    cn.client = try allocator.create(Client);
+    errdefer {
+        if (cn.client) |client| {
+            allocator.destroy(client);
+            cn.client = null;
+        }
+    }
+    // Connect using resolved host/port
+    // We update 'co' to ensure the Client knows the target host for SNI
+    var connect_opts = co;
+    connect_opts.addr = host;
+    connect_opts.port = prt;
 
-    errdefer cn.disconnect();
+    // 1. TCP connection
+    cn.client.?.* = try Client.connect(allocator, connect_opts);
+    errdefer {
+        if (cn.client) |client| {
+            client.close();
+        }
+    }
 
     // Initialize timer before read_mt() since it calls sendHeartBit()
     cn.timeout_timer = std.time.Timer.start() catch unreachable;
 
     const mt = try cn.read_mt();
 
-    if (mt != .INFO) {
-        return error.ProtocolError;
-    }
+    if (mt != .INFO) return error.ProtocolError;
 
     // Extract INFO payload to get nonce for NKey authentication
     const info_line = cn.line.body() orelse return error.ProtocolError;
 
+    // 2. TLS UPGRADE. NATS Protocol: TCP -> INFO -> [TLS Handshake] -> CONNECT
+    // get server TLS requirement from INFO
+    const server_requires_tls = std.mem.indexOf(u8, info_line, "\"tls_required\":true") != null;
+    // get user TLS preference from ConnectOpts
+    const user_wants_tls = co.tls_required; // (default user = false)
+    const should_upgrade = server_requires_tls or user_wants_tls;
+
+    if (should_upgrade) {
+        // Perform the handshake. Client.zig handles the buffers/arena/wrapping.
+        try cn.client.?.upgradeTLS(host, co);
+    }
+
+    // AUTHENTICATION (NKey / JWT)
     // Handle NKey authentication if nkey is provided
     // NKey auth requires: 1) extract nonce from server INFO, 2) sign it with private key, 3) send public key + signature
     var nkey_pubkey: ?[]const u8 = null;
@@ -114,7 +131,8 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
         if (nkey_sig) |sig| allocator.free(sig);
     }
 
-    if (co.nkey) |nkey_seed| {
+    // Handle NKey calculations if nkey seed is provided
+    if (co.nkey_seed) |nkey_seed| {
 
         // Parse INFO to extract nonce (server challenge for authentication)
         // The nonce may not be present if the server doesn't require NKey auth
@@ -140,9 +158,15 @@ fn _connect(cn: *Conn, allocator: Allocator, co: protocol.ConnectOpts) !void {
     }
 
     // Build CONNECT string with auth credentials (including NKey if provided)
+
+    var final_opts = co;
+    if (should_upgrade) {
+        final_opts.tls_required = true;
+    }
+
     const connect_str = try protocol.buildConnectString(
         allocator,
-        co,
+        final_opts,
         nkey_pubkey,
         nkey_sig,
     );
