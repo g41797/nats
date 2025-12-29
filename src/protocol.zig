@@ -22,54 +22,55 @@ pub const DefaultPort = 4222;
 /// Connection options for establishing a NATS connection.
 pub const ConnectOpts = struct {
     /// Server address (hostname or IP).
+    verbose: bool = false,
     addr: ?[]const u8 = DefaultAddr,
-    /// Server port.
     port: ?u16 = DefaultPort,
     jwt: ?[]const u8 = null,
     auth_token: ?[]const u8 = null,
     user: ?[]const u8 = null,
     pass: ?[]const u8 = null,
-    nkey: ?[]const u8 = null,
-};
-
-pub const ClientOpts = struct {
-    verbose: bool = false,
-    pedantic: bool = false,
+    /// NKey seed (private key) - used to generate public key and signature.
+    /// Never sent to server. Public key and signature are derived from this.
+    nkey_seed: ?[]const u8 = null,
     tls_required: bool = false,
-    auth_token: ?[]const u8 = null,
-    user: ?[]const u8 = null,
-    pass: ?[]const u8 = null,
-    lang: []const u8 = "Zig",
-    version: []const u8 = "TBD",
-    protocol: []const u8 = "0",
-    echo: bool = false,
-    sig: ?[]const u8 = null,
-    headers: bool = true,
-    nkey: ?[]const u8 = null,
+    tls_enabled: bool = false,
+    tls_ca_file: ?[]const u8 = null, // Path to CA bundle (null = system default)
+    tls_verify: bool = true,
 };
 
-/// CONNECT message payload structure
+/// CONNECT message payload structure sent to the NATS server
+/// This is an internal structure used only by buildConnectString() for JSON serialization.
 const ConnectMessage = struct {
     verbose: bool = false,
     pedantic: bool = false,
-    tls_required: bool = false,
-    jwt: ?[]const u8 = null,
-    nkey: ?[]const u8 = null,
-    sig: ?[]const u8 = null,
-    auth_token: ?[]const u8 = null,
-    user: ?[]const u8 = null,
-    pass: ?[]const u8 = null,
     lang: []const u8 = "Zig",
     version: []const u8 = "T.B.D",
     protocol: u8 = 1,
     echo: bool = true,
+    tls_required: bool = false,
+    auth_token: ?[]const u8 = null,
+    jwt: ?[]const u8 = null,
+    /// NKey public key (base32-encoded, starts with "U").
+    /// This is derived from the nkey seed and sent to server for identification.
+    nkey_pub: ?[]const u8 = null,
+    /// Signature of the server's nonce, signed with the nkey seed (base64url-encoded).
+    /// Proves possession of the private key without revealing it.
+    sig: ?[]const u8 = null,
+    user: ?[]const u8 = null,
+    pass: ?[]const u8 = null,
     no_responders: bool = true,
     headers: bool = true,
 };
 
 /// Build CONNECT string with optional NKey authentication
 ///
-/// If nkey_pubkey and nkey_sig are provided, they will be included in the CONNECT message
+/// NKey Authentication Flow:
+///   1. opts.nkey_seed contains the seed (private key) - NEVER sent to server
+///   2. nkey_pubkey is derived from the seed - sent to server for identification
+///   3. nkey_sig is the server's nonce signed with the seed - sent to prove ownership
+///
+/// The separation of nkey_pubkey and nkey_sig as parameters (instead of being in opts)
+/// emphasizes that these are computed values, not input configuration.
 ///
 /// Returns owned slice that caller must free
 ///
@@ -81,10 +82,10 @@ const ConnectMessage = struct {
 pub fn buildConnectString(
     allocator: std.mem.Allocator,
     opts: ConnectOpts,
-    nkey_pubkey: ?[]const u8, // Base32-encoded public key (optional)
-    nkey_sig: ?[]const u8, // Base64url-encoded signature (optional)
+    nkey_pubkey: ?[]const u8, // Base32-encoded public key derived from opts.nkey_seed (optional)
+    nkey_sig: ?[]const u8,    // Base64url-encoded signature of server nonce (optional)
 ) ![]const u8 {
-    const has_nkey = opts.nkey != null;
+    const has_nkey = opts.nkey_seed != null;
     const has_token = opts.auth_token != null;
     const has_user = opts.user != null;
     const has_pass = opts.pass != null;
@@ -109,8 +110,7 @@ pub fn buildConnectString(
     const message = ConnectMessage{
         .jwt = opts.jwt,
         // if JWT is used, NKey public key is not sent
-        .nkey = if (opts.jwt != null) null else nkey_pubkey,
-        // nkey_pubkey,
+        .nkey_pub = if (opts.jwt != null) null else nkey_pubkey,
         .sig = nkey_sig,
         .auth_token = opts.auth_token,
         .user = opts.user,

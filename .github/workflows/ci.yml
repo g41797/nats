@@ -135,3 +135,31 @@ jobs:
 
           # Kill the server
           kill $SERVER_PID || true
+      
+      # TLS Upgrade
+      - name: Test TLS Upgrade
+        run: |
+          # 1. Create directory if it doesn't exist
+          mkdir -p int-test
+
+          # 2. Generate Self-Signed Certificates (so we don't need them in Git)
+          # We generate them exactly where the test expects: ./int-test/
+          openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes \
+            -keyout int-test/localhost+2-key.pem \
+            -out int-test/localhost+2.pem \
+            -subj "/CN=localhost" \
+            -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+
+          # 3. Start NATS with TLS (Port 4222)
+          # We use the generated keys from int-test/
+          nats-server --tls --tlscert=int-test/localhost+2.pem --tlskey=int-test/localhost+2-key.pem -DV -p 4222 &
+          SERVER_PID=$!
+          
+          # Give the server a moment to initialize TLS
+          sleep 2
+
+          # 4. Run the TLS test
+          zig build tls
+
+          # 5. Cleanup
+          kill $SERVER_PID || true

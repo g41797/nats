@@ -151,6 +151,31 @@ pub fn build(b: *std.Build) void {
 
     const integration_test_step = b.*.step("integration-test", "Run integration tests (requires NATS server and env vars)");
     integration_test_step.dependOn(&run_integration_tests.step);
+
+    // TLS tests - TLS testing with demo.nats.io ------------------
+    const tls_test_module = b.*.createModule(.{
+        .root_source_file = b.*.path("src/tcp-tls.zig"),
+        .target = target,
+        .optimize = optimize,
+        .single_threaded = false,
+    });
+
+    tls_test_module.addImport("mailbox", mailbox.module("mailbox"));
+    tls_test_module.addImport("zul", zul.module("zul"));
+
+    const tls_tests = b.*.addTest(.{
+        .root_module = tls_test_module,
+    });
+
+    if (builtin.os.tag == .windows) {
+        tls_tests.linkLibC();
+        tls_tests.linkSystemLibrary("ws2_32");
+    }
+
+    const run_tls_tests = b.*.addRunArtifact(tls_tests);
+
+    const tls_test_step = b.*.step("tls", "Run TLS demo tests with demo.nats.io");
+    tls_test_step.dependOn(&run_tls_tests.step);
 }
 
 const std = @import("std");
