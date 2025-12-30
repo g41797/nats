@@ -42,19 +42,65 @@ test "Auth: Token Authentication" {
     // Only run if NATS_TOKEN env var is set
     const token = envs.get("NATS_TOKEN") orelse return error.SkipZigTest;
 
-    var core = Core{};
-    try core.CONNECT(allocator, .{
-        .addr = "127.0.0.1",
-        .port = 4223,
-        .auth_token = token,
-    });
-    defer core.DISCONNECT();
+    // Test 1: Basic Core connection with PING
+    {
+        var core = Core{};
+        try core.CONNECT(allocator, .{
+            .addr = "127.0.0.1",
+            .port = 4223,
+            .auth_token = token,
+        });
+        defer core.DISCONNECT();
 
-    // Verify connection by pinging the server
-    // If connection/auth failed, PING would return an error
-    try core.PING();
+        try core.PING();
+        std.debug.print("Token auth (Core): Successfully connected and verified with PING\n", .{});
+    }
 
-    std.debug.print("Token auth: Successfully connected and verified with PING\n", .{});
+    // Test 2: JetStream operations
+    {
+        const JetStream = @import("JetStream.zig");
+
+        const js_opts: protocol.ConnectOpts = .{
+            .addr = "127.0.0.1",
+            .port = 4223,
+            .auth_token = token,
+        };
+
+        var js = try JetStream.CONNECT(allocator, js_opts);
+        defer js.DISCONNECT();
+
+        const test_stream_name = "TOKEN_AUTH_TEST";
+        var stream_config: protocol.StreamConfig = .{
+            .name = test_stream_name,
+            .subjects = &.{"token.test.>"},
+        };
+
+        var stream_created = false;
+        js.CREATE(&stream_config) catch |err| {
+            if (err == error.StreamAlreadyExists) {
+                std.debug.print("Token auth (JetStream): Stream already exists (OK)\n", .{});
+                stream_created = true;
+            } else {
+                std.debug.print("Token auth (JetStream): CREATE failed with error: {}\n", .{err});
+                return err;
+            }
+        };
+
+        if (!stream_created) {
+            stream_created = true;
+        }
+
+        const empty_request: JetStream.StreamInfoRequest = .{};
+        const info = try js.INFO(test_stream_name, &empty_request);
+
+        std.debug.print("Token auth (JetStream): ✅ Stream INFO succeeded - {d} messages\n", .{info.state.?.messages});
+
+        js.DELETE(test_stream_name) catch |err| {
+            std.debug.print("Token auth (JetStream): DELETE failed (OK): {}\n", .{err});
+        };
+    }
+
+    std.debug.print("Token auth: ✅ All tests passed (Core + JetStream)\n", .{});
 }
 
 test "Auth: User/Pass Authentication" {
@@ -68,20 +114,67 @@ test "Auth: User/Pass Authentication" {
     const user = envs.get("NATS_USER") orelse return error.SkipZigTest;
     const pass = envs.get("NATS_PASS") orelse return error.SkipZigTest;
 
-    var core = Core{};
-    try core.CONNECT(allocator, .{
-        .addr = "127.0.0.1",
-        .port = 4224,
-        .user = user,
-        .pass = pass,
-    });
-    defer core.DISCONNECT();
+    // Test 1: Basic Core connection with PUB
+    {
+        var core = Core{};
+        try core.CONNECT(allocator, .{
+            .addr = "127.0.0.1",
+            .port = 4224,
+            .user = user,
+            .pass = pass,
+        });
+        defer core.DISCONNECT();
 
-    // Verify connection by doing a publish and ensuring no errors
-    // If connection/auth failed, PUB would return an error
-    try core.PUB("test.userpass.auth", null, "test payload");
+        try core.PUB("test.userpass.auth", null, "test payload");
+        std.debug.print("User/Pass auth (Core): Successfully connected and published\n", .{});
+    }
 
-    std.debug.print("User/Pass auth: Successfully connected and published\n", .{});
+    // Test 2: JetStream operations
+    {
+        const JetStream = @import("JetStream.zig");
+
+        const js_opts: protocol.ConnectOpts = .{
+            .addr = "127.0.0.1",
+            .port = 4224,
+            .user = user,
+            .pass = pass,
+        };
+
+        var js = try JetStream.CONNECT(allocator, js_opts);
+        defer js.DISCONNECT();
+
+        const test_stream_name = "USERPASS_AUTH_TEST";
+        var stream_config: protocol.StreamConfig = .{
+            .name = test_stream_name,
+            .subjects = &.{"userpass.test.>"},
+        };
+
+        var stream_created = false;
+        js.CREATE(&stream_config) catch |err| {
+            if (err == error.StreamAlreadyExists) {
+                std.debug.print("User/Pass auth (JetStream): Stream already exists (OK)\n", .{});
+                stream_created = true;
+            } else {
+                std.debug.print("User/Pass auth (JetStream): CREATE failed with error: {}\n", .{err});
+                return err;
+            }
+        };
+
+        if (!stream_created) {
+            stream_created = true;
+        }
+
+        const empty_request: JetStream.StreamInfoRequest = .{};
+        const info = try js.INFO(test_stream_name, &empty_request);
+
+        std.debug.print("User/Pass auth (JetStream): ✅ Stream INFO succeeded - {d} messages\n", .{info.state.?.messages});
+
+        js.DELETE(test_stream_name) catch |err| {
+            std.debug.print("User/Pass auth (JetStream): DELETE failed (OK): {}\n", .{err});
+        };
+    }
+
+    std.debug.print("User/Pass auth: ✅ All tests passed (Core + JetStream)\n", .{});
 }
 
 test "Auth: NKey Authentication" {
@@ -95,19 +188,75 @@ test "Auth: NKey Authentication" {
     const seed = envs.get("NATS_NKEY_SEED") orelse return error.SkipZigTest;
     if (envs.get("NATS_JWT") != null) return error.SkipZigTest;
 
-    var core = Core{};
-    try core.CONNECT(allocator, .{
-        .addr = "127.0.0.1",
-        .port = 4225,
-        .nkey_seed = seed,
-    });
-    defer core.DISCONNECT();
+    // Test 1: Basic Core connection with PING/PUB
+    {
+        var core = Core{};
+        try core.CONNECT(allocator, .{
+            .addr = "127.0.0.1",
+            .port = 4225,
+            .nkey_seed = seed,
+        });
+        defer core.DISCONNECT();
 
-    // Verify connection by doing a publish and ensuring no errors
-    // If connection/auth failed, PUB would return an error
-    try core.PUB("test.nkey.auth", null, "test payload");
+        // Verify connection by doing a publish and ensuring no errors
+        // If connection/auth failed, PUB would return an error
+        try core.PUB("test.nkey.auth", null, "test payload");
 
-    std.debug.print("NKey auth: Successfully connected and published\n", .{});
+        std.debug.print("NKey auth (Core): Successfully connected and published\n", .{});
+    }
+
+    // Test 2: JetStream operations (stream creation and INFO)
+    // This is critical because the bridge uses JetStream, not just basic NATS
+    {
+        const JetStream = @import("JetStream.zig");
+
+        const js_opts: protocol.ConnectOpts = .{
+            .addr = "127.0.0.1",
+            .port = 4225,
+            .nkey_seed = seed,
+        };
+
+        var js = try JetStream.CONNECT(allocator, js_opts);
+        defer js.DISCONNECT();
+
+        // Create a test stream with minimal config (use NATS defaults)
+        const test_stream_name = "NKEY_AUTH_TEST";
+        var stream_config: protocol.StreamConfig = .{
+            .name = test_stream_name,
+            .subjects = &.{"nkey.test.>"},
+        };
+
+        // Try to create stream
+        var stream_created = false;
+        js.CREATE(&stream_config) catch |err| {
+            // If stream already exists, that's fine - we can still test INFO
+            if (err == error.StreamAlreadyExists) {
+                std.debug.print("NKey auth (JetStream): Stream already exists (OK)\n", .{});
+                stream_created = true;
+            } else {
+                // For any other error, this is a real failure
+                std.debug.print("NKey auth (JetStream): CREATE failed with error: {}\n", .{err});
+                return err;
+            }
+        };
+
+        if (!stream_created) {
+            stream_created = true;
+        }
+
+        // Verify we can get stream info (requires JetStream API access)
+        const empty_request: JetStream.StreamInfoRequest = .{};
+        const info = try js.INFO(test_stream_name, &empty_request);
+
+        std.debug.print("NKey auth (JetStream): ✅ Stream INFO succeeded - {d} messages\n", .{info.state.?.messages});
+
+        // Cleanup: Delete the test stream
+        js.DELETE(test_stream_name) catch |err| {
+            std.debug.print("NKey auth (JetStream): DELETE failed (OK): {}\n", .{err});
+        };
+    }
+
+    std.debug.print("NKey auth: ✅ All tests passed (Core + JetStream)\n", .{});
 }
 
 test "Auth Validation: Conflicting auth methods (NKey + Token)" {

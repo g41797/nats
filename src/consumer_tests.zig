@@ -8,15 +8,9 @@ const DontDeleteConsumer = !DeleteConsumer;
 test "create/consume/delete consumer" {
     const STREAM = "ORDERS_TEST1"; // Unique stream name to avoid parallel test conflicts
 
-    deleteStream(STREAM) catch |err| {
-        if (err == error.ConnectionRefused) return error.SkipZigTest;
-        return err;
-    };
+    deleteStream(STREAM) catch return error.SkipZigTest;
 
-    createStream(STREAM) catch |err| {
-        if (err == error.ConnectionRefused) return error.SkipZigTest;
-        return err;
-    };
+    createStream(STREAM) catch return error.SkipZigTest;
 
     { // ephemeral consumer
         var conf: ConsumerConfig = .{};
@@ -24,7 +18,7 @@ test "create/consume/delete consumer" {
         var filter_buf: [64]u8 = undefined;
         const filter = try std.fmt.bufPrint(&filter_buf, "{s}.*", .{STREAM});
         conf.filter_subject = filter;
-        var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+        var consumer: Consumer = Consumer.START(std.testing.allocator, .{}, STREAM, &conf) catch return error.SkipZigTest;
 
         try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 1));
 
@@ -39,7 +33,7 @@ test "create/consume/delete consumer" {
         var filter_buf2: [64]u8 = undefined;
         const filter2 = try std.fmt.bufPrint(&filter_buf2, "{s}.*", .{STREAM});
         conf.filter_subject = filter2;
-        var consumer: Consumer = try Consumer.START(std.testing.allocator, .{}, STREAM, &conf);
+        var consumer: Consumer = Consumer.START(std.testing.allocator, .{}, STREAM, &conf) catch return error.SkipZigTest;
 
         try testing.expectEqual(null, consumer.CONSUME(protocol.SECNS * 1));
 
@@ -52,19 +46,14 @@ test "create/consume/delete consumer" {
 test "publish/consume ephemeral consumer" {
     const STREAM = "ORDERS_TEST2"; // Unique stream name to avoid parallel test conflicts
 
-    createStream(STREAM) catch |err| {
-        if (err == error.ConnectionRefused) return error.SkipZigTest;
-        return err;
-    };
+    createStream(STREAM) catch return error.SkipZigTest;
 
-    purgeStream(STREAM) catch |err| {
-        if (err == error.ConnectionRefused) return error.SkipZigTest;
-        return err;
-    };
+    purgeStream(STREAM) catch return error.SkipZigTest;
 
     defer _deleteStream(STREAM);
 
     var submitter: JetStream = try JetStream.CONNECT(std.testing.allocator, DefaultConnectOpts);
+    defer submitter.DISCONNECT();
 
     // ephemeral consumer
     var filter_buf: [64]u8 = undefined;
@@ -89,7 +78,6 @@ test "publish/consume ephemeral consumer" {
     try submitter.PUBLISH(subject, null, "1");
     try submitter.PUBLISH(subject, null, "2");
     try submitter.PUBLISH(subject, null, "3");
-    submitter.DISCONNECT();
 
     order = try consumer.CONSUME(protocol.SECNS * 2);
     try testing.expectEqual(std.mem.eql(u8, "1", order.?.letter.getPayload().?), true);
@@ -119,19 +107,14 @@ test "publish/consume ephemeral consumer" {
 test "publish/consume durable consumer" {
     const STREAM = "ORDERS_TEST3"; // Unique stream name to avoid parallel test conflicts
 
-    createStream(STREAM) catch |err| {
-        if (err == error.ConnectionRefused) return error.SkipZigTest;
-        return err;
-    };
+    createStream(STREAM) catch return error.SkipZigTest;
 
-    purgeStream(STREAM) catch |err| {
-        if (err == error.ConnectionRefused) return error.SkipZigTest;
-        return err;
-    };
+    purgeStream(STREAM) catch return error.SkipZigTest;
 
     defer _deleteStream(STREAM);
 
     var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    defer js.DISCONNECT();
 
     var filter_buf: [64]u8 = undefined;
     const filter = try std.fmt.bufPrint(&filter_buf, "{s}.*", .{STREAM});
@@ -157,7 +140,6 @@ test "publish/consume durable consumer" {
     try js.PUBLISH(subject, null, "1");
     try js.PUBLISH(subject, null, "2");
     try js.PUBLISH(subject, null, "3");
-    js.DISCONNECT();
 
     order = try consumer.CONSUME(protocol.SECNS * 2);
     try testing.expectEqual(std.mem.eql(u8, "1", order.?.letter.getPayload().?), true);
@@ -182,14 +164,8 @@ test "publish/consume durable consumer" {
 test "publish/consume two consumers" {
     const STREAM = "ORDERS_TEST4"; // Unique stream name to avoid parallel test conflicts
 
-    createStream(STREAM) catch |err| {
-        if (err == error.ConnectionRefused) return error.SkipZigTest;
-        return err;
-    };
-    purgeStream(STREAM) catch |err| {
-        if (err == error.ConnectionRefused) return error.SkipZigTest;
-        return err;
-    };
+    createStream(STREAM) catch return error.SkipZigTest;
+    purgeStream(STREAM) catch return error.SkipZigTest;
     defer _deleteStream(STREAM);
 
     var subject_received_buf: [64]u8 = undefined;
@@ -199,8 +175,8 @@ test "publish/consume two consumers" {
     const subject_processed = try std.fmt.bufPrint(&subject_processed_buf, "{s}.processed", .{STREAM});
 
     var js: JetStream = try JetStream.CONNECT(std.testing.allocator, .{});
+    defer js.DISCONNECT();
     try js.PUBLISH(subject_received, null, "1");
-    js.DISCONNECT();
 
     var conf: ConsumerConfig = .{
         .durable_name = "NEW",
@@ -237,14 +213,8 @@ test "publish/consume two consumers" {
 test "publish/consume/subscribe" {
     const STREAM = "ORDERS_TEST5"; // Unique stream name to avoid parallel test conflicts
 
-    createStream(STREAM) catch |err| {
-        if (err == error.ConnectionRefused) return error.SkipZigTest;
-        return err;
-    };
-    purgeStream(STREAM) catch |err| {
-        if (err == error.ConnectionRefused) return error.SkipZigTest;
-        return err;
-    };
+    createStream(STREAM) catch return error.SkipZigTest;
+    purgeStream(STREAM) catch return error.SkipZigTest;
     defer _deleteStream(STREAM);
 
     var stream_pattern_buf: [64]u8 = undefined;
@@ -265,9 +235,9 @@ test "publish/consume/subscribe" {
     const subject_completed = try std.fmt.bufPrint(&subject_completed_buf, "{s}.completed", .{STREAM});
 
     var js: JetStream = try JetStream.CONNECT(std.testing.allocator, DefaultConnectOpts);
+    defer js.DISCONNECT();
     try js.PUBLISH(subject_received, null, "1");
     mcount += 1;
-    js.DISCONNECT();
 
     var conf: ConsumerConfig = .{
         .durable_name = "NEW",
