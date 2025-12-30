@@ -118,23 +118,6 @@ jobs:
 
           kill $SERVER_PID || true
 
-      # Run Unit Tests without NATS server
-      # mem leaks removed & ConnError handled
-      - name: Run Unit Tests without NATS Server
-        run: zig build test --summary all
-
-      # Run Unit Tests with NATS server
-      - name: Run Unit Tests with NATS Server
-        run: |
-          # Start NATS in background with JetStream enabled (port 4222)
-          nats-server -js -p 4222 &
-          SERVER_PID=$!
-          sleep 2
-
-          zig build test --summary all
-
-          # Kill the server
-          kill $SERVER_PID || true
       
       # TLS Upgrade
       - name: Test TLS Upgrade
@@ -150,9 +133,9 @@ jobs:
             -subj "/CN=localhost" \
             -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
 
-          # 3. Start NATS with TLS (Port 4222)
+          # 3. Start NATS with TLS (Port 4227)
           # We use the generated keys from int-test/
-          nats-server --tls --tlscert=int-test/localhost+2.pem --tlskey=int-test/localhost+2-key.pem -DV -p 4222 &
+          nats-server --tls --tlscert=int-test/localhost+2.pem --tlskey=int-test/localhost+2-key.pem -DV -p 4227 &
           SERVER_PID=$!
           
           # Give the server a moment to initialize TLS
@@ -162,4 +145,22 @@ jobs:
           zig build tls
 
           # 5. Cleanup
+          kill $SERVER_PID || true
+
+      # Run Unit Tests without NATS server
+      # mem leaks removed & ConnError handled
+      - name: Run Unit Tests without NATS Server
+        run: zig build test --summary all
+
+      # Run Unit Tests with NATS server
+      - name: Run Unit Tests with NATS Server
+        run: |
+          # Start NATS in background with JetStream enabled (port 4228)
+          nats-server -js -p 4228 &
+          SERVER_PID=$!
+          sleep 2
+
+          zig build test --summary all
+
+          # Kill the server
           kill $SERVER_PID || true

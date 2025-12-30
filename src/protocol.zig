@@ -52,7 +52,7 @@ const ConnectMessage = struct {
     jwt: ?[]const u8 = null,
     /// NKey public key (base32-encoded, starts with "U").
     /// This is derived from the nkey seed and sent to server for identification.
-    nkey_pub: ?[]const u8 = null,
+    nkey: ?[]const u8 = null,
     /// Signature of the server's nonce, signed with the nkey seed (base64url-encoded).
     /// Proves possession of the private key without revealing it.
     sig: ?[]const u8 = null,
@@ -83,7 +83,7 @@ pub fn buildConnectString(
     allocator: std.mem.Allocator,
     opts: ConnectOpts,
     nkey_pubkey: ?[]const u8, // Base32-encoded public key derived from opts.nkey_seed (optional)
-    nkey_sig: ?[]const u8,    // Base64url-encoded signature of server nonce (optional)
+    nkey_sig: ?[]const u8, // Base64url-encoded signature of server nonce (optional)
 ) ![]const u8 {
     const has_nkey = opts.nkey_seed != null;
     const has_token = opts.auth_token != null;
@@ -110,7 +110,7 @@ pub fn buildConnectString(
     const message = ConnectMessage{
         .jwt = opts.jwt,
         // if JWT is used, NKey public key is not sent
-        .nkey_pub = if (opts.jwt != null) null else nkey_pubkey,
+        .nkey = if (opts.jwt != null) null else nkey_pubkey,
         .sig = nkey_sig,
         .auth_token = opts.auth_token,
         .user = opts.user,
