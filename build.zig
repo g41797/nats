@@ -1,43 +1,39 @@
-// Although this function looks imperative, note that its job is to
-// declaratively construct a build graph that will be executed by an external
-// runner.
 pub fn build(b: *std.Build) void {
     // Standard target options allows the person running `zig build` to choose
-    // what target to build for. Here we do not override the defaults, which
-    // means any target is allowed, and the default is native. Other options
-    // for restricting supported target set are available.
-    const target = b.*.standardTargetOptions(.{});
+    // what target to build for.
+    const target = b.standardTargetOptions(.{});
 
     // Standard optimization options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
-    // set a preferred release mode, allowing the user to decide how to optimize.
-    const optimize = b.*.standardOptimizeOption(.{});
+    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
+    const optimize = b.standardOptimizeOption(.{});
 
-    const mailbox = b.*.dependency("mailbox", .{
+    const mailbox = b.dependency("mailbox", .{
         .target = target,
         .optimize = optimize,
     });
 
-    const zul = b.*.dependency("zul", .{
+    const zul = b.dependency("zul", .{
         .target = target,
         .optimize = optimize,
     });
 
-    // Create the root module for the library
-    const root_module = b.*.createModule(.{
-        .root_source_file = b.*.path("src/root.zig"),
+    // 1. Create("addModule") the "nats" module once and configure its internal dependencies.
+    // Fix [Jetstream-no module named 'mailbox' available within module 'nats'](https://github.com/g41797/nats/issues/20)
+    const nats_module = b.addModule("nats", .{
+        .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
         .single_threaded = false,
     });
 
-    root_module.addImport("mailbox", mailbox.module("mailbox"));
-    root_module.addImport("zul", zul.module("zul"));
+    nats_module.addImport("mailbox", mailbox.module("mailbox"));
+    nats_module.addImport("zul", zul.module("zul"));
 
-    const lib = b.*.addLibrary(.{
+    // 2. Create the static library using the configured module.
+    const lib = b.addLibrary(.{
         .linkage = .static,
         .name = "nats",
-        .root_module = root_module,
+        .root_module = nats_module,
     });
 
     if (builtin.os.tag == .windows) {
@@ -45,53 +41,42 @@ pub fn build(b: *std.Build) void {
         lib.linkSystemLibrary("ws2_32");
     }
 
-    _ = b.*.addModule("nats", .{
-        .root_source_file = b.*.path("src/root.zig"),
+    // This declares intent for the library to be installed into the standard location.
+    b.installArtifact(lib);
+
+    // 3. Standalone utility modules
+    _ = b.addModule("Appendable", .{
+        .root_source_file = b.path("src/Appendable.zig"),
         .target = target,
         .optimize = optimize,
     });
 
-    // Standalone Appendable module for projects that only need buffer utilities
-    _ = b.*.addModule("Appendable", .{
-        .root_source_file = b.*.path("src/Appendable.zig"),
+    _ = b.addModule("Formatter", .{
+        .root_source_file = b.path("src/Formatter.zig"),
         .target = target,
         .optimize = optimize,
     });
 
-    // Standalone Formatter module for projects that only need formatting utilities
-    _ = b.*.addModule("Formatter", .{
-        .root_source_file = b.*.path("src/Formatter.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    // This declares intent for the library to be installed into the standard
-    // location when the user invokes the "install" step (the default step when
-    // running `zig build`).
-    b.*.installArtifact(lib);
-
-    const install_docs = b.*.addInstallDirectory(.{
+    // 4. Documentation step
+    const install_docs = b.addInstallDirectory(.{
         .source_dir = lib.getEmittedDocs(),
         .install_dir = .prefix,
         .install_subdir = "docs",
     });
-
-    const docs_step = b.*.step("docs", "Install docs into zig-out/docs");
+    const docs_step = b.step("docs", "Install docs into zig-out/docs");
     docs_step.dependOn(&install_docs.step);
 
-    // Creates a step for unit testing. This only builds the test executable
-    // but does not run it.
-    const test_module = b.*.createModule(.{
-        .root_source_file = b.*.path("src/root_tests.zig"),
+    // 5. Unit Testing
+    const test_module = b.createModule(.{
+        .root_source_file = b.path("src/root_tests.zig"),
         .target = target,
         .optimize = optimize,
         .single_threaded = false,
     });
-
     test_module.addImport("mailbox", mailbox.module("mailbox"));
     test_module.addImport("zul", zul.module("zul"));
 
-    const lib_unit_tests = b.*.addTest(.{
+    const lib_unit_tests = b.addTest(.{
         .root_module = test_module,
     });
 
@@ -100,45 +85,23 @@ pub fn build(b: *std.Build) void {
         lib_unit_tests.linkSystemLibrary("ws2_32");
     }
 
-    b.*.installArtifact(lib_unit_tests);
+    b.installArtifact(lib_unit_tests);
+    const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 
-    const run_lib_unit_tests = b.*.addRunArtifact(lib_unit_tests);
-
-    const exe_test_module = b.*.createModule(.{
-        .root_source_file = b.*.path("src/root_tests.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const exe_unit_tests = b.*.addTest(.{
-        .root_module = exe_test_module,
-    });
-    if (builtin.os.tag == .windows) {
-        exe_unit_tests.linkLibC();
-        exe_unit_tests.linkSystemLibrary("ws2_32");
-    }
-
-    _ = b.*.addRunArtifact(exe_unit_tests);
-
-    // Similar to creating the run step earlier, this exposes a `test` step to
-    // the `zig build --help` menu, providing a way for the user to request
-    // running the unit tests.
-    const test_step = b.*.step("test", "Run unit tests");
+    const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
-    // test_step.dependOn(&exe_unit_tests.step);
 
-    // Integration tests - requires environment variables and running NATS server
-    const integration_test_module = b.*.createModule(.{
-        .root_source_file = b.*.path("src/integration_tests.zig"),
+    // 6. Integration tests
+    const integration_test_module = b.createModule(.{
+        .root_source_file = b.path("src/integration_tests.zig"),
         .target = target,
         .optimize = optimize,
         .single_threaded = false,
     });
-
     integration_test_module.addImport("mailbox", mailbox.module("mailbox"));
     integration_test_module.addImport("zul", zul.module("zul"));
 
-    const integration_tests = b.*.addTest(.{
+    const integration_tests = b.addTest(.{
         .root_module = integration_test_module,
     });
 
@@ -147,23 +110,21 @@ pub fn build(b: *std.Build) void {
         integration_tests.linkSystemLibrary("ws2_32");
     }
 
-    const run_integration_tests = b.*.addRunArtifact(integration_tests);
-
-    const integration_test_step = b.*.step("integration-test", "Run integration tests (requires NATS server and env vars)");
+    const run_integration_tests = b.addRunArtifact(integration_tests);
+    const integration_test_step = b.step("integration-test", "Run integration tests (requires NATS server)");
     integration_test_step.dependOn(&run_integration_tests.step);
 
-    // TLS tests - TLS testing with demo.nats.io ------------------
-    const tls_test_module = b.*.createModule(.{
-        .root_source_file = b.*.path("src/tcp-tls.zig"),
+    // 7. TLS tests
+    const tls_test_module = b.createModule(.{
+        .root_source_file = b.path("src/tcp-tls.zig"),
         .target = target,
         .optimize = optimize,
         .single_threaded = false,
     });
-
     tls_test_module.addImport("mailbox", mailbox.module("mailbox"));
     tls_test_module.addImport("zul", zul.module("zul"));
 
-    const tls_tests = b.*.addTest(.{
+    const tls_tests = b.addTest(.{
         .root_module = tls_test_module,
     });
 
@@ -172,9 +133,8 @@ pub fn build(b: *std.Build) void {
         tls_tests.linkSystemLibrary("ws2_32");
     }
 
-    const run_tls_tests = b.*.addRunArtifact(tls_tests);
-
-    const tls_test_step = b.*.step("tls", "Run TLS demo tests with demo.nats.io");
+    const run_tls_tests = b.addRunArtifact(tls_tests);
+    const tls_test_step = b.step("tls", "Run TLS demo tests with demo.nats.io");
     tls_test_step.dependOn(&run_tls_tests.step);
 }
 
